@@ -180,6 +180,11 @@ class JobSummaryResponse(BaseModel):
 
 class JobResponse(JobSummaryResponse):
     result: ArticleResult | None = None
+    serp_data: SerpData | None = None
+    analysis_data: CompetitiveAnalysis | None = None
+    outline_data: ArticleOutline | None = None
+    article_data: ArticleContent | None = None
+    quality_data: QualityScore | None = None
 
 
 class JobListResponse(BaseModel):

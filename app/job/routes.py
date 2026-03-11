@@ -51,6 +51,11 @@ def _job_to_response(job: Job) -> JobResponse:
         error=job.error,
         revision_count=job.revision_count,
         result=result,
+        serp_data=job.get_serp(),
+        analysis_data=job.get_analysis(),
+        outline_data=job.get_outline(),
+        article_data=job.get_article(),
+        quality_data=job.get_quality(),
         created_at=job.created_at,
         updated_at=job.updated_at,
     )

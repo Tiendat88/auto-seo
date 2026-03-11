@@ -104,6 +104,41 @@ class TestListJobs:
         assert len(data["jobs"]) == 2
 
 
+class TestIntermediateData:
+    async def test_new_job_has_null_intermediate_fields(self, client):
+        resp = await client.post("/api/jobs/", json={"topic": "intermediate test topic"})
+        data = resp.json()
+        assert data["serp_data"] is None
+        assert data["analysis_data"] is None
+        assert data["outline_data"] is None
+        assert data["article_data"] is None
+        assert data["quality_data"] is None
+
+    async def test_intermediate_fields_populated_after_step(self, client, test_session_factory):
+        create_resp = await client.post("/api/jobs/", json={"topic": "data visibility test"})
+        job_id = create_resp.json()["job_id"]
+
+        # Manually inject serp_data onto the job
+        async with test_session_factory() as session:
+            job = await session.get(Job, job_id)
+            job.status = JobStatus.ANALYZING
+            job.serp_data = {
+                "query": "test",
+                "results": [
+                    {"rank": 1, "url": "https://example.com", "title": "Test", "snippet": "s"}
+                ],
+                "questions": [],
+            }
+            session.add(job)
+            await session.commit()
+
+        resp = await client.get(f"/api/jobs/{job_id}")
+        data = resp.json()
+        assert data["serp_data"] is not None
+        assert data["serp_data"]["query"] == "test"
+        assert data["analysis_data"] is None
+
+
 class TestResumeJob:
     async def test_resume_nonexistent(self, client):
         resp = await client.post("/api/jobs/fake-id/resume")
