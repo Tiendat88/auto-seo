@@ -1,0 +1,197 @@
+"""Tests for Pydantic model validation and serialization."""
+
+import pytest
+from pydantic import ValidationError
+
+from app.article.models import (
+    ArticleContent,
+    ArticleOutline,
+    ArticleSection,
+    CompetitiveAnalysis,
+    HeadingLevel,
+    KeywordCluster,
+    OutlineHeading,
+    QualityScore,
+    SeoMetadata,
+)
+from app.job.models import ArticleRequest, JobStatus
+from app.serp.models import SerpData, SerpResult
+
+
+class TestSerpModels:
+    def test_serp_result_extracts_domain(self):
+        r = SerpResult(rank=1, url="https://www.example.com/path", title="Test", snippet="Snip")
+        assert r.domain == "www.example.com"
+
+    def test_serp_result_rank_bounds(self):
+        with pytest.raises(ValidationError):
+            SerpResult(rank=0, url="https://x.com", title="T", snippet="S")
+
+    def test_serp_data_requires_results(self):
+        with pytest.raises(ValidationError):
+            SerpData(query="test", results=[])
+
+    def test_serp_data_round_trip(self, sample_serp_data: SerpData):
+        json_str = sample_serp_data.model_dump_json()
+        restored = SerpData.model_validate_json(json_str)
+        assert len(restored.results) == 10
+        assert restored.query == sample_serp_data.query
+
+
+class TestArticleModels:
+    def test_section_computes_word_count(self):
+        section = ArticleSection(
+            heading="Test", heading_level=HeadingLevel.H2, content="one two three four five"
+        )
+        assert section.word_count == 5
+
+    def test_article_content_computes_total(self):
+        article = ArticleContent(
+            sections=[
+                ArticleSection(heading="A", heading_level=HeadingLevel.H1, content="word " * 100),
+                ArticleSection(heading="B", heading_level=HeadingLevel.H2, content="word " * 200),
+            ]
+        )
+        assert article.total_word_count == 300
+
+    def test_seo_metadata_title_max_length(self):
+        with pytest.raises(ValidationError):
+            SeoMetadata(
+                title_tag="x" * 61,
+                meta_description="desc",
+                primary_keyword="kw",
+                slug="slug",
+            )
+
+    def test_seo_metadata_valid(self):
+        meta = SeoMetadata(
+            title_tag="Best Tools for Remote Teams",
+            meta_description="Discover top productivity tools for remote teams.",
+            primary_keyword="productivity tools",
+            slug="best-tools-remote-teams",
+        )
+        assert meta.slug == "best-tools-remote-teams"
+
+    def test_quality_score_bounds(self):
+        with pytest.raises(ValidationError):
+            QualityScore(
+                overall=1.5,
+                dimensions=[],
+                passes_threshold=True,
+            )
+
+    def test_outline_min_headings(self):
+        with pytest.raises(ValidationError):
+            ArticleOutline(
+                h1="Test",
+                headings=[
+                    OutlineHeading(level=HeadingLevel.H2, text="A", target_word_count=100),
+                ],
+                estimated_total_words=100,
+            )
+
+
+class TestCompetitiveAnalysis:
+    def test_round_trip(self, sample_analysis: CompetitiveAnalysis):
+        json_str = sample_analysis.model_dump_json()
+        restored = CompetitiveAnalysis.model_validate_json(json_str)
+        assert restored.keywords.primary == "productivity tools"
+        assert len(restored.themes) == 3
+
+    def test_requires_at_least_one_theme(self):
+        with pytest.raises(ValidationError):
+            CompetitiveAnalysis(
+                keywords=KeywordCluster(primary="test"),
+                themes=[],
+                avg_word_count=1000,
+                search_intent="informational",
+            )
+
+
+class TestRequestModels:
+    def test_article_request_defaults(self):
+        req = ArticleRequest(topic="test topic")
+        assert req.target_word_count == 1500
+        assert req.language == "en"
+
+    def test_article_request_topic_min_length(self):
+        with pytest.raises(ValidationError):
+            ArticleRequest(topic="ab")
+
+    def test_article_request_word_count_bounds(self):
+        with pytest.raises(ValidationError):
+            ArticleRequest(topic="valid topic", target_word_count=100)
+
+    def test_article_request_language_pattern(self):
+        with pytest.raises(ValidationError):
+            ArticleRequest(topic="valid topic", language="eng")
+
+    def test_job_status_values(self):
+        assert JobStatus.PENDING == "pending"
+        assert JobStatus.COMPLETED == "completed"
+
+
+class TestNegativeCases:
+    def test_slug_rejects_spaces(self):
+        with pytest.raises(ValidationError):
+            SeoMetadata(
+                title_tag="Valid Title Here",
+                meta_description="Valid description here.",
+                primary_keyword="kw",
+                slug="invalid slug",
+            )
+
+    def test_slug_rejects_uppercase(self):
+        with pytest.raises(ValidationError):
+            SeoMetadata(
+                title_tag="Valid Title Here",
+                meta_description="Valid description here.",
+                primary_keyword="kw",
+                slug="Invalid-Slug",
+            )
+
+    def test_slug_accepts_valid(self):
+        meta = SeoMetadata(
+            title_tag="Valid Title Here",
+            meta_description="Valid description here.",
+            primary_keyword="kw",
+            slug="valid-slug-123",
+        )
+        assert meta.slug == "valid-slug-123"
+
+    def test_external_ref_rejects_javascript_url(self):
+        from app.article.models import ExternalReference
+        with pytest.raises(ValidationError):
+            ExternalReference(
+                title="Bad",
+                url="javascript:alert(1)",
+                authority_reason="none",
+                placement_section="intro",
+            )
+
+    def test_external_ref_accepts_https(self):
+        from app.article.models import ExternalReference
+        ref = ExternalReference(
+            title="Good",
+            url="https://example.com",
+            authority_reason="reputable",
+            placement_section="intro",
+        )
+        assert ref.url == "https://example.com"
+
+    def test_serp_provider_unknown_raises(self):
+        from app.errors import SerpError
+        from app.serp.client import get_serp_provider
+        with pytest.raises(SerpError, match="Unknown SERP provider"):
+            get_serp_provider(provider="typo")
+
+    def test_article_word_count_includes_faq(self):
+        from app.article.models import ArticleContent, ArticleSection, FaqItem
+        article = ArticleContent(
+            sections=[
+                ArticleSection(heading="A", heading_level="h1", content="word " * 100),
+            ],
+            faq=[FaqItem(question="What is this?", answer="This is a test answer with words.")],
+        )
+        # Should be > 100 because FAQ words are included
+        assert article.total_word_count > 100
