@@ -5,6 +5,7 @@ import pytest
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from app.article.models import (
+    ArticleBrief,
     ArticleContent,
     ArticleOutline,
     ArticleSection,
@@ -20,6 +21,9 @@ from app.article.models import (
     KeywordUsage,
     LinkSuggestions,
     OutlineHeading,
+    ReviewIssue,
+    ReviewResult,
+    ReviewSeverity,
     SeoMetadata,
 )
 from app.db import Base
@@ -91,6 +95,13 @@ def sample_analysis() -> CompetitiveAnalysis:
 def sample_outline() -> ArticleOutline:
     return ArticleOutline(
         h1="Best Productivity Tools for Remote Teams in 2025",
+        brief=ArticleBrief(
+            target_audience="Remote team leads and managers evaluating tools",
+            tone="Authoritative but approachable",
+            angle="Focus on integration ecosystems rather than individual tools",
+            differentiators=["Integration-first perspective", "Real cost analysis"],
+            content_gaps_to_fill=["AI-powered productivity"],
+        ),
         headings=[
             OutlineHeading(
                 level=HeadingLevel.H1,
@@ -299,6 +310,23 @@ def sample_links() -> LinkSuggestions:
                 url="https://www.gartner.com/reviews/market/project-management",
                 authority_reason="Industry-standard analyst evaluation",
                 placement_section="Project Management Tools",
+            ),
+        ],
+    )
+
+
+@pytest.fixture
+def sample_review() -> ReviewResult:
+    return ReviewResult(
+        passed=True,
+        summary="Article is comprehensive and well-structured.",
+        strengths=["Strong keyword integration", "Good section balance"],
+        issues=[
+            ReviewIssue(
+                category="engagement_quality",
+                severity=ReviewSeverity.MINOR,
+                description="Could use more data points",
+                suggestion="Add 1-2 statistics per section",
             ),
         ],
     )

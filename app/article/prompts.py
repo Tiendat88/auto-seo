@@ -1,9 +1,64 @@
 """LLM prompt templates for article generation pipeline."""
 
 from app.article.models import (
+    ArticleBrief,
+    ArticleContent,
+    ArticleOutline,
     CompetitiveAnalysis,
+    ReviewResult,
+    ScoreDimension,
 )
 from app.serp.models import SerpData
+
+# --- Helpers ---
+
+
+def format_brief(brief: ArticleBrief | None) -> str:
+    """Format an editorial brief as a compact text block for prompt injection."""
+    if not brief:
+        return ""
+    diffs = ", ".join(brief.differentiators) if brief.differentiators else "none"
+    gaps = ", ".join(brief.content_gaps_to_fill) if brief.content_gaps_to_fill else "none"
+    return (
+        f"--- Editorial Brief ---\n"
+        f"Audience: {brief.target_audience} | Tone: {brief.tone}\n"
+        f"Angle: {brief.angle}\n"
+        f"Differentiators: {diffs}\n"
+        f"Content gaps to fill: {gaps}\n"
+        f"---"
+    )
+
+
+def _structured_article_text(article: ArticleContent, char_limit: int) -> str:
+    """Format article with section markers, proportionally truncated to char_limit."""
+    parts: list[str] = []
+    for s in article.sections:
+        parts.append(f"=== [{s.heading_level.value}] {s.heading} ===\n{s.content}")
+
+    if article.faq:
+        faq_lines = []
+        for f in article.faq:
+            faq_lines.append(f"Q: {f.question}\nA: {f.answer}")
+        parts.append("=== FAQ ===\n" + "\n\n".join(faq_lines))
+
+    full = "\n\n".join(parts)
+    if len(full) <= char_limit:
+        return full
+
+    # Proportional truncation: preserve headings, trim content
+    total_len = sum(len(p) for p in parts)
+    ratio = char_limit / total_len
+    truncated = []
+    for p in parts:
+        lines = p.split("\n", 1)
+        header = lines[0]
+        body = lines[1] if len(lines) > 1 else ""
+        max_body = int(len(body) * ratio)
+        truncated.append(f"{header}\n{body[:max_body]}...")
+    return "\n\n".join(truncated)
+
+
+# --- Pipeline Step Prompts ---
 
 
 def analysis_prompt(serp: SerpData) -> str:
@@ -31,7 +86,7 @@ Extract the following:
 4. Subtopics within each theme
 5. Content gaps — topics NOT well covered that would add value
 6. Estimated average word count of top results (estimate from snippet depth and title complexity)
-7. Common heading patterns (what H2-level topics do competitors use?)
+7. Common heading patterns (estimate what H2-level topics competitors likely use)
 8. Search intent classification: informational | transactional | navigational | commercial"""
 
 
@@ -68,7 +123,7 @@ Content gaps to exploit:
 
 Common heading patterns: {", ".join(analysis.common_heading_patterns)}
 
-Requirements:
+Requirements for the OUTLINE:
 - One H1 that includes the primary keyword naturally
 - 5-8 H2 sections covering the major themes
 - H3 subsections where depth is needed
@@ -76,86 +131,96 @@ Requirements:
 - Include key_points for each section (what must be covered)
 - Include keywords_to_include for each section
 - End with 4-6 FAQ questions drawn from search questions and content gaps
-- The outline should be structured to satisfy the search intent: {analysis.search_intent}"""
+- The outline should be structured to satisfy the search intent: {analysis.search_intent}
+
+Requirements for the BRIEF (return in the "brief" field):
+You must also generate an editorial brief that includes:
+- target_audience: Who is this article for? Be specific (role, experience level, context)
+- tone: The writing tone (e.g., "authoritative but approachable", "technical and precise")
+- angle: A unique editorial angle that differentiates this article from competitors
+- differentiators: 2-4 specific ways this article will add unique value
+- content_gaps_to_fill: Which content gaps from the analysis will this article exploit
+
+The brief should synthesize the competitive analysis into an actionable editorial strategy."""
 
 
-def section_prompt(
-    topic: str,
-    heading: str,
-    heading_level: str,
-    target_word_count: int,
-    key_points: list[str],
-    keywords: list[str],
-    previous_ending: str,
+def generate_article_prompt(
+    outline: ArticleOutline,
     language: str,
     revision_instructions: str | None = None,
 ) -> str:
-    key_points_block = "\n".join(
-        f"- {kp}" for kp in key_points
-    ) if key_points else (
-        "Use your judgment"
+    """Single-call prompt for full article + inline FAQ."""
+    brief_block = format_brief(outline.brief) if outline.brief else ""
+
+    headings_block = "\n".join(
+        f"- {h.level.value.upper()}: {h.text} (~{h.target_word_count} words)\n"
+        f"  Key points: {', '.join(h.key_points)}\n"
+        f"  Keywords: {', '.join(h.keywords_to_include)}"
+        for h in outline.headings
     )
-    keywords_block = ", ".join(keywords) if keywords else "None specified"
 
-    transition = ""
-    if previous_ending:
-        transition = (
-            f'\nPrevious section ended with: "{previous_ending}"\n'
-            "Continue naturally from this context.\n"
+    faq_block = ""
+    if outline.faq_questions:
+        faq_block = (
+            "\n\nFAQ questions to answer at the end:\n"
+            + "\n".join(f"- {q}" for q in outline.faq_questions)
         )
 
-    revision = ""
+    revision_block = ""
     if revision_instructions:
-        revision = (
-            "\nREVISION REQUIRED. Issues from previous draft:\n"
+        revision_block = (
+            "\n\nREVISION REQUIRED. Issues from previous draft:\n"
             f"{revision_instructions}\n"
-            "Please address these issues in your rewrite.\n"
+            "Address these issues in your rewrite.\n"
         )
 
-    return f"""You are an expert content writer creating a section of an article about "{topic}".
+    return f"""You are an expert content writer. Write a complete article in {language}.
 
-Section heading: {heading} ({heading_level})
-Target length: ~{target_word_count} words
-Language: {language}
-{transition}
-Key points to cover:
-{key_points_block}
+{brief_block}
 
-Keywords to naturally include: {keywords_block}
-{revision}
+Article outline:
+{headings_block}
+{faq_block}
+{revision_block}
+Output format:
+- Use markdown headings: # for H1, ## for H2, ### for H3
+- Write the full body text under each heading (do NOT repeat the heading in the text)
+- If there are FAQ questions, write them at the end under a ## FAQ heading
+- Each FAQ question should be a ### heading, followed by a 2-4 sentence answer
+
 Guidelines:
 - Write naturally and engagingly; avoid keyword stuffing
 - Use concrete examples, data points, and actionable advice
 - Vary sentence length and structure for readability
 - Do NOT use filler phrases like "In today's world", "It's important to note", "In conclusion"
-- Do NOT include the heading itself — output only the body text for this section
-- Write in {language}
-- Aim for exactly ~{target_word_count} words"""
+- Naturally include the specified keywords for each section
+- Maintain narrative flow between sections — each section should connect to the next
+- Write in {language}"""
 
 
-def faq_prompt(questions: list[str], topic: str, language: str) -> str:
-    questions_block = "\n".join(f"- {q}" for q in questions)
-    return f"""Write concise, helpful answers for these FAQ questions about "{topic}".
+def seo_metadata_prompt(
+    topic: str,
+    primary_keyword: str,
+    article_intro: str,
+    brief: ArticleBrief | None = None,
+    section_headings: list[str] | None = None,
+) -> str:
+    brief_block = ""
+    if brief:
+        brief_block = (
+            f"\nEditorial context: audience={brief.target_audience},"
+            f" angle={brief.angle}\n"
+        )
 
-Questions:
-{questions_block}
+    headings_block = ""
+    if section_headings:
+        headings_block = f"\nArticle sections: {', '.join(section_headings)}\n"
 
-Guidelines:
-- Each answer should be 2-4 sentences
-- Be direct and specific — no filler
-- Include relevant keywords naturally
-- Write in {language}
-
-Return a JSON object with an "items" key containing an array of objects
-with "question" and "answer" fields."""
-
-
-def seo_metadata_prompt(topic: str, primary_keyword: str, article_intro: str) -> str:
     return f"""Generate SEO metadata for an article about "{topic}".
 
 Primary keyword: {primary_keyword}
 Article introduction (first 200 words): {article_intro[:800]}
-
+{brief_block}{headings_block}
 Generate:
 1. title_tag: Under 60 characters, includes primary keyword, compelling for clicks
 2. meta_description: Under 155 characters, includes primary keyword, summarizes value proposition
@@ -168,21 +233,33 @@ def links_prompt(
     section_headings: list[str],
     analysis: CompetitiveAnalysis,
     serp: SerpData,
+    brief: ArticleBrief | None = None,
+    section_summaries: list[tuple[str, str]] | None = None,
 ) -> str:
     headings_block = "\n".join(f"- {h}" for h in section_headings)
     domains_block = "\n".join(f"- {r.domain}" for r in serp.results[:5])
     themes_str = ", ".join(t.theme for t in analysis.themes)
 
+    context_block = ""
+    if section_summaries:
+        context_block = "\n\nSection summaries:\n" + "\n".join(
+            f"- {heading}: {summary}" for heading, summary in section_summaries
+        )
+
+    brief_block = ""
+    if brief:
+        brief_block = f"\nTarget audience: {brief.target_audience}\n"
+
     return f"""Suggest links for an article about "{topic}".
 
 Article sections:
 {headings_block}
-
+{context_block}
 Competitor domains:
 {domains_block}
 
 Topics from competitive analysis: {themes_str}
-
+{brief_block}
 Generate:
 1. Internal links (3-5): Identify anchor text phrases that could link to
 related content on the same website. For each, provide the anchor_text,
@@ -200,21 +277,182 @@ Make internal link suggestions diverse — cover different sections of the
 article. Make external references from well-known, authoritative domains."""
 
 
-def quality_llm_prompt(article_text: str, themes: list[str]) -> str:
-    themes_block = ", ".join(themes)
-    # Truncate article to avoid token limits
-    truncated = article_text[:4000]
-    return f"""Rate this article on two quality dimensions (score 0.0 to 1.0 each):
+def review_prompt(
+    article_text: str,
+    outline_headings: list[str],
+    brief: ArticleBrief | None,
+    target_word_count: int,
+) -> str:
+    """Holistic AI self-review prompt."""
+    headings_block = "\n".join(f"- {h}" for h in outline_headings)
+    brief_block = format_brief(brief) if brief else "No editorial brief available."
 
-1. content_depth: Does it thoroughly cover the expected themes? Expected themes: {themes_block}
-2. readability: Does it read naturally and engagingly? Or does it feel AI-generated/robotic?
+    return f"""You are a senior editorial reviewer for SEO content. Perform a holistic
+review of this article and identify issues across these categories:
 
-Article (truncated):
-{truncated}
+1. **Factual consistency**: Are claims internally consistent? Any contradictions?
+2. **Tone and voice**: Is the tone consistent throughout? Does it match the topic?
+3. **Section balance**: Are sections proportionally weighted? Any too thin or bloated?
+4. **Competitive differentiation**: Does the article add unique value beyond generic advice?
+5. **Engagement quality**: Are there concrete examples, data points, stories, or hooks?
+6. **SEO completeness**: Beyond keywords, does it use related terms, answer search intent fully?
+7. **Actionability**: Can the reader do something with this information?
 
-For each dimension, provide:
-- name: the dimension name
+{brief_block}
+
+Article:
+{article_text}
+
+Planned outline headings:
+{headings_block}
+
+Target word count: {target_word_count}
+
+For each issue found, provide:
+- category: which of the 7 categories above (use snake_case, e.g. "factual_consistency")
+- severity: "critical" (article fails without fix), "major" (significant quality gap),
+  or "minor" (polish improvement)
+- description: what the problem is
+- affected_section: heading of the section affected (null if article-wide)
+- suggestion: specific, actionable fix
+
+Also provide:
+- passed: true if no critical or major issues, false otherwise
+- summary: 2-3 sentence overall assessment
+- strengths: 2-4 specific things the article does well (preserve these in any revision)
+
+Return a JSON object matching the schema provided."""
+
+
+# --- Scoring Prompts ---
+
+
+def depth_differentiation_score_prompt(article_text: str, brief_text: str) -> str:
+    return f"""Rate this article on two quality dimensions (score 0.0 to 1.0 each).
+
+{brief_text}
+
+Article:
+{article_text}
+
+Score these two dimensions:
+
+1. **content_depth** (name: "content_depth"):
+   Does it thoroughly cover the expected themes? Does it go beyond surface-level treatment?
+   Are there specific details, examples, and nuanced discussion?
+   0.0 = superficial/generic, 1.0 = comprehensive expert coverage
+
+2. **differentiation** (name: "differentiation"):
+   Does this article offer unique value compared to typical competitor content?
+   Does it exploit content gaps? Does it have a distinct angle or perspective?
+   0.0 = generic rehash, 1.0 = uniquely valuable
+
+For each dimension, return:
+- name: exactly as specified above
 - score: 0.0 to 1.0
-- feedback: specific, actionable feedback
+- feedback: specific, actionable feedback (what's good, what to improve)
 
-Return a JSON object with a "dimensions" key containing an array of two objects."""
+Return JSON with a "dimensions" key containing exactly 2 objects."""
+
+
+def accuracy_consistency_score_prompt(article_text: str, brief_text: str) -> str:
+    return f"""Rate this article on two quality dimensions (score 0.0 to 1.0 each).
+
+{brief_text}
+
+Article:
+{article_text}
+
+Score these two dimensions:
+
+1. **accuracy** (name: "accuracy"):
+   Are claims factually plausible and internally consistent? Are there contradictions?
+   Are statistics or data points reasonable? Does it avoid making unsupported claims?
+   0.0 = contains contradictions/false claims, 1.0 = internally consistent and accurate
+
+2. **consistency** (name: "consistency"):
+   Is the tone, style, and quality consistent throughout? Do all sections feel like
+   they were written by the same author? Is terminology used consistently?
+   0.0 = inconsistent/jarring, 1.0 = seamlessly consistent
+
+For each dimension, return:
+- name: exactly as specified above
+- score: 0.0 to 1.0
+- feedback: specific, actionable feedback (what's good, what to improve)
+
+Return JSON with a "dimensions" key containing exactly 2 objects."""
+
+
+def readability_actionability_score_prompt(article_text: str, brief_text: str) -> str:
+    return f"""Rate this article on two quality dimensions (score 0.0 to 1.0 each).
+
+{brief_text}
+
+Article:
+{article_text}
+
+Score these two dimensions:
+
+1. **readability** (name: "readability"):
+   Does it read naturally and engagingly? Does it vary sentence structure?
+   Does it avoid AI-sounding filler phrases? Is it easy to follow?
+   0.0 = robotic/hard to read, 1.0 = engaging natural prose
+
+2. **actionability** (name: "actionability"):
+   Can the reader DO something with this information? Are there concrete examples,
+   step-by-step guidance, tools, or frameworks they can apply?
+   0.0 = purely theoretical, 1.0 = immediately actionable
+
+For each dimension, return:
+- name: exactly as specified above
+- score: 0.0 to 1.0
+- feedback: specific, actionable feedback (what's good, what to improve)
+
+Return JSON with a "dimensions" key containing exactly 2 objects."""
+
+
+# --- Edit Prompt ---
+
+
+def edit_prompt(
+    article_text: str,
+    brief: ArticleBrief | None,
+    score_dimensions: list[ScoreDimension],
+    review: ReviewResult | None,
+) -> str:
+    """Prompt for editing an article in place based on score and review feedback."""
+    brief_block = format_brief(brief) if brief else ""
+
+    scores_block = "\n".join(
+        f"- {d.name}: {d.score:.2f} — {d.feedback}" for d in score_dimensions
+    )
+
+    review_block = ""
+    if review:
+        issues_block = "\n".join(
+            f"- [{i.severity}] {i.category}: {i.description} -> {i.suggestion}"
+            for i in review.issues
+        )
+        strengths_block = "\n".join(f"- {s}" for s in review.strengths)
+        review_block = (
+            f"\nReview issues:\n{issues_block}\n\n"
+            f"Strengths to PRESERVE:\n{strengths_block}\n"
+        )
+
+    return f"""You are an expert editor. Revise this article to address the feedback below.
+
+{brief_block}
+
+Quality scores:
+{scores_block}
+{review_block}
+Current article:
+{article_text}
+
+Instructions:
+- Address the specific issues identified in the scores and review
+- PRESERVE the strengths listed — do not remove or weaken what's already good
+- Edit in place: keep the same structure and headings, improve the content
+- Output the full revised article in markdown format (# H1, ## H2, ### H3)
+- Include the FAQ section at the end if present
+- Focus your edits on the weakest dimensions; don't over-edit strong sections"""

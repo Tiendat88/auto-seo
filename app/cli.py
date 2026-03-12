@@ -12,7 +12,7 @@ from rich.progress import BarColumn, Progress, SpinnerColumn, TextColumn
 from rich.table import Table
 from rich.tree import Tree
 
-app = typer.Typer(name="seo-cli", help="SEO Article Generator CLI")
+app = typer.Typer(name="autoseo", help="SEO Article Generator CLI")
 console = Console()
 
 DEFAULT_API_URL = "http://localhost:8000"
@@ -23,6 +23,7 @@ STAGES: list[tuple[str, str, str]] = [
     ("outlining", "Outline", "outline_data"),
     ("generating", "Generate", "article_data"),
     ("scoring", "Score", "quality_data"),
+    ("reviewing", "Review", "review_data"),
 ]
 
 
@@ -258,6 +259,22 @@ def _render_outline(data: dict) -> None:
     console.print(tree)
     console.print(f"  Estimated: {est} words | {faq_count} FAQ questions")
 
+    # Show editorial brief if present
+    brief = data.get("brief")
+    if brief:
+        brief_lines = [
+            f"Audience: [bold]{brief.get('target_audience', '?')}[/bold]",
+            f"Tone: {brief.get('tone', '?')}",
+            f"Angle: {brief.get('angle', '?')}",
+        ]
+        diffs = brief.get("differentiators", [])
+        if diffs:
+            brief_lines.append(f"Differentiators: {', '.join(diffs)}")
+        gaps = brief.get("content_gaps_to_fill", [])
+        if gaps:
+            brief_lines.append(f"Gaps to fill: {', '.join(gaps)}")
+        console.print(Panel("\n".join(brief_lines), title="Editorial Brief"))
+
 
 def _render_article(data: dict) -> None:
     """Render article content summary as a table."""
@@ -299,12 +316,55 @@ def _render_quality(data: dict) -> None:
     console.print(f"  Overall: [bold]{overall:.2f}[/bold] {status_text}")
 
 
+def _render_review(data: dict) -> None:
+    """Render AI review results."""
+    passed = data.get("passed", False)
+    summary = data.get("summary", "")
+    status_text = "[green]PASS[/green]" if passed else "[red]FAIL[/red]"
+
+    console.print(f"  Review: {status_text}")
+    console.print(f"  {summary}")
+
+    strengths = data.get("strengths", [])
+    if strengths:
+        console.print("  [green]Strengths:[/green]")
+        for s in strengths:
+            console.print(f"    + {s}")
+
+    issues = data.get("issues", [])
+    if issues:
+        table = Table(title="Review Issues", show_lines=False)
+        table.add_column("Severity", width=10)
+        table.add_column("Category", max_width=25)
+        table.add_column("Description", max_width=45)
+        table.add_column("Section", max_width=20)
+
+        severity_styles = {
+            "critical": "red bold",
+            "major": "yellow",
+            "minor": "dim",
+        }
+
+        for issue in issues:
+            sev = issue.get("severity", "minor")
+            style = severity_styles.get(sev, "")
+            table.add_row(
+                f"[{style}]{sev}[/{style}]",
+                issue.get("category", ""),
+                issue.get("description", "")[:45],
+                issue.get("affected_section", "-") or "-",
+            )
+
+        console.print(table)
+
+
 STAGE_RENDERERS: dict[str, callable] = {  # type: ignore[type-arg]
     "serp_data": _render_serp,
     "analysis_data": _render_analysis,
     "outline_data": _render_outline,
     "article_data": _render_article,
     "quality_data": _render_quality,
+    "review_data": _render_review,
 }
 
 
@@ -339,10 +399,11 @@ def _poll_job(api_url: str, job_id: str) -> None:
                     prev_revision = revision_count
                     rendered_stages.discard("article_data")
                     rendered_stages.discard("quality_data")
+                    rendered_stages.discard("review_data")
                     progress.stop()
                     console.print(
-                        f"\n[yellow]Revision {revision_count}: "
-                        "quality below threshold, regenerating...[/yellow]\n"
+                        f"\n[yellow]Edit {revision_count}: "
+                        "polishing article...[/yellow]\n"
                     )
                     progress.start()
 
@@ -413,18 +474,23 @@ def _render_completion_summary(data: dict) -> None:
         f"[green bold]Completed:[/green bold] {title}"
         f" | slug: {slug} | {words} words | {revisions} revision(s)"
     )
-    console.print(f"View full article: [bold]seo-cli result {data['job_id']}[/bold]")
+    console.print(f"View full article: [bold]autoseo result {data['job_id']}[/bold]")
 
 
 def _render_summary(data: dict) -> None:
     """Compact summary view for result --summary."""
     result = data.get("result", {})
     quality = result.get("quality", {})
+    review = result.get("review")
     seo = result.get("seo_metadata", {})
     content = result.get("content", {})
 
     if quality:
         _render_quality(quality)
+        console.print()
+
+    if review:
+        _render_review(review)
         console.print()
 
     console.print(f"Title: [bold]{seo.get('title_tag', '?')}[/bold]")

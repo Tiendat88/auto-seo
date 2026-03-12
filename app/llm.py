@@ -39,22 +39,38 @@ def _extract_json(text: str) -> str:
     return text.strip()
 
 
-class LlmClient:
-    """LLM client with dual backend: Anthropic API (if key set) or Claude Agent SDK."""
+def get_secondary_llm() -> "LlmClient | None":
+    """Return a Gemini LlmClient if GOOGLE_API_KEY is configured, else None."""
+    if settings.google_api_key:
+        return LlmClient(provider="gemini")
+    return None
 
-    def __init__(self, api_key: str = "", model: str = "") -> None:
-        self._api_key = api_key or settings.anthropic_api_key
-        self._model = model or settings.llm_model
-        self._use_sdk = not self._api_key
-        if not self._use_sdk:
+
+class LlmClient:
+    """LLM client with triple backend: Anthropic API, Claude Agent SDK, or Gemini."""
+
+    def __init__(self, api_key: str = "", model: str = "", provider: str = "") -> None:
+        if provider == "gemini":
+            self._backend = "gemini"
+            self._google_key = api_key or settings.google_api_key
+            self._model = model or settings.gemini_model
+        elif api_key or settings.anthropic_api_key:
+            self._backend = "anthropic"
+            self._api_key = api_key or settings.anthropic_api_key
+            self._model = model or settings.llm_model
             from anthropic import AsyncAnthropic
 
             self._client = AsyncAnthropic(api_key=self._api_key)
+        else:
+            self._backend = "claude-sdk"
+            self._model = model or settings.llm_model
 
     async def generate_text(self, prompt: str, max_tokens: int = 4096) -> str:
         """Generate free-form text."""
         try:
-            if self._use_sdk:
+            if self._backend == "gemini":
+                return await self._generate_via_gemini(prompt, max_tokens)
+            if self._backend == "claude-sdk":
                 return await self._generate_via_sdk(prompt)
             return await self._generate_via_api(prompt, max_tokens)
         except LlmError:
@@ -106,7 +122,7 @@ class LlmClient:
                     "Bash", "Read", "Write", "Edit", "Glob", "Grep",
                     "WebFetch", "WebSearch", "NotebookEdit", "Agent",
                 ],
-                max_turns=1,
+                max_turns=2,
                 model=self._model,
                 system_prompt=(
                     "You are a direct text generator. "
@@ -151,6 +167,58 @@ class LlmClient:
 
         return await _call()
 
+    async def _generate_via_gemini(self, prompt: str, max_tokens: int) -> str:
+        """Generate text via Google Gemini API."""
+        from google import genai
+        from google.genai import types
+
+        @retry(
+            stop=stop_after_attempt(3),
+            wait=wait_exponential(multiplier=1, min=2, max=30),
+            reraise=True,
+        )
+        async def _call() -> str:
+            client = genai.Client(api_key=self._google_key)
+            response = await client.aio.models.generate_content(
+                model=self._model,
+                contents=prompt,
+                config=types.GenerateContentConfig(max_output_tokens=max_tokens),
+            )
+            if not response.text:
+                raise LlmError("Empty response from Gemini")
+            return response.text
+
+        return await _call()
+
+    async def _generate_structured_via_gemini(
+        self, prompt: str, schema: type[T], max_tokens: int
+    ) -> T:
+        """Generate structured output via Gemini's native JSON schema enforcement."""
+        from google import genai
+        from google.genai import types
+
+        @retry(
+            stop=stop_after_attempt(3),
+            wait=wait_exponential(multiplier=1, min=2, max=30),
+            reraise=True,
+        )
+        async def _call() -> T:
+            client = genai.Client(api_key=self._google_key)
+            response = await client.aio.models.generate_content(
+                model=self._model,
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    max_output_tokens=max_tokens,
+                    response_mime_type="application/json",
+                    response_json_schema=schema.model_json_schema(),
+                ),
+            )
+            if not response.text:
+                raise LlmError("Empty structured response from Gemini")
+            return schema.model_validate_json(response.text)
+
+        return await _call()
+
     async def generate_structured(
         self,
         prompt: str,
@@ -170,6 +238,13 @@ class LlmClient:
                 except ValidationError:
                     log.warning("Stale cache entry for schema=%s, regenerating", schema.__name__)
                     await cache.invalidate(ck)
+
+        # Gemini uses native structured output — no JSON extraction needed
+        if self._backend == "gemini":
+            result = await self._generate_structured_via_gemini(prompt, schema, max_tokens)
+            if use_cache:
+                await cache.set(ck, result.model_dump_json(), ttl=3600)
+            return result
 
         schema_json = json.dumps(schema.model_json_schema(), indent=2)
         full_prompt = (

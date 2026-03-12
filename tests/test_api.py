@@ -113,6 +113,7 @@ class TestIntermediateData:
         assert data["outline_data"] is None
         assert data["article_data"] is None
         assert data["quality_data"] is None
+        assert data["review_data"] is None
 
     async def test_intermediate_fields_populated_after_step(self, client, test_session_factory):
         create_resp = await client.post("/api/jobs/", json={"topic": "data visibility test"})

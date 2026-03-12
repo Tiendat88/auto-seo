@@ -3,6 +3,17 @@ from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
+# --- Editorial Brief ---
+
+
+class ArticleBrief(BaseModel):
+    target_audience: str
+    tone: str
+    angle: str
+    differentiators: list[str] = Field(default_factory=list)
+    content_gaps_to_fill: list[str] = Field(default_factory=list)
+
+
 # --- Competitive Analysis ---
 
 
@@ -54,6 +65,7 @@ class ArticleOutline(BaseModel):
     headings: list[OutlineHeading] = Field(..., min_length=3)
     estimated_total_words: int
     faq_questions: list[str] = Field(default_factory=list)
+    brief: ArticleBrief | None = None
 
 
 # --- Article Content ---
@@ -138,9 +150,6 @@ class LinkSuggestions(BaseModel):
 
 # --- Quality ---
 
-QUALITY_THRESHOLD = 0.7
-MAX_REVISIONS = 2
-
 
 class ScoreDimension(BaseModel):
     name: str
@@ -155,6 +164,31 @@ class QualityScore(BaseModel):
     revision_instructions: str | None = None
 
 
+# --- Review ---
+
+
+class ReviewSeverity(StrEnum):
+    CRITICAL = "critical"
+    MAJOR = "major"
+    MINOR = "minor"
+
+
+class ReviewIssue(BaseModel):
+    category: str
+    severity: ReviewSeverity
+    description: str
+    affected_section: str | None = None
+    suggestion: str
+
+
+class ReviewResult(BaseModel):
+    passed: bool
+    summary: str
+    issues: list[ReviewIssue] = Field(default_factory=list)
+    strengths: list[str] = Field(default_factory=list)
+    revision_instructions: str | None = None
+
+
 # --- Composite Result ---
 
 
@@ -164,5 +198,6 @@ class ArticleResult(BaseModel):
     keyword_analysis: KeywordAnalysis
     links: LinkSuggestions
     quality: QualityScore
+    review: ReviewResult | None = None
     competitive_analysis: CompetitiveAnalysis
     outline: ArticleOutline

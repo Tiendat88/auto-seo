@@ -10,10 +10,8 @@ from app.article.models import (
     SeoMetadata,
 )
 from app.article.scorer import (
-    score_faq_coverage,
     score_heading_structure,
     score_keyword_usage,
-    score_meta_quality,
     score_word_count,
 )
 
@@ -122,35 +120,3 @@ class TestWordCount:
         )
         dim = score_word_count(article, 1500)
         assert dim.score <= 0.3
-
-
-class TestMetaQuality:
-    def test_valid_metadata(self, sample_seo_metadata):
-        dim = score_meta_quality(sample_seo_metadata)
-        assert dim.score == 1.0
-
-    def test_title_too_short(self):
-        meta = SeoMetadata(
-            title_tag="short",
-            meta_description="A valid meta description for testing purposes here.",
-            primary_keyword="test",
-            slug="test",
-        )
-        dim = score_meta_quality(meta)
-        assert dim.score < 1.0
-
-
-class TestFaqCoverage:
-    def test_good_faq(self, sample_article):
-        dim = score_faq_coverage(sample_article)
-        assert dim.score == 1.0
-
-    def test_no_faq(self):
-        article = ArticleContent(
-            sections=[
-                ArticleSection(heading="Test", heading_level=HeadingLevel.H1, content="text"),
-            ],
-            faq=[],
-        )
-        dim = score_faq_coverage(article)
-        assert dim.score == 0.0

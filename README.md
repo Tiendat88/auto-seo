@@ -13,22 +13,22 @@ pip install -e ".[dev]"
 
 # 3. Configure environment
 cp .env.example .env
-# Edit .env with your ANTHROPIC_API_KEY
+# Edit .env with your ANTHROPIC_API_KEY (and optionally GOOGLE_API_KEY)
 
 # 4. Start the server
 uvicorn app.main:app --reload
 
 # 5. Generate an article
-seo-cli generate "best productivity tools for remote teams"
+autoseo generate "best productivity tools for remote teams"
 ```
 
 ## Architecture
 
 ```
 POST /jobs → Job(PENDING) → Background pipeline:
-  RESEARCHING → ANALYZING → OUTLINING → GENERATING → SCORING → COMPLETED
-       ↑                                                  │
-       └──────── revision loop (max 2) ──────────────────┘
+  RESEARCHING → ANALYZING → OUTLINING → GENERATING → SCORING → REVIEWING → COMPLETED
+                                                         ↑                      │
+                                                         └── edit loop (max 2) ─┘
 ```
 
 **Linear state machine pipeline** — each step saves intermediate results to the database as JSON. If the process crashes, jobs resume from the last completed step.
@@ -37,9 +37,19 @@ POST /jobs → Job(PENDING) → Background pipeline:
 
 1. **Research** — Fetch top 10 SERP results for the topic (mock or real SerpAPI)
 2. **Analyze** — LLM extracts themes, keywords, content gaps, and search intent from SERP data
-3. **Outline** — LLM generates a structured outline with word count budgets per section
-4. **Generate** — LLM writes article section-by-section with transition context threading
-5. **Score** — Hybrid quality scoring (algorithmic + LLM). Below threshold triggers revision loop
+3. **Outline** — LLM generates a structured outline with editorial brief (audience, tone, angle, differentiators) and word count budgets per section
+4. **Generate** — Single LLM call produces the full article with FAQ, parsed from markdown. SEO metadata and link suggestions generated in parallel
+5. **Score** — Hybrid quality scoring: 3 algorithmic checks (keyword density, heading structure, word count) + 6 LLM-evaluated dimensions (content depth, differentiation, accuracy, consistency, readability, actionability)
+6. **Review** — Holistic LLM editorial review across 7 quality categories with issue-level feedback
+7. **Edit** *(conditional)* — If score or review fails, the article is edited in place using feedback, then re-scored and re-reviewed (capped at `MAX_REVISIONS`)
+
+### Multi-Provider Scoring
+
+When `GOOGLE_API_KEY` is configured, scoring and review run on **both Claude and Gemini** in parallel:
+- **Scoring**: 6 LLM calls (3 Claude + 3 Gemini). Dimensions with the same name are averaged; feedback from the lower-scoring provider is kept
+- **Review**: 2 calls (Claude + Gemini). Issues from both providers are collected; `passed = true` only if no critical/major issues exist across both
+
+Falls back to single-provider (Claude only) when `GOOGLE_API_KEY` is not set.
 
 ### Tech Stack
 
@@ -47,7 +57,7 @@ POST /jobs → Job(PENDING) → Background pipeline:
 |-----------|--------|
 | API | FastAPI |
 | Database | PostgreSQL + async SQLAlchemy |
-| LLM | Anthropic Claude (AsyncAnthropic) |
+| LLM | Anthropic Claude (API or Agent SDK) + Google Gemini |
 | SERP | Mock provider (default) / SerpAPI |
 | Cache | Redis |
 | CLI | Typer + Rich |
@@ -79,11 +89,13 @@ curl http://localhost:8000/api/jobs/{job_id}
 ## CLI Client
 
 ```bash
-seo-cli generate "best productivity tools" --words 1500
-seo-cli status <job-id>
-seo-cli result <job-id> --format md
-seo-cli list --status completed
-seo-cli resume <job-id>
+autoseo generate "best productivity tools" --words 1500
+autoseo status <job-id>
+autoseo result <job-id> --format md
+autoseo result <job-id> --summary
+autoseo list --status completed
+autoseo resume <job-id>
+autoseo export <job-id> -o article.md
 ```
 
 ## Output Structure
@@ -94,9 +106,10 @@ The completed job returns an `ArticleResult` with:
 - **content** — article sections with heading hierarchy (H1/H2/H3), FAQ items, total word count
 - **keyword_analysis** — primary/secondary keyword counts, density, and placement locations
 - **links** — 3-5 internal link suggestions, 2-4 external reference suggestions
-- **quality** — overall score (0-1), per-dimension scores, revision instructions if below threshold
+- **quality** — overall score (0-1), 9 per-dimension scores (3 algorithmic + 6 LLM), revision instructions if below threshold
+- **review** — pass/fail with issue-level feedback (category, severity, suggestion), strengths list
 - **competitive_analysis** — themes, keywords, content gaps from SERP analysis
-- **outline** — structured outline with per-section word budgets
+- **outline** — structured outline with editorial brief and per-section word budgets
 
 See [`examples/sample_output.json`](examples/sample_output.json) for a complete example.
 
@@ -106,15 +119,16 @@ See [`examples/sample_output.json`](examples/sample_output.json) for a complete 
 pytest tests/ -v
 ```
 
-**67 tests** across 5 test files:
+**102 tests** across 6 test files:
 
 | File | Tests | Coverage |
 |------|-------|----------|
-| `test_models.py` | 24 | Pydantic validation, serialization, constraints, negative cases |
-| `test_api.py` | 11 | API endpoints, error handling, CRUD, resume edge cases |
-| `test_pipeline.py` | 8 | State machine, resume logic, failure handling, revision loop |
-| `test_quality.py` | 12 | Algorithmic SEO scoring functions |
+| `test_models.py` | 35 | Pydantic validation, serialization, constraints, ArticleBrief, outline with brief |
+| `test_pipeline.py` | 27 | State machine, resume, markdown parser, edit loop, merge functions, multi-provider scoring/review |
+| `test_api.py` | 13 | API endpoints, error handling, CRUD, resume edge cases |
 | `test_seo.py` | 12 | SEO constraint validation |
+| `test_quality.py` | 8 | Algorithmic scoring functions (keyword, heading, word count) |
+| `test_llm.py` | 7 | Provider selection, Gemini backend routing, `get_secondary_llm` |
 
 Tests use in-memory SQLite (no PostgreSQL required) and mock LLM/SERP providers.
 
@@ -124,22 +138,30 @@ Environment variables (or `.env` file):
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `ANTHROPIC_API_KEY` | — | Required for LLM calls |
-| `LLM_MODEL` | `claude-sonnet-4-20250514` | Anthropic model to use |
+| `ANTHROPIC_API_KEY` | — | Anthropic API key (if set, uses API backend; otherwise falls back to Claude Agent SDK) |
+| `GOOGLE_API_KEY` | — | Enables Gemini as secondary provider for scoring and review |
+| `LLM_MODEL` | `claude-sonnet-4-6` | Anthropic model to use |
+| `GEMINI_MODEL` | `gemini-3-pro-preview` | Gemini model to use |
 | `SERP_PROVIDER` | `mock` | `mock` or `serpapi` |
 | `SERPAPI_KEY` | — | Required if `SERP_PROVIDER=serpapi` |
 | `DATABASE_URL` | `postgresql+asyncpg://seo:seo@localhost:5432/seo_agent` | PostgreSQL connection |
 | `REDIS_URL` | `redis://localhost:6379/0` | Redis connection for caching |
-| `QUALITY_THRESHOLD` | `0.7` | Minimum quality score (0-1) |
-| `MAX_REVISIONS` | `2` | Max revision loops on quality failure |
+| `QUALITY_THRESHOLD` | `0.7` | Minimum quality score (0-1) to skip edit loop |
+| `MAX_REVISIONS` | `2` | Max edit loop iterations on quality/review failure |
 
 ## Design Decisions
 
-**State machine over agent framework** — The pipeline is sequential (SERP → analyze → outline → generate → score). A clean state machine with DB persistence is simpler, more testable, and easier to debug than LangGraph or similar frameworks.
+**State machine over agent framework** — The pipeline is sequential (SERP → analyze → outline → generate → score → review). A clean state machine with DB persistence is simpler, more testable, and easier to debug than LangGraph or similar frameworks.
 
-**Section-by-section generation** — Each outline heading generates one section via a separate LLM call with transition context from the previous section. This produces more balanced coverage than generating the entire article in one call.
+**Single-call article generation** — The full article (including FAQ) is generated in one LLM call and parsed from markdown. This produces coherent narrative flow and natural transitions between sections, compared to section-by-section generation which leads to repetition and isolation.
 
-**Hybrid quality scoring** — Algorithmic checks (keyword density, heading hierarchy, word count) are deterministic and testable. LLM-based checks (content depth, readability) catch subjective quality issues. Combined score with configurable threshold triggers revision loops.
+**Editorial brief in outline step** — The outline LLM call also generates an editorial brief (audience, tone, angle, differentiators). This embeds strategic context into the outline without adding a separate pipeline step, and propagates to all downstream prompts.
+
+**Hybrid quality scoring** — Algorithmic checks (keyword density, heading hierarchy, word count) are deterministic, free, and instant. LLM-based checks (content depth, readability, differentiation, accuracy, consistency, actionability) catch subjective quality issues. Combined 9-dimension score with configurable threshold.
+
+**Multi-provider consensus** — When Gemini is configured, scoring and review run on both Claude and Gemini in parallel. Averaging scores reduces single-model bias; collecting issues from both providers catches more problems. Graceful degradation: if one provider fails, the other's results are used alone.
+
+**Edit loop over regeneration** — When quality/review fails, the article is edited in place using specific feedback rather than regenerated from scratch. This preserves what's already good and focuses LLM effort on the weakest areas.
 
 **Resume = re-enter state machine** — Each step's output is persisted to DB before advancing. On crash/failure, `_determine_resume_index()` finds the first missing output and resumes from there. No complex checkpointing needed.
 
@@ -154,19 +176,19 @@ app/
 ├── main.py              # FastAPI app, lifespan
 ├── config.py            # pydantic-settings
 ├── db.py                # Async SQLAlchemy engine/sessions
-├── llm.py               # AsyncAnthropic wrapper
+├── llm.py               # LlmClient (Anthropic API / Claude Agent SDK / Gemini)
 ├── cache.py             # Redis cache client
 ├── errors.py            # Custom exceptions
 ├── job/
-│   ├── models.py        # Job table, API schemas
+│   ├── models.py        # Job table, JobStatus enum, API schemas
 │   ├── routes.py        # API endpoints
 │   └── service.py       # Job CRUD
 ├── serp/
 │   ├── models.py        # SERP data models
 │   └── client.py        # Mock + real SERP providers
 └── article/
-    ├── models.py        # Article, SEO, quality models
-    ├── pipeline.py      # State machine runner
+    ├── models.py        # ArticleBrief, ArticleOutline, ArticleContent, quality models
+    ├── pipeline.py      # State machine runner, markdown parser, merge logic
     ├── prompts.py       # LLM prompt templates
-    └── scorer.py        # Quality scoring functions
+    └── scorer.py        # Algorithmic scoring functions (keyword, heading, word count)
 ```

@@ -15,6 +15,7 @@ from app.article.models import (
     KeywordAnalysis,
     LinkSuggestions,
     QualityScore,
+    ReviewResult,
     SeoMetadata,
 )
 from app.db import Base
@@ -28,6 +29,8 @@ class JobStatus(StrEnum):
     OUTLINING = "outlining"
     GENERATING = "generating"
     SCORING = "scoring"
+    REVIEWING = "reviewing"
+    EDITING = "editing"
     COMPLETED = "completed"
     FAILED = "failed"
 
@@ -56,6 +59,7 @@ class Job(Base):
     keyword_analysis_data: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
     links_data: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
     quality_data: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
+    review_data: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
@@ -134,6 +138,13 @@ class Job(Base):
         self.quality_data = data.model_dump(mode="json")
         self.updated_at = datetime.now(timezone.utc)
 
+    def get_review(self) -> ReviewResult | None:
+        return ReviewResult.model_validate(self.review_data) if self.review_data else None
+
+    def set_review(self, data: ReviewResult) -> None:
+        self.review_data = data.model_dump(mode="json")
+        self.updated_at = datetime.now(timezone.utc)
+
     def build_result(self) -> ArticleResult | None:
         """Build composite result from all intermediate data. Returns None if incomplete."""
         seo = self.get_seo_metadata()
@@ -151,6 +162,7 @@ class Job(Base):
             keyword_analysis=keywords,  # type: ignore[arg-type]
             links=links,  # type: ignore[arg-type]
             quality=quality,  # type: ignore[arg-type]
+            review=self.get_review(),
             competitive_analysis=analysis,  # type: ignore[arg-type]
             outline=outline,  # type: ignore[arg-type]
         )
@@ -185,6 +197,7 @@ class JobResponse(JobSummaryResponse):
     outline_data: ArticleOutline | None = None
     article_data: ArticleContent | None = None
     quality_data: QualityScore | None = None
+    review_data: ReviewResult | None = None
 
 
 class JobListResponse(BaseModel):

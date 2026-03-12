@@ -7,6 +7,8 @@ class Settings(BaseSettings):
     # LLM
     anthropic_api_key: str = ""
     llm_model: str = "claude-sonnet-4-6"
+    google_api_key: str = ""
+    gemini_model: str = "gemini-3-pro-preview"
 
     # SERP
     serp_provider: str = "mock"

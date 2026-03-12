@@ -4,6 +4,7 @@ import pytest
 from pydantic import ValidationError
 
 from app.article.models import (
+    ArticleBrief,
     ArticleContent,
     ArticleOutline,
     ArticleSection,
@@ -12,6 +13,9 @@ from app.article.models import (
     KeywordCluster,
     OutlineHeading,
     QualityScore,
+    ReviewIssue,
+    ReviewResult,
+    ReviewSeverity,
     SeoMetadata,
 )
 from app.job.models import ArticleRequest, JobStatus
@@ -108,6 +112,70 @@ class TestCompetitiveAnalysis:
             )
 
 
+class TestReviewModels:
+    def test_review_result_passing(self):
+        review = ReviewResult(
+            passed=True,
+            summary="Article is well-written.",
+            strengths=["Good structure", "Clear examples"],
+            issues=[],
+        )
+        assert review.passed is True
+        assert review.revision_instructions is None
+
+    def test_review_result_failing_with_issues(self):
+        review = ReviewResult(
+            passed=False,
+            summary="Needs improvement.",
+            issues=[
+                ReviewIssue(
+                    category="engagement_quality",
+                    severity=ReviewSeverity.CRITICAL,
+                    description="No concrete examples",
+                    suggestion="Add 2-3 real-world examples",
+                ),
+            ],
+            revision_instructions="[engagement_quality] No concrete examples -> Add examples",
+        )
+        assert review.passed is False
+        assert len(review.issues) == 1
+        assert review.revision_instructions is not None
+
+    def test_review_severity_values(self):
+        assert ReviewSeverity.CRITICAL == "critical"
+        assert ReviewSeverity.MAJOR == "major"
+        assert ReviewSeverity.MINOR == "minor"
+
+    def test_review_issue_optional_section(self):
+        issue = ReviewIssue(
+            category="tone",
+            severity=ReviewSeverity.MINOR,
+            description="Slightly inconsistent",
+            suggestion="Maintain formal tone",
+        )
+        assert issue.affected_section is None
+
+    def test_review_result_round_trip(self):
+        review = ReviewResult(
+            passed=False,
+            summary="Needs work.",
+            issues=[
+                ReviewIssue(
+                    category="factual_consistency",
+                    severity=ReviewSeverity.MAJOR,
+                    description="Contradictory claims",
+                    affected_section="Section 2",
+                    suggestion="Reconcile paragraphs 1 and 3",
+                ),
+            ],
+            strengths=["Good SEO coverage"],
+        )
+        json_str = review.model_dump_json()
+        restored = ReviewResult.model_validate_json(json_str)
+        assert restored.issues[0].severity == ReviewSeverity.MAJOR
+        assert restored.issues[0].affected_section == "Section 2"
+
+
 class TestRequestModels:
     def test_article_request_defaults(self):
         req = ArticleRequest(topic="test topic")
@@ -128,6 +196,7 @@ class TestRequestModels:
 
     def test_job_status_values(self):
         assert JobStatus.PENDING == "pending"
+        assert JobStatus.EDITING == "editing"
         assert JobStatus.COMPLETED == "completed"
 
 
@@ -195,3 +264,61 @@ class TestNegativeCases:
         )
         # Should be > 100 because FAQ words are included
         assert article.total_word_count > 100
+
+
+class TestArticleBrief:
+    def test_valid_brief(self):
+        brief = ArticleBrief(
+            target_audience="Remote team leads",
+            tone="Authoritative",
+            angle="Integration-first perspective",
+            differentiators=["Real cost analysis"],
+            content_gaps_to_fill=["AI-powered productivity"],
+        )
+        assert brief.target_audience == "Remote team leads"
+        assert brief.angle == "Integration-first perspective"
+
+    def test_brief_defaults(self):
+        brief = ArticleBrief(
+            target_audience="Developers",
+            tone="Technical",
+            angle="Practical",
+        )
+        assert brief.differentiators == []
+        assert brief.content_gaps_to_fill == []
+
+    def test_brief_round_trip(self):
+        brief = ArticleBrief(
+            target_audience="Test",
+            tone="Casual",
+            angle="Unique angle",
+            differentiators=["d1", "d2"],
+            content_gaps_to_fill=["g1"],
+        )
+        json_str = brief.model_dump_json()
+        restored = ArticleBrief.model_validate_json(json_str)
+        assert restored == brief
+
+
+class TestArticleOutlineWithBrief:
+    def test_outline_with_brief(self, sample_outline: ArticleOutline):
+        assert sample_outline.brief is not None
+        assert sample_outline.brief.target_audience
+
+    def test_outline_without_brief(self):
+        outline = ArticleOutline(
+            h1="Test",
+            headings=[
+                OutlineHeading(level=HeadingLevel.H2, text="A", target_word_count=100),
+                OutlineHeading(level=HeadingLevel.H2, text="B", target_word_count=100),
+                OutlineHeading(level=HeadingLevel.H2, text="C", target_word_count=100),
+            ],
+            estimated_total_words=300,
+        )
+        assert outline.brief is None
+
+    def test_outline_brief_round_trip(self, sample_outline: ArticleOutline):
+        json_str = sample_outline.model_dump_json()
+        restored = ArticleOutline.model_validate_json(json_str)
+        assert restored.brief is not None
+        assert restored.brief.target_audience == sample_outline.brief.target_audience
