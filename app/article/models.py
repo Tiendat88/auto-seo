@@ -1,5 +1,5 @@
 from enum import StrEnum
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
@@ -118,9 +118,23 @@ class KeywordUsage(BaseModel):
     locations: list[str] = Field(default_factory=list)
 
 
+class SectionKeywordDensity(BaseModel):
+    section_heading: str
+    keyword: str
+    count: int
+    density: float
+    word_count: int
+
+
+class KeywordDistribution(BaseModel):
+    primary_by_section: list[SectionKeywordDensity]
+    distribution_score: float = Field(..., ge=0.0, le=1.0)
+
+
 class KeywordAnalysis(BaseModel):
     primary: KeywordUsage
     secondary: list[KeywordUsage] = Field(default_factory=list)
+    keyword_distribution: KeywordDistribution | None = None
 
 
 class InternalLink(BaseModel):
@@ -146,6 +160,24 @@ class ExternalReference(BaseModel):
 class LinkSuggestions(BaseModel):
     internal: list[InternalLink] = Field(..., min_length=3, max_length=5)
     external: list[ExternalReference] = Field(..., min_length=2, max_length=4)
+
+
+# --- SEO Meta Options ---
+
+
+class SeoMetaOptions(BaseModel):
+    title_options: list[str] = Field(..., min_length=5, max_length=5)
+    description_options: list[str] = Field(..., min_length=5, max_length=5)
+
+
+# --- Brand Voice ---
+
+
+class BrandVoice(BaseModel):
+    brand_name: str | None = None
+    voice_description: str | None = None
+    writing_examples: list[str] = Field(default_factory=list, max_length=3)
+    style_notes: str | None = None
 
 
 # --- Quality ---
@@ -201,3 +233,6 @@ class ArticleResult(BaseModel):
     review: ReviewResult | None = None
     competitive_analysis: CompetitiveAnalysis
     outline: ArticleOutline
+    schema_markup: dict[str, Any] | None = None
+    meta_options: SeoMetaOptions | None = None
+    snippet_opportunities: list[dict[str, Any]] = Field(default_factory=list)

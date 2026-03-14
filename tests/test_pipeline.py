@@ -18,6 +18,7 @@ from app.article.models import (
     ReviewSeverity,
     ScoreDimension,
     SeoMetadata,
+    SeoMetaOptions,
 )
 from app.article.pipeline import (
     _determine_resume_index,
@@ -162,6 +163,13 @@ def _make_failing_review() -> ReviewResult:
     )
 
 
+def _make_meta_options() -> SeoMetaOptions:
+    return SeoMetaOptions(
+        title_options=[f"Title Option {i}" for i in range(5)],
+        description_options=[f"Description option {i}" for i in range(5)],
+    )
+
+
 def _smart_generate_structured(model_map: dict):
     """Return a mock that dispatches based on the schema type."""
     async def _mock(prompt, schema, **kwargs):
@@ -214,6 +222,7 @@ class TestPipelineExecution:
             ArticleOutline: _make_outline(),
             SeoMetadata: _make_seo_meta(),
             LinkSuggestions: _make_links(),
+            SeoMetaOptions: _make_meta_options(),
             _ScorePair: _make_score_pair(),
             ReviewResult: _make_passing_review(),
         }))
@@ -261,6 +270,7 @@ class TestPipelineExecution:
             ArticleOutline: _make_outline(),
             SeoMetadata: _make_seo_meta(),
             LinkSuggestions: _make_links(),
+            SeoMetaOptions: _make_meta_options(),
             _ScorePair: _make_score_pair(),
             ReviewResult: _make_passing_review(),
         }))
@@ -420,7 +430,7 @@ class TestEditLoop:
 
         score_call = {"count": 0}
 
-        def smart_structured(model_map):
+        def smart_structured_factory(model_map):
             async def _mock(prompt, schema, **kwargs):
                 if schema == _ScorePair:
                     score_call["count"] += 1
@@ -435,16 +445,17 @@ class TestEditLoop:
             return _mock
 
         mock_llm.generate_text = AsyncMock(return_value=ARTICLE_MARKDOWN)
-        mock_llm.generate_structured = AsyncMock(side_effect=smart_structured({
+        mock_llm.generate_structured = AsyncMock(side_effect=smart_structured_factory({
             CompetitiveAnalysis: _make_analysis(),
             ArticleOutline: _make_outline(),
             SeoMetadata: _make_seo_meta(),
             LinkSuggestions: _make_links(),
+            SeoMetaOptions: _make_meta_options(),
             ReviewResult: _make_passing_review(),
         }))
 
         with patch("app.article.pipeline.settings") as mock_settings:
-            mock_settings.quality_threshold = 0.4
+            mock_settings.quality_threshold = 0.75
             mock_settings.max_revisions = 2
             await run_pipeline(sample_job.id, session, mock_llm, mock_serp)
 
@@ -469,6 +480,7 @@ class TestEditLoop:
             ArticleOutline: _make_outline(),
             SeoMetadata: _make_seo_meta(),
             LinkSuggestions: _make_links(),
+            SeoMetaOptions: _make_meta_options(),
             _ScorePair: always_failing,
             ReviewResult: _make_passing_review(),
         }))
@@ -513,6 +525,7 @@ class TestEditLoop:
             ArticleOutline: _make_outline(),
             SeoMetadata: _make_seo_meta(),
             LinkSuggestions: _make_links(),
+            SeoMetaOptions: _make_meta_options(),
             _ScorePair: perfect_pair,
         }))
 
@@ -799,7 +812,7 @@ class TestSingleProviderFallback:
 
         quality = sample_job.get_quality()
         assert quality is not None
-        # 3 algo + 2 merged LLM (3 calls same dims → merged to 2 unique)
-        assert len(quality.dimensions) == 5
+        # 6 algo + 2 merged LLM (3 calls same dims → merged to 2 unique)
+        assert len(quality.dimensions) == 8
         depth = next(d for d in quality.dimensions if d.name == "content_depth")
         assert depth.score == 0.9

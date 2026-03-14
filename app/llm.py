@@ -122,7 +122,7 @@ class LlmClient:
                     "Bash", "Read", "Write", "Edit", "Glob", "Grep",
                     "WebFetch", "WebSearch", "NotebookEdit", "Agent",
                 ],
-                max_turns=2,
+                max_turns=50,
                 model=self._model,
                 system_prompt=(
                     "You are a direct text generator. "

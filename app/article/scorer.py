@@ -2,13 +2,55 @@
 
 import re
 
+import textstat
+
 from app.article.models import (
     ArticleContent,
     CompetitiveAnalysis,
     HeadingLevel,
+    KeywordAnalysis,
     ScoreDimension,
     SeoMetadata,
 )
+
+# --- Constants ---
+
+AI_FILLER_PHRASES = frozenset({
+    "in today's digital landscape",
+    "in today's fast-paced world",
+    "it's worth noting that",
+    "it's important to note that",
+    "when it comes to",
+    "in the realm of",
+    "at the end of the day",
+    "in conclusion",
+    "without further ado",
+    "it goes without saying",
+    "needless to say",
+    "as we all know",
+    "in this day and age",
+    "dive deep into",
+    "game-changer",
+    "take your .+ to the next level",
+    "unlock the power",
+    "harness the potential",
+    "embark on a journey",
+    "navigating the complexities",
+})
+
+VAGUE_WORDS = frozenset({
+    "things", "stuff", "very", "really", "quite",
+    "basically", "actually", "essentially", "generally", "overall",
+})
+
+_PASSIVE_RE = re.compile(
+    r"\b(?:is|are|was|were|been|being)\s+\w+ed\b", re.IGNORECASE
+)
+_SENTENCE_RE = re.compile(r"[.!?]+\s+")
+_ZERO_WIDTH_RE = re.compile("[\u200b\u200c\u200d\ufeff]")
+
+
+# --- Helpers ---
 
 
 def _full_text(article: ArticleContent) -> str:
@@ -16,6 +58,9 @@ def _full_text(article: ArticleContent) -> str:
     parts = [s.content for s in article.sections]
     parts.extend(f"{f.question} {f.answer}" for f in article.faq)
     return " ".join(parts)
+
+
+# --- Scoring Functions ---
 
 
 def score_keyword_usage(
@@ -115,4 +160,138 @@ def score_word_count(article: ArticleContent, target: int) -> ScoreDimension:
         name="word_count_target",
         score=score,
         feedback=f"{actual} words (target: {target}, ratio: {ratio:.0%})",
+    )
+
+
+def score_readability(article: ArticleContent) -> ScoreDimension:
+    """Score readability using Flesch Reading Ease and grade level."""
+    text = _full_text(article)
+
+    if len(text.split()) < 30:
+        return ScoreDimension(
+            name="readability_metrics", score=0.5,
+            feedback="Too short for reliable readability analysis",
+        )
+
+    flesch_re = textstat.flesch_reading_ease(text)
+    grade = textstat.flesch_kincaid_grade(text)
+    avg_sentence_len = textstat.words_per_sentence(text)
+
+    # Ideal web content: Flesch RE 50-70
+    if 50 <= flesch_re <= 70:
+        score = 1.0
+    elif 40 <= flesch_re < 50 or 70 < flesch_re <= 80:
+        score = 0.7
+    elif 30 <= flesch_re < 40 or 80 < flesch_re <= 90:
+        score = 0.4
+    else:
+        score = 0.2
+
+    feedback_parts = [
+        f"Flesch RE: {flesch_re:.1f}",
+        f"Grade level: {grade:.1f}",
+    ]
+    if avg_sentence_len > 25:
+        score = max(score - 0.1, 0.0)
+        feedback_parts.append(f"Avg sentence length {avg_sentence_len:.0f} words (aim for <25)")
+
+    return ScoreDimension(
+        name="readability_metrics",
+        score=round(score, 2),
+        feedback="; ".join(feedback_parts),
+    )
+
+
+def score_humanity(article: ArticleContent) -> ScoreDimension:
+    """Score content for AI-generated tells: filler phrases, passive voice, vague words."""
+    text = _full_text(article)
+    text_lower = text.lower()
+    word_count = len(text.split())
+
+    if word_count < 30:
+        return ScoreDimension(name="humanity", score=1.0, feedback="Too short to assess")
+
+    score = 1.0
+    feedback_parts: list[str] = []
+    words_per_k = word_count / 1000
+
+    # 1. AI filler phrase density
+    filler_count = 0
+    for phrase in AI_FILLER_PHRASES:
+        filler_count += len(re.findall(phrase, text_lower))
+    filler_per_k = filler_count / words_per_k if words_per_k > 0 else 0
+    if filler_per_k > 5:
+        score -= 0.3
+        feedback_parts.append(f"AI filler phrases: {filler_count} ({filler_per_k:.1f}/1k words)")
+    elif filler_per_k > 2:
+        score -= 0.15
+        feedback_parts.append(f"Some AI filler phrases: {filler_count}")
+
+    # 2. Passive voice ratio
+    sentences = _SENTENCE_RE.split(text)
+    sentence_count = max(len(sentences), 1)
+    passive_count = len(_PASSIVE_RE.findall(text))
+    passive_ratio = passive_count / sentence_count
+    if passive_ratio > 0.2:
+        score -= 0.2
+        feedback_parts.append(f"High passive voice: {passive_ratio:.0%}")
+    elif passive_ratio > 0.15:
+        score -= 0.1
+        feedback_parts.append(f"Moderate passive voice: {passive_ratio:.0%}")
+
+    # 3. Vague word density
+    vague_count = sum(
+        len(re.findall(r"\b" + re.escape(w) + r"\b", text_lower))
+        for w in VAGUE_WORDS
+    )
+    vague_per_k = vague_count / words_per_k if words_per_k > 0 else 0
+    if vague_per_k > 10:
+        score -= 0.2
+        feedback_parts.append(f"Vague words: {vague_count} ({vague_per_k:.1f}/1k words)")
+    elif vague_per_k > 5:
+        score -= 0.1
+        feedback_parts.append(f"Some vague words: {vague_count}")
+
+    # 4. Zero-width Unicode
+    if _ZERO_WIDTH_RE.search(text):
+        score -= 0.2
+        feedback_parts.append("Contains zero-width Unicode characters (AI watermark)")
+
+    # 5. Em-dash density
+    em_dash_count = text.count("\u2014")
+    em_per_k = em_dash_count / words_per_k if words_per_k > 0 else 0
+    if em_per_k > 5:
+        score -= 0.1
+        feedback_parts.append(f"Excess em-dashes: {em_dash_count} ({em_per_k:.1f}/1k words)")
+
+    return ScoreDimension(
+        name="humanity",
+        score=round(max(score, 0.0), 2),
+        feedback="; ".join(feedback_parts) if feedback_parts else "Content reads naturally",
+    )
+
+
+def score_keyword_distribution(kw_analysis: KeywordAnalysis) -> ScoreDimension:
+    """Score evenness of keyword distribution across sections."""
+    dist = kw_analysis.keyword_distribution
+    if not dist or not dist.primary_by_section:
+        return ScoreDimension(
+            name="keyword_distribution", score=0.5, feedback="No distribution data available"
+        )
+
+    score = dist.distribution_score
+    section_info = ", ".join(
+        f"{s.section_heading}: {s.count}" for s in dist.primary_by_section
+    )
+
+    feedback_parts = [f"Distribution score: {score:.2f}"]
+    if score < 0.5:
+        feedback_parts.append(f"Uneven keyword placement: {section_info}")
+    elif score < 0.7:
+        feedback_parts.append("Keyword distribution could be more even")
+
+    return ScoreDimension(
+        name="keyword_distribution",
+        score=round(score, 2),
+        feedback="; ".join(feedback_parts),
     )

@@ -11,12 +11,14 @@ from app.article.models import (
     ArticleContent,
     ArticleOutline,
     ArticleResult,
+    BrandVoice,
     CompetitiveAnalysis,
     KeywordAnalysis,
     LinkSuggestions,
     QualityScore,
     ReviewResult,
     SeoMetadata,
+    SeoMetaOptions,
 )
 from app.db import Base
 from app.serp.models import SerpData
@@ -60,6 +62,8 @@ class Job(Base):
     links_data: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
     quality_data: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
     review_data: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
+    meta_options_data: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
+    brand_voice_data: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
@@ -145,6 +149,24 @@ class Job(Base):
         self.review_data = data.model_dump(mode="json")
         self.updated_at = datetime.now(timezone.utc)
 
+    def get_meta_options(self) -> SeoMetaOptions | None:
+        if self.meta_options_data:
+            return SeoMetaOptions.model_validate(self.meta_options_data)
+        return None
+
+    def set_meta_options(self, data: SeoMetaOptions) -> None:
+        self.meta_options_data = data.model_dump(mode="json")
+        self.updated_at = datetime.now(timezone.utc)
+
+    def get_brand_voice(self) -> BrandVoice | None:
+        if self.brand_voice_data:
+            return BrandVoice.model_validate(self.brand_voice_data)
+        return None
+
+    def set_brand_voice(self, data: BrandVoice) -> None:
+        self.brand_voice_data = data.model_dump(mode="json")
+        self.updated_at = datetime.now(timezone.utc)
+
     def build_result(self) -> ArticleResult | None:
         """Build composite result from all intermediate data. Returns None if incomplete."""
         seo = self.get_seo_metadata()
@@ -156,6 +178,17 @@ class Job(Base):
         outline = self.get_outline()
         if not all([seo, content, keywords, links, quality, analysis, outline]):
             return None
+
+        # Lazily compute schema markup and snippet opportunities
+        from app.article.schema import (
+            detect_snippet_opportunities,
+            generate_schema_markup,
+        )
+
+        schema = generate_schema_markup(content, seo, outline)  # type: ignore[arg-type]
+        snippets = detect_snippet_opportunities(content, analysis)  # type: ignore[arg-type]
+        meta_opts = self.get_meta_options()
+
         return ArticleResult(
             seo_metadata=seo,  # type: ignore[arg-type]
             content=content,  # type: ignore[arg-type]
@@ -165,6 +198,9 @@ class Job(Base):
             review=self.get_review(),
             competitive_analysis=analysis,  # type: ignore[arg-type]
             outline=outline,  # type: ignore[arg-type]
+            schema_markup=schema.model_dump(),
+            meta_options=meta_opts,
+            snippet_opportunities=[s.model_dump() for s in snippets],
         )
 
 
@@ -175,6 +211,7 @@ class ArticleRequest(BaseModel):
     topic: str = Field(..., min_length=3, max_length=200)
     target_word_count: int = Field(default=1500, ge=300, le=10000)
     language: str = Field(default="en", pattern=r"^[a-z]{2}$")
+    brand_voice: BrandVoice | None = None
 
 
 class JobSummaryResponse(BaseModel):

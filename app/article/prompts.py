@@ -4,6 +4,7 @@ from app.article.models import (
     ArticleBrief,
     ArticleContent,
     ArticleOutline,
+    BrandVoice,
     CompetitiveAnalysis,
     ReviewResult,
     ScoreDimension,
@@ -58,6 +59,25 @@ def _structured_article_text(article: ArticleContent, char_limit: int) -> str:
     return "\n\n".join(truncated)
 
 
+def format_brand_voice(voice: BrandVoice | None) -> str:
+    """Format brand voice context for prompt injection."""
+    if not voice:
+        return ""
+    parts = ["--- Brand Voice ---"]
+    if voice.brand_name:
+        parts.append(f"Brand: {voice.brand_name}")
+    if voice.voice_description:
+        parts.append(f"Voice: {voice.voice_description}")
+    if voice.writing_examples:
+        parts.append("Example excerpts:")
+        for i, ex in enumerate(voice.writing_examples, 1):
+            parts.append(f"  {i}. {ex[:300]}")
+    if voice.style_notes:
+        parts.append(f"Style notes: {voice.style_notes}")
+    parts.append("---")
+    return "\n".join(parts)
+
+
 # --- Pipeline Step Prompts ---
 
 
@@ -95,6 +115,7 @@ def outline_prompt(
     target_word_count: int,
     language: str,
     analysis: CompetitiveAnalysis,
+    brand_voice: BrandVoice | None = None,
 ) -> str:
     themes_block = "\n".join(
         f"- {t.theme} (covered by {t.frequency}/10 results): {', '.join(t.subtopics)}"
@@ -104,8 +125,11 @@ def outline_prompt(
         f"- {g.topic}: {g.reason}" for g in analysis.content_gaps
     ) or "None identified"
 
+    brand_block = format_brand_voice(brand_voice) if brand_voice else ""
+
     return f"""You are an SEO content strategist. Create a detailed article outline for: "{topic}"
 
+{brand_block}
 Target word count: {target_word_count}
 Language: {language}
 Search intent: {analysis.search_intent}
@@ -148,9 +172,11 @@ def generate_article_prompt(
     outline: ArticleOutline,
     language: str,
     revision_instructions: str | None = None,
+    brand_voice: BrandVoice | None = None,
 ) -> str:
     """Single-call prompt for full article + inline FAQ."""
     brief_block = format_brief(outline.brief) if outline.brief else ""
+    brand_block = format_brand_voice(brand_voice) if brand_voice else ""
 
     headings_block = "\n".join(
         f"- {h.level.value.upper()}: {h.text} (~{h.target_word_count} words)\n"
@@ -177,7 +203,7 @@ def generate_article_prompt(
     return f"""You are an expert content writer. Write a complete article in {language}.
 
 {brief_block}
-
+{brand_block}
 Article outline:
 {headings_block}
 {faq_block}
@@ -419,9 +445,11 @@ def edit_prompt(
     brief: ArticleBrief | None,
     score_dimensions: list[ScoreDimension],
     review: ReviewResult | None,
+    brand_voice: BrandVoice | None = None,
 ) -> str:
     """Prompt for editing an article in place based on score and review feedback."""
     brief_block = format_brief(brief) if brief else ""
+    brand_block = format_brand_voice(brand_voice) if brand_voice else ""
 
     scores_block = "\n".join(
         f"- {d.name}: {d.score:.2f} — {d.feedback}" for d in score_dimensions
@@ -442,7 +470,7 @@ def edit_prompt(
     return f"""You are an expert editor. Revise this article to address the feedback below.
 
 {brief_block}
-
+{brand_block}
 Quality scores:
 {scores_block}
 {review_block}
@@ -456,3 +484,40 @@ Instructions:
 - Output the full revised article in markdown format (# H1, ## H2, ### H3)
 - Include the FAQ section at the end if present
 - Focus your edits on the weakest dimensions; don't over-edit strong sections"""
+
+
+# --- Meta Options Prompt ---
+
+
+def meta_options_prompt(
+    topic: str,
+    primary_keyword: str,
+    article_intro: str,
+    section_headings: list[str],
+    brief: ArticleBrief | None = None,
+) -> str:
+    """Prompt for generating 5 title tag and 5 meta description options."""
+    brief_block = ""
+    if brief:
+        brief_block = f"\nAudience: {brief.target_audience} | Angle: {brief.angle}\n"
+
+    headings_block = ", ".join(section_headings) if section_headings else "N/A"
+
+    return f"""Generate 5 alternative SEO title tags and 5 alternative meta descriptions
+for an article about "{topic}".
+
+Primary keyword: {primary_keyword}
+Article sections: {headings_block}
+Introduction excerpt: {article_intro[:400]}
+{brief_block}
+Requirements for title_options (list of 5 strings):
+- Each under 60 characters
+- Each must include the primary keyword "{primary_keyword}" naturally
+- Each uses a different hook: question, number, how-to, power word, curiosity gap
+- Ordered from most click-worthy to most informational
+
+Requirements for description_options (list of 5 strings):
+- Each under 155 characters
+- Each must include the primary keyword "{primary_keyword}"
+- Each emphasizes a different value proposition from the article
+- Include a call-to-action or benefit statement"""

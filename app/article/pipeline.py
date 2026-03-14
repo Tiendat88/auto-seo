@@ -3,6 +3,7 @@
 import asyncio
 import logging
 import re
+import statistics
 from collections import defaultdict
 from collections.abc import Callable, Coroutine
 from typing import Any
@@ -18,12 +19,15 @@ from app.article.models import (
     FaqItem,
     HeadingLevel,
     KeywordAnalysis,
+    KeywordDistribution,
     KeywordUsage,
     LinkSuggestions,
     QualityScore,
     ReviewResult,
     ScoreDimension,
+    SectionKeywordDensity,
     SeoMetadata,
+    SeoMetaOptions,
 )
 from app.article.prompts import (
     _structured_article_text,
@@ -34,6 +38,7 @@ from app.article.prompts import (
     format_brief,
     generate_article_prompt,
     links_prompt,
+    meta_options_prompt,
     outline_prompt,
     readability_actionability_score_prompt,
     review_prompt,
@@ -41,9 +46,13 @@ from app.article.prompts import (
 )
 from app.article.scorer import (
     score_heading_structure,
+    score_humanity,
+    score_keyword_distribution,
     score_keyword_usage,
+    score_readability,
     score_word_count,
 )
+from app.article.scrubber import scrub_article
 from app.config import settings
 from app.errors import StepError
 from app.job.models import Job, JobStatus
@@ -103,7 +112,10 @@ async def outline_step(
     if not analysis:
         raise StepError("Cannot outline without competitive analysis")
 
-    prompt = outline_prompt(job.topic, job.target_word_count, job.language, analysis)
+    brand_voice = job.get_brand_voice()
+    prompt = outline_prompt(
+        job.topic, job.target_word_count, job.language, analysis, brand_voice=brand_voice
+    )
     outline = await llm.generate_structured(prompt, ArticleOutline)
     job.set_outline(outline)
 
@@ -122,41 +134,65 @@ async def generate_step(
 
     quality = job.get_quality()
     revision_instructions = quality.revision_instructions if quality else None
+    brand_voice = job.get_brand_voice()
 
     # 1. Single-call article generation (includes FAQ)
     max_tok = max(4096, int(job.target_word_count * 2))
-    prompt = generate_article_prompt(outline, job.language, revision_instructions)
+    prompt = generate_article_prompt(
+        outline, job.language, revision_instructions, brand_voice=brand_voice
+    )
     article_md = await llm.generate_text(prompt, max_tok)
 
-    # 2. Parse markdown → sections + FAQ
+    # 2. Parse markdown → sections + FAQ, then scrub
     sections, faq_items = _parse_article_markdown(article_md, outline)
-    article = ArticleContent(sections=sections, faq=faq_items)
+    article = scrub_article(ArticleContent(sections=sections, faq=faq_items))
 
-    # 3. Parallel: metadata + links
+    # 3. Parallel: metadata + links + meta options
     brief = outline.brief
     meta_task = llm.generate_structured(
         seo_metadata_prompt(
             job.topic,
             analysis.keywords.primary,
-            sections[0].content if sections else "",
+            article.sections[0].content if article.sections else "",
             brief=brief,
-            section_headings=[s.heading for s in sections],
+            section_headings=[s.heading for s in article.sections],
         ),
         SeoMetadata,
     )
     links_task = llm.generate_structured(
         links_prompt(
             job.topic,
-            [s.heading for s in sections],
+            [s.heading for s in article.sections],
             analysis,
             serp_data,
             brief=brief,
-            section_summaries=_section_summaries(sections),
+            section_summaries=_section_summaries(article.sections),
         ),
         LinkSuggestions,
     )
+    meta_opts_task = llm.generate_structured(
+        meta_options_prompt(
+            job.topic,
+            analysis.keywords.primary,
+            article.sections[0].content if article.sections else "",
+            [s.heading for s in article.sections],
+            brief=brief,
+        ),
+        SeoMetaOptions,
+    )
 
-    seo_meta, links = await asyncio.gather(meta_task, links_task)
+    results = await asyncio.gather(
+        meta_task, links_task, meta_opts_task, return_exceptions=True
+    )
+    seo_meta = results[0]
+    links = results[1]
+    meta_opts = results[2] if not isinstance(results[2], Exception) else None
+    if isinstance(results[2], Exception):
+        log.warning("Meta options generation failed: %s", results[2])
+    if isinstance(seo_meta, Exception):
+        raise seo_meta
+    if isinstance(links, Exception):
+        raise links
 
     # 4. Keyword analysis (algorithmic)
     kw_analysis = _compute_keyword_analysis(article, analysis, seo_meta)
@@ -166,6 +202,8 @@ async def generate_step(
     job.set_seo_metadata(seo_meta)
     job.set_keyword_analysis(kw_analysis)
     job.set_links(links)
+    if meta_opts:
+        job.set_meta_options(meta_opts)
 
 
 async def score_step(
@@ -178,6 +216,7 @@ async def score_step(
     analysis = job.get_analysis()
     seo_meta = job.get_seo_metadata()
     outline = job.get_outline()
+    kw_analysis = job.get_keyword_analysis()
     if not article or not analysis or not seo_meta or not outline:
         raise StepError("Cannot score without article, analysis, SEO metadata, and outline")
 
@@ -186,7 +225,11 @@ async def score_step(
         score_keyword_usage(article, analysis, seo_meta),
         score_heading_structure(article),
         score_word_count(article, job.target_word_count),
+        score_readability(article),
+        score_humanity(article),
     ]
+    if kw_analysis:
+        algo_dims.append(score_keyword_distribution(kw_analysis))
 
     # LLM dimensions — multi-provider if Gemini configured
     brief = outline.brief
@@ -297,22 +340,25 @@ async def edit_step(
     outline = job.get_outline()
     quality = job.get_quality()
     review = job.get_review()
+    brand_voice = job.get_brand_voice()
     if not article or not outline or not quality:
         raise StepError("Cannot edit without article, outline, and quality data")
 
     structured_text = _structured_article_text(article, 20000)
     brief = outline.brief
-    prompt = edit_prompt(structured_text, brief, quality.dimensions, review)
+    prompt = edit_prompt(
+        structured_text, brief, quality.dimensions, review, brand_voice=brand_voice
+    )
 
     max_tok = max(4096, int(job.target_word_count * 2))
     edited_md = await llm.generate_text(prompt, max_tok)
 
     sections, faq_items = _parse_article_markdown(edited_md, outline)
-    # Prefer parsed FAQ, fall back to existing if edit didn't include FAQ
-    edited = ArticleContent(
+    # Prefer parsed FAQ, fall back to existing if edit didn't include FAQ, then scrub
+    edited = scrub_article(ArticleContent(
         sections=sections,
         faq=faq_items if faq_items else article.faq,
-    )
+    ))
 
     # Re-compute keyword analysis
     analysis = job.get_analysis()
@@ -506,7 +552,42 @@ def _compute_keyword_analysis(
 
     primary = usage(analysis.keywords.primary)
     secondary = [usage(kw) for kw in analysis.keywords.secondary]
-    return KeywordAnalysis(primary=primary, secondary=secondary)
+
+    # Section-level keyword distribution
+    primary_kw = analysis.keywords.primary.lower()
+    section_densities = []
+    densities_list: list[float] = []
+    for s in article.sections:
+        section_text = s.content.lower()
+        section_wc = s.word_count
+        kw_count = len(re.findall(r"\b" + re.escape(primary_kw) + r"\b", section_text))
+        density = round(kw_count / section_wc * 100, 2) if section_wc else 0.0
+        densities_list.append(density)
+        section_densities.append(SectionKeywordDensity(
+            section_heading=s.heading,
+            keyword=analysis.keywords.primary,
+            count=kw_count,
+            density=density,
+            word_count=section_wc,
+        ))
+
+    # Distribution score: 1.0 = perfectly even, lower = clustered
+    if len(densities_list) > 1 and any(d > 0 for d in densities_list):
+        mean_d = statistics.mean(densities_list)
+        stdev_d = statistics.stdev(densities_list)
+        normalized = stdev_d / mean_d if mean_d > 0 else 0
+        dist_score = round(max(0.0, min(1.0, 1.0 - normalized)), 2)
+    else:
+        dist_score = 1.0
+
+    distribution = KeywordDistribution(
+        primary_by_section=section_densities,
+        distribution_score=dist_score,
+    )
+
+    return KeywordAnalysis(
+        primary=primary, secondary=secondary, keyword_distribution=distribution
+    )
 
 
 # --- Step Registry ---

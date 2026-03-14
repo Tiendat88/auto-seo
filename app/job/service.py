@@ -12,6 +12,8 @@ async def create_job(session: AsyncSession, request: ArticleRequest) -> Job:
         target_word_count=request.target_word_count,
         language=request.language,
     )
+    if request.brand_voice:
+        job.set_brand_voice(request.brand_voice)
     session.add(job)
     await session.commit()
     await session.refresh(job)

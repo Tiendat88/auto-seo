@@ -31,12 +31,14 @@ def _api_url(ctx: typer.Context) -> str:
     return ctx.obj or DEFAULT_API_URL
 
 
-@app.callback()
+@app.callback(invoke_without_command=True)
 def main(
     ctx: typer.Context,
     api_url: str = typer.Option(DEFAULT_API_URL, "--api-url", help="API server URL"),
 ) -> None:
     ctx.obj = api_url.rstrip("/")
+    if ctx.invoked_subcommand is None:
+        console.print(ctx.get_help())
 
 
 @app.command()
@@ -46,14 +48,18 @@ def generate(
     words: int = typer.Option(1500, "--words", "-w", help="Target word count"),
     lang: str = typer.Option("en", "--lang", "-l", help="Language code"),
     poll: bool = typer.Option(True, "--poll/--no-poll", help="Poll until completion"),
+    brand_voice: Path | None = typer.Option(
+        None, "--brand-voice", "-b", help="JSON file with brand voice config"
+    ),
 ) -> None:
     """Create a new article generation job."""
     url = _api_url(ctx)
+    payload: dict = {"topic": topic, "target_word_count": words, "language": lang}
+    if brand_voice:
+        bv_data = json.loads(brand_voice.read_text(encoding="utf-8"))
+        payload["brand_voice"] = bv_data
     with httpx.Client(timeout=30) as client:
-        resp = client.post(
-            f"{url}/api/jobs/",
-            json={"topic": topic, "target_word_count": words, "language": lang},
-        )
+        resp = client.post(f"{url}/api/jobs/", json=payload)
         resp.raise_for_status()
         data = resp.json()
 
@@ -532,6 +538,26 @@ def _build_markdown(result: dict) -> str:
             lines.append(f"**Q: {item['question']}**")
             lines.append("")
             lines.append(f"A: {item['answer']}")
+            lines.append("")
+
+    # Schema markup (JSON-LD)
+    schema = result.get("schema_markup")
+    if schema:
+        lines.append("---")
+        lines.append("")
+        lines.append("## Schema Markup (JSON-LD)")
+        lines.append("")
+        article_schema = schema.get("article_schema")
+        if article_schema:
+            lines.append("```json")
+            lines.append(json.dumps(article_schema, indent=2))
+            lines.append("```")
+            lines.append("")
+        faq_schema = schema.get("faq_schema")
+        if faq_schema:
+            lines.append("```json")
+            lines.append(json.dumps(faq_schema, indent=2))
+            lines.append("```")
             lines.append("")
 
     return "\n".join(lines)

@@ -8,16 +8,23 @@ from app.article.models import (
     ArticleContent,
     ArticleOutline,
     ArticleSection,
+    BrandVoice,
     CompetitiveAnalysis,
     HeadingLevel,
+    KeywordAnalysis,
     KeywordCluster,
+    KeywordDistribution,
+    KeywordUsage,
     OutlineHeading,
     QualityScore,
     ReviewIssue,
     ReviewResult,
     ReviewSeverity,
+    SectionKeywordDensity,
     SeoMetadata,
+    SeoMetaOptions,
 )
+from app.article.schema import SchemaMarkup, SnippetOpportunity
 from app.job.models import ArticleRequest, JobStatus
 from app.serp.models import SerpData, SerpResult
 
@@ -322,3 +329,115 @@ class TestArticleOutlineWithBrief:
         restored = ArticleOutline.model_validate_json(json_str)
         assert restored.brief is not None
         assert restored.brief.target_audience == sample_outline.brief.target_audience
+
+
+class TestBrandVoice:
+    def test_valid_brand_voice(self):
+        bv = BrandVoice(
+            brand_name="Acme Corp",
+            voice_description="Professional but friendly",
+            writing_examples=["Example text 1", "Example text 2"],
+            style_notes="Use active voice. Avoid jargon.",
+        )
+        assert bv.brand_name == "Acme Corp"
+        assert len(bv.writing_examples) == 2
+
+    def test_all_fields_optional(self):
+        bv = BrandVoice()
+        assert bv.brand_name is None
+        assert bv.writing_examples == []
+
+    def test_max_writing_examples(self):
+        with pytest.raises(ValidationError):
+            BrandVoice(writing_examples=["a", "b", "c", "d"])
+
+    def test_round_trip(self):
+        bv = BrandVoice(brand_name="Test", voice_description="Casual")
+        restored = BrandVoice.model_validate_json(bv.model_dump_json())
+        assert restored.brand_name == "Test"
+
+
+class TestSeoMetaOptions:
+    def test_valid_meta_options(self):
+        opts = SeoMetaOptions(
+            title_options=[f"Title {i}" for i in range(5)],
+            description_options=[f"Desc {i}" for i in range(5)],
+        )
+        assert len(opts.title_options) == 5
+        assert len(opts.description_options) == 5
+
+    def test_too_few_options_rejected(self):
+        with pytest.raises(ValidationError):
+            SeoMetaOptions(
+                title_options=["Only one"],
+                description_options=[f"Desc {i}" for i in range(5)],
+            )
+
+    def test_too_many_options_rejected(self):
+        with pytest.raises(ValidationError):
+            SeoMetaOptions(
+                title_options=[f"Title {i}" for i in range(6)],
+                description_options=[f"Desc {i}" for i in range(5)],
+            )
+
+
+class TestKeywordDistributionModel:
+    def test_valid_distribution(self):
+        dist = KeywordDistribution(
+            primary_by_section=[
+                SectionKeywordDensity(
+                    section_heading="Intro", keyword="test",
+                    count=3, density=1.5, word_count=200,
+                ),
+            ],
+            distribution_score=0.85,
+        )
+        assert dist.distribution_score == 0.85
+
+    def test_distribution_in_keyword_analysis(self):
+        kw = KeywordAnalysis(
+            primary=KeywordUsage(keyword="test", count=5, density=1.0, locations=[]),
+            keyword_distribution=KeywordDistribution(
+                primary_by_section=[
+                    SectionKeywordDensity(
+                        section_heading="Intro", keyword="test",
+                        count=5, density=2.5, word_count=200,
+                    ),
+                ],
+                distribution_score=0.9,
+            ),
+        )
+        assert kw.keyword_distribution is not None
+        assert kw.keyword_distribution.distribution_score == 0.9
+
+    def test_distribution_optional(self):
+        kw = KeywordAnalysis(
+            primary=KeywordUsage(keyword="test", count=5, density=1.0, locations=[]),
+        )
+        assert kw.keyword_distribution is None
+
+
+class TestSchemaModels:
+    def test_schema_markup_with_faq(self):
+        markup = SchemaMarkup(
+            article_schema={"@type": "Article", "headline": "Test"},
+            faq_schema={"@type": "FAQPage", "mainEntity": []},
+        )
+        assert markup.faq_schema is not None
+
+    def test_schema_markup_without_faq(self):
+        markup = SchemaMarkup(
+            article_schema={"@type": "Article", "headline": "Test"},
+        )
+        assert markup.faq_schema is None
+
+    def test_snippet_opportunity(self):
+        opp = SnippetOpportunity(
+            type="list",
+            section_heading="Steps",
+            description="Has numbered items",
+            current_format_ok=False,
+            suggestion="Use markdown list",
+        )
+        assert opp.type == "list"
+        assert not opp.current_format_ok
