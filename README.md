@@ -92,14 +92,16 @@ curl http://localhost:8000/api/jobs/{job_id}
 ## CLI Client
 
 ```bash
+autoseo                                              # Show help
 autoseo generate "best productivity tools" --words 1500
 autoseo generate "topic" --brand-voice brand.json   # With brand voice context
 autoseo status <job-id>
+autoseo watch <job-id>                               # Reconnect to a running job
 autoseo result <job-id>                              # Full markdown render
 autoseo result <job-id> --summary                    # Compact quality summary
 autoseo result <job-id> --json                       # Raw JSON output
 autoseo list --status completed
-autoseo resume <job-id>
+autoseo resume <job-id>                              # Resume failed job (or watch if running)
 autoseo export <job-id> article.md                   # Markdown with JSON-LD schema
 ```
 
@@ -180,6 +182,100 @@ Environment variables (or `.env` file):
 **Redis caching** — SERP results cached 24h, LLM responses cached 1h. Graceful degradation: if Redis is down, caching is silently disabled.
 
 **Mock SERP by default** — The `MockSerpProvider` generates realistic results based on the topic string, so the system works end-to-end without API keys. Swap to real SerpAPI via config.
+
+## Usage Guide
+
+### Generate your first article
+
+```bash
+# Start the server (use --workers 2 to prevent Agent SDK from blocking requests)
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 2
+
+# Generate with live progress tracking
+autoseo generate "best project management tools for startups 2026" --words 1500
+```
+
+The CLI shows a live progress bar with step-by-step output as the pipeline runs. Each stage (Research, Analyze, Outline, Generate, Score, Review) renders its results inline. Sub-steps like `Generate (article)` and `Score (llm)` show what's happening inside long-running stages.
+
+### Use brand voice
+
+Create a JSON file with your brand's writing style:
+
+```json
+{
+  "brand_name": "Acme Corp",
+  "voice_description": "Professional but approachable, like a knowledgeable colleague",
+  "writing_examples": ["We tested 50+ tools so you don't have to."],
+  "style_notes": "Use active voice. Short paragraphs. No jargon."
+}
+```
+
+```bash
+autoseo generate "topic" --brand-voice brand.json
+```
+
+### Monitor and manage jobs
+
+```bash
+# Watch a running job (reconnect after disconnect)
+autoseo watch <job-id>
+
+# Resume a failed job from its last checkpoint
+autoseo resume <job-id>
+
+# View quality scores and review feedback
+autoseo result <job-id> --summary
+
+# Export with JSON-LD schema markup
+autoseo export <job-id> article.md
+```
+
+### Use the API directly
+
+```bash
+# Create a job
+curl -X POST http://localhost:8000/api/jobs/ \
+  -H "Content-Type: application/json" \
+  -d '{"topic": "best AI tools 2026", "target_word_count": 1500}'
+
+# Poll status (current_step shows sub-steps like "generating:article")
+curl http://localhost:8000/api/jobs/{job_id}
+
+# Resume a failed job
+curl -X POST http://localhost:8000/api/jobs/{job_id}/resume
+```
+
+### Typical pipeline run
+
+A full run takes 5-15 minutes depending on the LLM backend and edit loop iterations:
+
+| Step | Duration | Details |
+|------|----------|---------|
+| Research | ~1s | SERP fetch (mock: instant, SerpAPI: 2-3s) |
+| Analyze | ~10s | LLM competitive analysis |
+| Outline | ~10s | LLM outline + editorial brief |
+| Generate | 2-5 min | Article LLM call + 3 parallel metadata calls |
+| Score | ~30s | 6 algorithmic + 6 LLM scoring dimensions |
+| Review | ~30s | Holistic editorial review (2x with Gemini) |
+| Edit loop | 3-8 min | Up to 2 revision cycles if quality/review fails |
+
+### Production deployment
+
+```bash
+# Required: PostgreSQL + Redis
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 2
+
+# Recommended env vars
+ANTHROPIC_API_KEY=sk-...          # Required for LLM calls
+GOOGLE_API_KEY=...                # Optional: enables dual-provider scoring
+SERP_PROVIDER=serpapi             # Real SERP data
+SERPAPI_KEY=...                   # Required with serpapi provider
+DATABASE_URL=postgresql+asyncpg://user:pass@host:5432/db
+QUALITY_THRESHOLD=0.7             # Min score to skip editing
+MAX_REVISIONS=2                   # Edit loop cap
+```
+
+> **Note**: Use `--workers 2` with uvicorn. The Claude Agent SDK blocks the event loop during long generation calls (~5 min). Multiple workers ensure the API remains responsive while the pipeline runs.
 
 ## Project Structure
 
