@@ -159,6 +159,32 @@ def list_jobs(
 
 
 @app.command()
+def watch(
+    ctx: typer.Context,
+    job_id: str = typer.Argument(..., help="Job ID to watch"),
+) -> None:
+    """Watch a running job's progress."""
+    url = _api_url(ctx)
+    with httpx.Client(timeout=30) as client:
+        resp = client.get(f"{url}/api/jobs/{job_id}")
+        resp.raise_for_status()
+        data = resp.json()
+
+    if data["status"] == "completed":
+        console.print("[green]Job already completed.[/green]")
+        _render_completion_summary(data)
+        return
+
+    if data["status"] == "failed":
+        console.print(f"[red]Job failed: {data.get('error', 'Unknown')}[/red]")
+        console.print(f"Resume with: [bold]autoseo resume {job_id}[/bold]")
+        return
+
+    console.print(f"Watching job: [bold]{job_id}[/bold] (status: {data['status']})")
+    _poll_job(url, job_id)
+
+
+@app.command()
 def resume(
     ctx: typer.Context,
     job_id: str = typer.Argument(..., help="Job ID to resume"),
@@ -167,6 +193,13 @@ def resume(
     url = _api_url(ctx)
     with httpx.Client(timeout=30) as client:
         resp = client.post(f"{url}/api/jobs/{job_id}/resume")
+        if resp.status_code == 409:
+            console.print("[yellow]Job is already running — watching progress...[/yellow]")
+            _poll_job(url, job_id)
+            return
+        if resp.status_code == 400:
+            console.print(f"[red]{resp.json().get('detail', 'Bad request')}[/red]")
+            return
         resp.raise_for_status()
 
     console.print(f"Resumed job: [bold]{job_id}[/bold]")
@@ -393,10 +426,14 @@ def _poll_job(api_url: str, job_id: str) -> None:
 
     progress.start()
     try:
-        with httpx.Client(timeout=30) as client:
+        with httpx.Client(timeout=120) as client:
             while True:
-                resp = client.get(f"{api_url}/api/jobs/{job_id}")
-                resp.raise_for_status()
+                try:
+                    resp = client.get(f"{api_url}/api/jobs/{job_id}")
+                    resp.raise_for_status()
+                except httpx.ReadTimeout:
+                    time.sleep(5)
+                    continue
                 data = resp.json()
 
                 # Track revisions — re-render generating/scoring on new revision
@@ -433,10 +470,18 @@ def _poll_job(api_url: str, job_id: str) -> None:
 
                 # Update progress description with current status
                 current_step = data.get("current_step") or data.get("status", "")
-                for status_val, label, _ in STAGES:
-                    if current_step == status_val:
-                        progress.update(task_id, stage=f"{label}...")
-                        break
+                if ":" in current_step:
+                    # Sub-step like "generating:article" or "generating:metadata"
+                    base, sub = current_step.split(":", 1)
+                    for status_val, label, _ in STAGES:
+                        if base == status_val:
+                            progress.update(task_id, stage=f"{label} ({sub})...")
+                            break
+                else:
+                    for status_val, label, _ in STAGES:
+                        if current_step == status_val:
+                            progress.update(task_id, stage=f"{label}...")
+                            break
 
                 if data["status"] == "completed":
                     progress.update(task_id, completed=len(STAGES), stage="done")

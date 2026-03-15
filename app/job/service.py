@@ -68,4 +68,7 @@ async def claim_job_for_resume(
     await session.commit()
     if not claimed:
         return None
-    return await session.get(Job, job_id)
+    job = await session.get(Job, job_id)
+    if job:
+        await session.refresh(job)
+    return job

@@ -137,6 +137,10 @@ async def generate_step(
     brand_voice = job.get_brand_voice()
 
     # 1. Single-call article generation (includes FAQ)
+    job.current_step = "generating:article"
+    session.add(job)
+    await session.commit()
+
     max_tok = max(4096, int(job.target_word_count * 2))
     prompt = generate_article_prompt(
         outline, job.language, revision_instructions, brand_voice=brand_voice
@@ -148,6 +152,9 @@ async def generate_step(
     article = scrub_article(ArticleContent(sections=sections, faq=faq_items))
 
     # 3. Parallel: metadata + links + meta options
+    job.current_step = "generating:metadata"
+    session.add(job)
+    await session.commit()
     brief = outline.brief
     meta_task = llm.generate_structured(
         seo_metadata_prompt(
@@ -221,6 +228,10 @@ async def score_step(
         raise StepError("Cannot score without article, analysis, SEO metadata, and outline")
 
     # Algorithmic dimensions (free, deterministic)
+    job.current_step = "scoring:algorithmic"
+    session.add(job)
+    await session.commit()
+
     algo_dims = [
         score_keyword_usage(article, analysis, seo_meta),
         score_heading_structure(article),
@@ -232,6 +243,9 @@ async def score_step(
         algo_dims.append(score_keyword_distribution(kw_analysis))
 
     # LLM dimensions — multi-provider if Gemini configured
+    job.current_step = "scoring:llm"
+    session.add(job)
+    await session.commit()
     brief = outline.brief
     structured_text = _structured_article_text(article, 20000)
     brief_text = format_brief(brief) if brief else ""
