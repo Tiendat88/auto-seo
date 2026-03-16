@@ -7,12 +7,12 @@ SEO article generator — agent-based pipeline that researches topics, analyzes 
 ## Stack
 
 - **Python 3.12+**, FastAPI, SQLAlchemy async (PostgreSQL prod, SQLite tests), Pydantic v2
-- **LLM**: Triple backend via `app/llm.py` — Anthropic API, Claude Agent SDK (`max_turns=50`), Google Gemini
+- **LLM**: Quad backend via `app/llm.py` — Anthropic API, Claude Agent SDK (`max_turns=50`), OpenAI Codex SDK, Google Gemini
 - **CLI**: Typer + Rich (`autoseo` entrypoint, bare command shows help via `invoke_without_command`)
 - **Cache**: Redis (`app/cache.py`)
 - **Deps**: `textstat` (readability metrics), `google-genai` (Gemini)
 - **Lint**: `ruff` (line-length=100, rules: E/F/I/N/W)
-- **Tests**: pytest + pytest-asyncio (asyncio_mode="auto"), **142 tests** across 8 files
+- **Tests**: pytest + pytest-asyncio (asyncio_mode="auto"), **145 tests** across 8 files
 
 ## Architecture
 
@@ -23,8 +23,9 @@ State machine: `RESEARCHING → ANALYZING → OUTLINING → GENERATING → SCORI
 - **Single-call generation**: Full article + FAQ in one `generate_text` call, parsed via `_parse_article_markdown`, then scrubbed via `scrub_article()`
 - **Editorial brief**: `ArticleBrief` embedded in `ArticleOutline` (not a separate step)
 - **Brand voice**: Optional `BrandVoice` injected into outline/generate/edit prompts via `format_brand_voice()`
-- **Hybrid scoring**: 6 algorithmic + 6 LLM = 12 dimensions total, simple average for overall score
-- **Multi-provider**: When `GOOGLE_API_KEY` set, scoring + review run on both Claude and Gemini in parallel; results averaged/merged
+- **Hybrid scoring**: 6 algorithmic + 6 LLM = 12 dimensions, weighted average (`word_count_target` at 2x via `DIMENSION_WEIGHTS`)
+- **Token tracking**: `LlmClient._usage` accumulates `TokenUsage` per call; pipeline drains per step into `job.usage_data` JSON column
+- **Multi-provider council**: `get_llm_council()` returns ALL configured providers; scoring + review fan out to every provider in parallel, results averaged/merged
 - **Edit loop**: If score/review fails → edit in place → re-score → re-review (capped at `max_revisions`)
 - **Sub-step visibility**: Generate and score steps update `current_step` with sub-steps (`generating:article`, `generating:metadata`, `scoring:algorithmic`, `scoring:llm`) for CLI progress tracking
 
@@ -38,7 +39,7 @@ State machine: `RESEARCHING → ANALYZING → OUTLINING → GENERATING → SCORI
 ### Content scrubber (`app/article/scrubber.py`)
 
 Post-processes articles after generation and editing. Moderate aggressiveness:
-- Zero-width Unicode removal, em-dash → `--`, AI filler phrase removal (~5 openers), word substitutions (~10: leverage→use, delve→explore, etc.), paragraph splitting (>4 sentences)
+- Zero-width Unicode removal, em-dash → `--`, AI filler phrase removal (~5 openers), word substitutions (~10: leverage→use, delve→explore, etc.), paragraph splitting (>6 sentences)
 
 ### SEO outputs (`app/article/schema.py`)
 
@@ -56,10 +57,10 @@ Post-processes articles after generation and editing. Moderate aggressiveness:
 | `app/article/scorer.py` | 6 algorithmic scoring functions + AI_FILLER_PHRASES/VAGUE_WORDS constants |
 | `app/article/scrubber.py` | Content post-processor (filler removal, word subs, paragraph splitting) |
 | `app/article/schema.py` | JSON-LD generation, snippet opportunity detection |
-| `app/llm.py` | LlmClient (triple backend), `get_secondary_llm()` |
+| `app/llm.py` | LlmClient (quad backend), `get_secondary_llm()` |
 | `app/job/models.py` | Job ORM model (includes `brand_voice_data`, `meta_options_data`), API schemas |
 | `app/job/service.py` | Job CRUD, `claim_job_for_resume` (requires `session.refresh` after commit) |
-| `app/cli.py` | Typer CLI: generate, watch, resume, status, result, list, export |
+| `app/cli.py` | Typer CLI: generate, watch, resume (409→watch, 400→message), status, result, list, export |
 | `app/config.py` | Settings via pydantic-settings |
 
 ## Commands
@@ -77,11 +78,14 @@ autoseo export <id> article.md            # Export with JSON-LD
 ## Config (env vars / .env)
 
 - `ANTHROPIC_API_KEY` — Anthropic API (if set, uses API backend)
+- `OPENAI_API_KEY` — Optional OpenAI API key
+- `OPENAI_MODEL` — OpenAI model (default `o3-mini`)
+- `OPENAI_CODEX` — Set `true` to use Codex SDK backend (ChatGPT subscription)
 - `GOOGLE_API_KEY` — Enables Gemini as secondary provider for scoring/review
 - `SERP_PROVIDER` — `mock` (default) or `serpapi`
 - `DATABASE_URL` — PostgreSQL connection string
-- `QUALITY_THRESHOLD` — Min overall score (default 0.7)
-- `MAX_REVISIONS` — Edit loop cap (default 2)
+- `QUALITY_THRESHOLD` — Min overall score (default 0.8)
+- `MAX_REVISIONS` — Edit loop cap (default 10)
 
 ## DB migration
 
@@ -89,12 +93,20 @@ Existing databases need manual column addition for new features:
 ```sql
 ALTER TABLE jobs ADD COLUMN IF NOT EXISTS meta_options_data JSON;
 ALTER TABLE jobs ADD COLUMN IF NOT EXISTS brand_voice_data JSON;
+ALTER TABLE jobs ADD COLUMN IF NOT EXISTS usage_data JSON;
 ```
 New databases auto-create via `Base.metadata.create_all` on startup.
 
+## CLI internals
+
+- **Polling**: `_poll_job` uses 120s httpx timeout + retry on `ReadTimeout` (Agent SDK blocks event loop for minutes)
+- **Sub-step display**: `current_step` with `:` separator (e.g., `generating:article`) renders as `Generate (article)...` in progress bar
+- **Resume**: 409 → auto-switches to watch mode; 400 → prints error message (e.g., "Job already completed")
+- **Watch**: reconnects to any running job, shows completed/failed state if job already finished
+
 ## Known issues
 
-- **Agent SDK blocks event loop**: Long `generate_text` calls (5+ min) block the uvicorn async loop. Use `--workers 2` to keep the API responsive during pipeline runs.
+- **Agent SDK blocks event loop**: `generate_text` via Agent SDK spawns a subprocess that blocks the async loop for 2-5 min per call. Use `--workers 2` so one worker handles HTTP while the other runs the pipeline. PostgreSQL connections can also stall if the pipeline holds a session open during a blocked call.
 - **Stale job recovery**: Jobs interrupted mid-pipeline (e.g., server restart) get stuck in active states like `generating`. Must manually `UPDATE jobs SET status='failed'` before resume works (`claim_job_for_resume` only accepts `failed`/`pending`).
 - **`claim_job_for_resume` requires `session.refresh()`**: After the atomic UPDATE + COMMIT, SQLAlchemy expires attributes. Without `refresh()`, accessing `job.updated_at` in `_job_to_response` triggers `MissingGreenlet` (sync lazy load in async context).
 

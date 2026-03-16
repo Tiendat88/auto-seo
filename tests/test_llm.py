@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 from pydantic import BaseModel
 
 from app.config import settings
-from app.llm import LlmClient, get_secondary_llm
+from app.llm import LlmClient, get_llm_council
 
 
 class _FakeSchema(BaseModel):
@@ -17,30 +17,59 @@ class TestProviderSelection:
         assert client._backend == "gemini"
 
     @patch("app.llm.settings", MagicMock(
-        anthropic_api_key="sk-test", llm_model="claude-sonnet-4-6",
+        anthropic_api_key="sk-test", llm_model="claude-sonnet-4-6", openai_codex=False,
     ))
     @patch("app.llm.AsyncAnthropic", create=True)
     def test_anthropic_provider(self, _mock_anthropic):
         client = LlmClient(api_key="sk-test")
         assert client._backend == "anthropic"
 
-    @patch("app.llm.settings", MagicMock(anthropic_api_key="", llm_model="claude-sonnet-4-6"))
+    @patch("app.llm.settings", MagicMock(
+        anthropic_api_key="", llm_model="claude-sonnet-4-6", openai_codex=False,
+    ))
     def test_sdk_fallback(self):
         client = LlmClient()
         assert client._backend == "claude-sdk"
 
+    def test_codex_provider(self):
+        client = LlmClient(provider="openai-codex")
+        assert client._backend == "openai-codex"
 
-class TestGetSecondaryLlm:
-    @patch.object(settings, "google_api_key", "test-key")
-    def test_returns_gemini_when_key_set(self):
-        result = get_secondary_llm()
-        assert result is not None
-        assert result._backend == "gemini"
+    @patch("app.llm.settings", MagicMock(openai_model="o3-mini"))
+    def test_codex_with_model(self):
+        client = LlmClient(provider="openai-codex")
+        assert client._backend == "openai-codex"
+        assert client._model == "o3-mini"
 
+
+class TestGetLlmCouncil:
+    @patch.object(settings, "anthropic_api_key", "sk-test")
+    @patch.object(settings, "google_api_key", "gk-test")
+    @patch.object(settings, "openai_codex", True)
+    @patch.object(settings, "openai_model", "o3-mini")
+    def test_returns_all_configured(self):
+        council = get_llm_council()
+        backends = [c._backend for c in council]
+        assert "anthropic" in backends
+        assert "gemini" in backends
+        assert "openai-codex" in backends
+        assert len(council) == 3
+
+    @patch.object(settings, "anthropic_api_key", "")
     @patch.object(settings, "google_api_key", "")
-    def test_returns_none_when_no_key(self):
-        result = get_secondary_llm()
-        assert result is None
+    @patch.object(settings, "openai_codex", False)
+    def test_fallback_to_claude_sdk(self):
+        council = get_llm_council()
+        assert len(council) == 1
+        assert council[0]._backend == "claude-sdk"
+
+    @patch.object(settings, "anthropic_api_key", "")
+    @patch.object(settings, "google_api_key", "gk-test")
+    @patch.object(settings, "openai_codex", False)
+    def test_single_provider(self):
+        council = get_llm_council()
+        assert len(council) == 1
+        assert council[0]._backend == "gemini"
 
 
 class TestGeminiBackend:

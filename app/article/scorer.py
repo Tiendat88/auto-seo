@@ -149,12 +149,14 @@ def score_word_count(article: ArticleContent, target: int) -> ScoreDimension:
     ratio = actual / target
     if 0.9 <= ratio <= 1.1:
         score = 1.0
-    elif 0.75 <= ratio <= 1.25:
-        score = 0.6
+    elif 0.8 <= ratio <= 1.2:
+        score = 0.7
+    elif 0.7 <= ratio <= 1.3:
+        score = 0.4
     elif 0.5 <= ratio <= 1.5:
-        score = 0.3
+        score = 0.15
     else:
-        score = 0.1
+        score = 0.0
 
     return ScoreDimension(
         name="word_count_target",

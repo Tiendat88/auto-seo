@@ -4,6 +4,7 @@ import asyncio
 import logging
 import re
 import statistics
+import time
 from collections import defaultdict
 from collections.abc import Callable, Coroutine
 from typing import Any
@@ -56,7 +57,7 @@ from app.article.scrubber import scrub_article
 from app.config import settings
 from app.errors import StepError
 from app.job.models import Job, JobStatus
-from app.llm import LlmClient, get_secondary_llm
+from app.llm import LlmClient, get_llm_council
 from app.serp.client import SerpProvider
 
 log = logging.getLogger(__name__)
@@ -141,15 +142,22 @@ async def generate_step(
     session.add(job)
     await session.commit()
 
-    max_tok = max(4096, int(job.target_word_count * 2))
+    max_tok = max(4096, int(job.target_word_count * 1.5))
     prompt = generate_article_prompt(
-        outline, job.language, revision_instructions, brand_voice=brand_voice
+        outline, job.language, revision_instructions,
+        brand_voice=brand_voice, target_word_count=job.target_word_count,
     )
     article_md = await llm.generate_text(prompt, max_tok)
 
     # 2. Parse markdown → sections + FAQ, then scrub
     sections, faq_items = _parse_article_markdown(article_md, outline)
-    article = scrub_article(ArticleContent(sections=sections, faq=faq_items))
+    article, scrub_stats = scrub_article(ArticleContent(sections=sections, faq=faq_items))
+    job.append_event("generating", "result",
+        f"Article: {article.total_word_count} words, {len(faq_items)} FAQ items")
+    job.append_event("generating", "scrub",
+        f"Scrubbed: {scrub_stats.filler_removed} fillers, "
+        f"{scrub_stats.words_substituted} word subs, "
+        f"{scrub_stats.paragraphs_split} para splits")
 
     # 3. Parallel: metadata + links + meta options
     job.current_step = "generating:metadata"
@@ -242,7 +250,7 @@ async def score_step(
     if kw_analysis:
         algo_dims.append(score_keyword_distribution(kw_analysis))
 
-    # LLM dimensions — multi-provider if Gemini configured
+    # LLM dimensions — all configured providers in parallel
     job.current_step = "scoring:llm"
     session.add(job)
     await session.commit()
@@ -256,39 +264,54 @@ async def score_step(
         readability_actionability_score_prompt(structured_text, brief_text),
     ]
 
-    # Primary (Claude): 3 calls
-    tasks = [
-        llm.generate_structured(p, _ScorePair, use_cache=False)
-        for p in score_prompts
-    ]
-
-    # Secondary (Gemini): 3 more calls if configured
-    secondary = get_secondary_llm()
-    if secondary:
+    council = get_llm_council()
+    tasks = []
+    for provider in council:
         tasks.extend(
-            secondary.generate_structured(p, _ScorePair, use_cache=False)
+            provider.generate_structured(p, _ScorePair, use_cache=False)
             for p in score_prompts
         )
 
     results = await asyncio.gather(*tasks, return_exceptions=True)
 
-    # Collect all successful dimensions
+    # Drain usage and call logs from all council members
+    n_prompts = len(score_prompts)
+    for provider in council:
+        usage = provider.drain_usage()
+        for u in usage:
+            u.step = "scoring"
+        job.append_usage(usage)
+        for entry in provider.drain_call_log():
+            job.append_event("scoring", entry["event"], entry["detail"])
+
+    # Collect all successful dimensions, log per-provider results
     all_dims: list[ScoreDimension] = []
-    for r in results:
+    for i, r in enumerate(results):
         if isinstance(r, _ScorePair):
+            provider_name = council[i // n_prompts]._backend
+            dims = ", ".join(f"{d.name}={d.score:.2f}" for d in r.dimensions)
+            job.append_event("scoring", "result", f"{provider_name}: {dims}")
             all_dims.extend(r.dimensions)
         elif isinstance(r, Exception):
             log.warning("Scoring call failed: %s", r)
 
     # Merge: average scores for dimensions with the same name
     llm_dims = _merge_score_dimensions(all_dims)
+    job.append_event(
+        "scoring", "merge",
+        f"Merged {len(all_dims)} dimensions from {len(council)} providers",
+    )
 
     succeeded = sum(1 for r in results if isinstance(r, _ScorePair))
     if succeeded < 2:
         raise StepError(f"Only {succeeded} scoring calls succeeded, need at least 2")
 
     dimensions = algo_dims + llm_dims
-    overall = sum(d.score for d in dimensions) / len(dimensions)
+    total_weight = sum(DIMENSION_WEIGHTS.get(d.name, 1.0) for d in dimensions)
+    weighted_sum = sum(
+        d.score * DIMENSION_WEIGHTS.get(d.name, 1.0) for d in dimensions
+    )
+    overall = weighted_sum / total_weight
     passes = overall >= settings.quality_threshold
 
     quality = QualityScore(
@@ -315,25 +338,50 @@ async def review_step(
     headings = [h.text for h in outline.headings]
     prompt = review_prompt(structured_text, headings, brief, job.target_word_count)
 
-    # Primary review (Claude)
-    tasks: list = [llm.generate_structured(prompt, ReviewResult, use_cache=False)]
-
-    # Secondary review (Gemini) if configured
-    secondary = get_secondary_llm()
-    if secondary:
-        tasks.append(secondary.generate_structured(prompt, ReviewResult, use_cache=False))
+    # All configured providers review in parallel
+    council = get_llm_council()
+    tasks = [
+        provider.generate_structured(prompt, ReviewResult, use_cache=False)
+        for provider in council
+    ]
 
     results = await asyncio.gather(*tasks, return_exceptions=True)
 
-    reviews = [r for r in results if isinstance(r, ReviewResult)]
-    for r in results:
-        if isinstance(r, Exception):
+    # Drain usage and call logs from all council members
+    for provider in council:
+        usage = provider.drain_usage()
+        for u in usage:
+            u.step = "reviewing"
+        job.append_usage(usage)
+        for entry in provider.drain_call_log():
+            job.append_event("reviewing", entry["event"], entry["detail"])
+
+    # Log per-provider results
+    reviews: list[ReviewResult] = []
+    for i, r in enumerate(results):
+        if isinstance(r, ReviewResult):
+            provider_name = council[i]._backend
+            n_issues = len(r.issues)
+            critical = sum(
+                1 for x in r.issues if x.severity in ("critical", "major")
+            )
+            job.append_event(
+                "reviewing", "result",
+                f"{provider_name}: {'PASS' if r.passed else 'FAIL'} "
+                f"({n_issues} issues, {critical} critical/major)",
+            )
+            reviews.append(r)
+        elif isinstance(r, Exception):
             log.warning("Review call failed: %s", r)
 
     if not reviews:
         raise StepError("All review calls failed")
 
     review = _merge_reviews(reviews) if len(reviews) > 1 else reviews[0]
+    job.append_event(
+        "reviewing", "merge",
+        f"Merged {len(reviews)} reviews, passed={review.passed}",
+    )
 
     # Build revision instructions from merged issues
     if not review.passed:
@@ -361,15 +409,17 @@ async def edit_step(
     structured_text = _structured_article_text(article, 20000)
     brief = outline.brief
     prompt = edit_prompt(
-        structured_text, brief, quality.dimensions, review, brand_voice=brand_voice
+        structured_text, brief, quality.dimensions, review,
+        brand_voice=brand_voice, target_word_count=job.target_word_count,
+        actual_word_count=article.total_word_count,
     )
 
-    max_tok = max(4096, int(job.target_word_count * 2))
+    max_tok = max(4096, int(job.target_word_count * 1.5))
     edited_md = await llm.generate_text(prompt, max_tok)
 
     sections, faq_items = _parse_article_markdown(edited_md, outline)
     # Prefer parsed FAQ, fall back to existing if edit didn't include FAQ, then scrub
-    edited = scrub_article(ArticleContent(
+    edited, scrub_stats = scrub_article(ArticleContent(
         sections=sections,
         faq=faq_items if faq_items else article.faq,
     ))
@@ -501,36 +551,45 @@ def _section_summaries(sections: list[ArticleSection]) -> list[tuple[str, str]]:
 
 
 def _merge_score_dimensions(dims: list[ScoreDimension]) -> list[ScoreDimension]:
-    """Average scores for dimensions with the same name."""
+    """Average scores for dimensions with the same name, group feedback by scorer."""
     groups: dict[str, list[ScoreDimension]] = defaultdict(list)
     for d in dims:
         groups[d.name].append(d)
     merged = []
     for name, group in groups.items():
         avg = sum(d.score for d in group) / len(group)
-        worst = min(group, key=lambda d: d.score)
-        merged.append(ScoreDimension(name=name, score=round(avg, 3), feedback=worst.feedback))
+        if len(group) == 1:
+            feedback = group[0].feedback
+        else:
+            parts = [
+                f"Scorer {i + 1}: {d.feedback}"
+                for i, d in enumerate(group) if d.feedback
+            ]
+            feedback = " | ".join(parts)
+        merged.append(ScoreDimension(name=name, score=round(avg, 3), feedback=feedback))
     return merged
 
 
 def _merge_reviews(reviews: list[ReviewResult]) -> ReviewResult:
-    """Merge multiple ReviewResults by consensus."""
+    """Merge multiple ReviewResults by consensus, grouped by reviewer."""
     all_issues = []
     all_strengths: list[str] = []
-    for r in reviews:
-        all_issues.extend(r.issues)
+    summaries: list[str] = []
+    for i, r in enumerate(reviews):
+        label = f"Reviewer {i + 1}"
+        summaries.append(f"{label}: {r.summary}")
+        for issue in r.issues:
+            issue.description = f"[{label}] {issue.description}"
+            all_issues.append(issue)
         all_strengths.extend(r.strengths)
 
     unique_strengths = list(dict.fromkeys(all_strengths))
     has_serious = any(i.severity in ("critical", "major") for i in all_issues)
     passed = not has_serious
 
-    summaries = [r.summary for r in reviews]
-    summary = " | ".join(summaries)
-
     return ReviewResult(
         passed=passed,
-        summary=summary,
+        summary=" | ".join(summaries),
         issues=all_issues,
         strengths=unique_strengths,
     )
@@ -604,6 +663,13 @@ def _compute_keyword_analysis(
     )
 
 
+# --- Scoring Weights ---
+
+DIMENSION_WEIGHTS: dict[str, float] = {
+    "word_count_target": 2.0,
+}
+
+
 # --- Step Registry ---
 
 STEP_SEQUENCE: list[tuple[JobStatus, StepFn]] = [
@@ -656,7 +722,18 @@ async def run_pipeline(
         await session.commit()
 
         try:
+            job.append_event(next_status.value, "step_start", f"Starting {next_status.value}")
+            step_start = time.monotonic()
             await step_fn(job, session, llm, serp_client)
+            elapsed = time.monotonic() - step_start
+            job.append_event(next_status.value, "timing", f"{elapsed:.1f}s")
+            # Drain token usage and call logs from LLM client
+            usage = llm.drain_usage()
+            for u in usage:
+                u.step = next_status.value
+            job.append_usage(usage)
+            for entry in llm.drain_call_log():
+                job.append_event(next_status.value, entry["event"], entry["detail"])
             session.add(job)
             await session.commit()
         except Exception as e:
@@ -699,6 +776,10 @@ async def run_pipeline(
 
         try:
             await edit_step(job, session, llm, serp_client)
+            usage = llm.drain_usage()
+            for u in usage:
+                u.step = "editing"
+            job.append_usage(usage)
             session.add(job)
             await session.commit()
         except Exception as e:
@@ -722,6 +803,10 @@ async def run_pipeline(
 
         try:
             await score_step(job, session, llm, serp_client)
+            usage = llm.drain_usage()
+            for u in usage:
+                u.step = "scoring"
+            job.append_usage(usage)
             session.add(job)
             await session.commit()
         except Exception as e:
@@ -745,6 +830,10 @@ async def run_pipeline(
 
         try:
             await review_step(job, session, llm, serp_client)
+            usage = llm.drain_usage()
+            for u in usage:
+                u.step = "reviewing"
+            job.append_usage(usage)
             session.add(job)
             await session.commit()
         except Exception as e:
@@ -761,6 +850,15 @@ async def run_pipeline(
 
     job.status = JobStatus.COMPLETED
     job.current_step = None
+    # Schema markup preview event
+    result = job.build_result()
+    if result and result.schema_markup:
+        schemas = [k for k, v in result.schema_markup.items() if v]
+        snippets = len(result.snippet_opportunities)
+        job.append_event("completed", "schema",
+            f"JSON-LD: {', '.join(schemas)}. {snippets} snippet opportunities")
+    if not settings.persist_events:
+        job.events_data = None
     session.add(job)
     await session.commit()
     log.info("Pipeline completed for job=%s", job_id)

@@ -1,6 +1,6 @@
 """Tests for the pipeline runner — state transitions, resume, edit loop, helpers."""
 
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 from app.article.models import (
     ArticleBrief,
@@ -208,11 +208,12 @@ class TestResumeIndex:
 # --- TestPipelineExecution ---
 
 
-@patch("app.article.pipeline.get_secondary_llm", return_value=None)
 class TestPipelineExecution:
-    async def test_pipeline_completes_with_mocks(self, _mock_secondary, session, sample_job):
+    async def test_pipeline_completes_with_mocks(self, session, sample_job):
         """Pipeline should run all steps and set status to COMPLETED."""
         mock_llm = AsyncMock()
+        mock_llm.drain_usage = MagicMock(return_value=[])
+        mock_llm.drain_call_log = MagicMock(return_value=[])
         mock_serp = AsyncMock()
 
         mock_serp.search = AsyncMock(return_value=_make_serp_data())
@@ -227,7 +228,10 @@ class TestPipelineExecution:
             ReviewResult: _make_passing_review(),
         }))
 
-        with patch("app.article.pipeline.settings") as mock_settings:
+        with (
+            patch("app.article.pipeline.settings") as mock_settings,
+            patch("app.article.pipeline.get_llm_council", return_value=[mock_llm]),
+        ):
             mock_settings.quality_threshold = 0.3
             mock_settings.max_revisions = 2
             await run_pipeline(sample_job.id, session, mock_llm, mock_serp)
@@ -241,9 +245,11 @@ class TestPipelineExecution:
         assert refreshed.quality_data is not None
         assert refreshed.review_data is not None
 
-    async def test_pipeline_handles_step_failure(self, _mock_secondary, session, sample_job):
+    async def test_pipeline_handles_step_failure(self, session, sample_job):
         """Pipeline should set FAILED status on exception."""
         mock_llm = AsyncMock()
+        mock_llm.drain_usage = MagicMock(return_value=[])
+        mock_llm.drain_call_log = MagicMock(return_value=[])
         mock_serp = AsyncMock()
         mock_serp.search = AsyncMock(side_effect=Exception("SERP API down"))
 
@@ -254,7 +260,7 @@ class TestPipelineExecution:
         assert "SERP API down" in refreshed.error
 
     async def test_pipeline_resumes_from_last_step(
-        self, _mock_secondary, session, sample_job, sample_serp_data, sample_analysis,
+        self, session, sample_job, sample_serp_data, sample_analysis,
     ):
         """Pipeline should skip already-completed steps on resume."""
         sample_job.set_serp(sample_serp_data)
@@ -263,6 +269,8 @@ class TestPipelineExecution:
         await session.commit()
 
         mock_llm = AsyncMock()
+        mock_llm.drain_usage = MagicMock(return_value=[])
+        mock_llm.drain_call_log = MagicMock(return_value=[])
         mock_serp = AsyncMock()
 
         mock_llm.generate_text = AsyncMock(return_value=ARTICLE_MARKDOWN)
@@ -275,7 +283,10 @@ class TestPipelineExecution:
             ReviewResult: _make_passing_review(),
         }))
 
-        with patch("app.article.pipeline.settings") as mock_settings:
+        with (
+            patch("app.article.pipeline.settings") as mock_settings,
+            patch("app.article.pipeline.get_llm_council", return_value=[mock_llm]),
+        ):
             mock_settings.quality_threshold = 0.3
             mock_settings.max_revisions = 2
             await run_pipeline(sample_job.id, session, mock_llm, mock_serp)
@@ -284,9 +295,11 @@ class TestPipelineExecution:
         mock_serp.search.assert_not_called()
         assert refreshed.status == JobStatus.COMPLETED
 
-    async def test_nonexistent_job_does_nothing(self, _mock_secondary, session):
+    async def test_nonexistent_job_does_nothing(self, session):
         """Pipeline should log error for missing job."""
         mock_llm = AsyncMock()
+        mock_llm.drain_usage = MagicMock(return_value=[])
+        mock_llm.drain_call_log = MagicMock(return_value=[])
         mock_serp = AsyncMock()
 
         await run_pipeline("nonexistent-id", session, mock_llm, mock_serp)
@@ -409,13 +422,14 @@ class TestMarkdownParser:
 # --- TestEditLoop ---
 
 
-@patch("app.article.pipeline.get_secondary_llm", return_value=None)
 class TestEditLoop:
     async def test_edit_loop_triggers_on_failing_quality(
-        self, _mock_secondary, session, sample_job,
+        self, session, sample_job,
     ):
         """Edit loop: fail quality -> edit -> re-score (pass) -> re-review -> COMPLETED."""
         mock_llm = AsyncMock()
+        mock_llm.drain_usage = MagicMock(return_value=[])
+        mock_llm.drain_call_log = MagicMock(return_value=[])
         mock_serp = AsyncMock()
         mock_serp.search = AsyncMock(return_value=_make_serp_data())
 
@@ -454,8 +468,11 @@ class TestEditLoop:
             ReviewResult: _make_passing_review(),
         }))
 
-        with patch("app.article.pipeline.settings") as mock_settings:
-            mock_settings.quality_threshold = 0.75
+        with (
+            patch("app.article.pipeline.settings") as mock_settings,
+            patch("app.article.pipeline.get_llm_council", return_value=[mock_llm]),
+        ):
+            mock_settings.quality_threshold = 0.6
             mock_settings.max_revisions = 2
             await run_pipeline(sample_job.id, session, mock_llm, mock_serp)
 
@@ -463,9 +480,11 @@ class TestEditLoop:
         assert refreshed.status == JobStatus.COMPLETED
         assert refreshed.revision_count == 1
 
-    async def test_edit_loop_exits_on_max_revisions(self, _mock_secondary, session, sample_job):
+    async def test_edit_loop_exits_on_max_revisions(self, session, sample_job):
         """Edit loop exits after max_revisions even if quality stays below threshold."""
         mock_llm = AsyncMock()
+        mock_llm.drain_usage = MagicMock(return_value=[])
+        mock_llm.drain_call_log = MagicMock(return_value=[])
         mock_serp = AsyncMock()
         mock_serp.search = AsyncMock(return_value=_make_serp_data())
 
@@ -485,7 +504,10 @@ class TestEditLoop:
             ReviewResult: _make_passing_review(),
         }))
 
-        with patch("app.article.pipeline.settings") as mock_settings:
+        with (
+            patch("app.article.pipeline.settings") as mock_settings,
+            patch("app.article.pipeline.get_llm_council", return_value=[mock_llm]),
+        ):
             mock_settings.quality_threshold = 0.99
             mock_settings.max_revisions = 2
             await run_pipeline(sample_job.id, session, mock_llm, mock_serp)
@@ -494,9 +516,11 @@ class TestEditLoop:
         assert refreshed.status == JobStatus.COMPLETED
         assert refreshed.revision_count == 2
 
-    async def test_edit_loop_triggers_on_failing_review(self, _mock_secondary, session, sample_job):
+    async def test_edit_loop_triggers_on_failing_review(self, session, sample_job):
         """Edit loop triggers when review fails even if quality passes."""
         mock_llm = AsyncMock()
+        mock_llm.drain_usage = MagicMock(return_value=[])
+        mock_llm.drain_call_log = MagicMock(return_value=[])
         mock_serp = AsyncMock()
         mock_serp.search = AsyncMock(return_value=_make_serp_data())
 
@@ -529,7 +553,10 @@ class TestEditLoop:
             _ScorePair: perfect_pair,
         }))
 
-        with patch("app.article.pipeline.settings") as mock_settings:
+        with (
+            patch("app.article.pipeline.settings") as mock_settings,
+            patch("app.article.pipeline.get_llm_council", return_value=[mock_llm]),
+        ):
             mock_settings.quality_threshold = 0.3
             mock_settings.max_revisions = 2
             await run_pipeline(sample_job.id, session, mock_llm, mock_serp)
@@ -565,9 +592,11 @@ class TestMergeScoreDimensions:
         by_name = {d.name: d for d in merged}
         assert by_name["depth"].score == 0.7
         assert by_name["readability"].score == 0.8
-        # Feedback from worst scorer
-        assert by_name["depth"].feedback == "needs work"
-        assert by_name["readability"].feedback == "ok"
+        # Feedback from all providers joined
+        assert "good" in by_name["depth"].feedback
+        assert "needs work" in by_name["depth"].feedback
+        assert "great" in by_name["readability"].feedback
+        assert "ok" in by_name["readability"].feedback
 
     def test_empty_input(self):
         merged = _merge_score_dimensions([])
@@ -671,13 +700,20 @@ class TestMultiProviderScoring:
             ScoreDimension(name="differentiation", score=0.9, feedback="great from gemini"),
         ])
 
-        mock_llm = AsyncMock()
+        mock_primary = AsyncMock()
+        mock_primary.drain_usage = MagicMock(return_value=[])
+        mock_primary.drain_call_log = MagicMock(return_value=[])
         mock_secondary = AsyncMock()
-        mock_llm.generate_structured = AsyncMock(return_value=primary_pair)
+        mock_secondary.drain_usage = MagicMock(return_value=[])
+        mock_secondary.drain_call_log = MagicMock(return_value=[])
+        mock_primary.generate_structured = AsyncMock(return_value=primary_pair)
         mock_secondary.generate_structured = AsyncMock(return_value=secondary_pair)
 
-        with patch("app.article.pipeline.get_secondary_llm", return_value=mock_secondary):
-            await score_step(sample_job, session, mock_llm, AsyncMock())
+        with patch(
+            "app.article.pipeline.get_llm_council",
+            return_value=[mock_primary, mock_secondary],
+        ):
+            await score_step(sample_job, session, mock_primary, AsyncMock())
 
         quality = sample_job.get_quality()
         assert quality is not None
@@ -710,15 +746,22 @@ class TestMultiProviderScoring:
             ScoreDimension(name="differentiation", score=0.7, feedback="ok"),
         ])
 
-        mock_llm = AsyncMock()
+        mock_primary = AsyncMock()
+        mock_primary.drain_usage = MagicMock(return_value=[])
+        mock_primary.drain_call_log = MagicMock(return_value=[])
         mock_secondary = AsyncMock()
-        mock_llm.generate_structured = AsyncMock(return_value=primary_pair)
+        mock_secondary.drain_usage = MagicMock(return_value=[])
+        mock_secondary.drain_call_log = MagicMock(return_value=[])
+        mock_primary.generate_structured = AsyncMock(return_value=primary_pair)
         mock_secondary.generate_structured = AsyncMock(
             side_effect=Exception("Gemini down"),
         )
 
-        with patch("app.article.pipeline.get_secondary_llm", return_value=mock_secondary):
-            await score_step(sample_job, session, mock_llm, AsyncMock())
+        with patch(
+            "app.article.pipeline.get_llm_council",
+            return_value=[mock_primary, mock_secondary],
+        ):
+            await score_step(sample_job, session, mock_primary, AsyncMock())
 
         quality = sample_job.get_quality()
         assert quality is not None
@@ -761,13 +804,20 @@ class TestMultiProviderReview:
             strengths=["Good structure", "Strong SEO"],
         )
 
-        mock_llm = AsyncMock()
+        mock_primary = AsyncMock()
+        mock_primary.drain_usage = MagicMock(return_value=[])
+        mock_primary.drain_call_log = MagicMock(return_value=[])
         mock_secondary = AsyncMock()
-        mock_llm.generate_structured = AsyncMock(return_value=review_1)
+        mock_secondary.drain_usage = MagicMock(return_value=[])
+        mock_secondary.drain_call_log = MagicMock(return_value=[])
+        mock_primary.generate_structured = AsyncMock(return_value=review_1)
         mock_secondary.generate_structured = AsyncMock(return_value=review_2)
 
-        with patch("app.article.pipeline.get_secondary_llm", return_value=mock_secondary):
-            await review_step(sample_job, session, mock_llm, AsyncMock())
+        with patch(
+            "app.article.pipeline.get_llm_council",
+            return_value=[mock_primary, mock_secondary],
+        ):
+            await review_step(sample_job, session, mock_primary, AsyncMock())
 
         review = sample_job.get_review()
         assert review is not None
@@ -786,7 +836,7 @@ class TestSingleProviderFallback:
         sample_outline, sample_article, sample_seo_metadata,
         sample_keyword_analysis, sample_links,
     ):
-        """Scoring works identically when get_secondary_llm() returns None."""
+        """Scoring works with a single-provider council."""
         sample_job.set_serp(sample_serp_data)
         sample_job.set_analysis(sample_analysis)
         sample_job.set_outline(sample_outline)
@@ -805,9 +855,11 @@ class TestSingleProviderFallback:
         ])
 
         mock_llm = AsyncMock()
+        mock_llm.drain_usage = MagicMock(return_value=[])
+        mock_llm.drain_call_log = MagicMock(return_value=[])
         mock_llm.generate_structured = AsyncMock(return_value=pair)
 
-        with patch("app.article.pipeline.get_secondary_llm", return_value=None):
+        with patch("app.article.pipeline.get_llm_council", return_value=[mock_llm]):
             await score_step(sample_job, session, mock_llm, AsyncMock())
 
         quality = sample_job.get_quality()

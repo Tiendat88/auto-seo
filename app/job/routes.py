@@ -57,6 +57,8 @@ def _job_to_response(job: Job) -> JobResponse:
         article_data=job.get_article(),
         quality_data=job.get_quality(),
         review_data=job.get_review(),
+        usage_data=job.usage_data,
+        events_data=job.events_data,
         created_at=job.created_at,
         updated_at=job.updated_at,
     )

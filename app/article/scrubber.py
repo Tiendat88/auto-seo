@@ -1,6 +1,7 @@
 """Post-processing scrubber to clean AI-generated article content."""
 
 import re
+from dataclasses import dataclass
 
 from app.article.models import ArticleContent, ArticleSection, FaqItem
 
@@ -40,22 +41,35 @@ _WORD_SUBS: list[tuple[re.Pattern, str]] = [
 _SENTENCE_END = re.compile(r"(?<=[.!?])\s+")
 
 # Max sentences per paragraph
-_MAX_SENTENCES_PER_PARA = 4
+_MAX_SENTENCES_PER_PARA = 6
 
 
-def _scrub_text(text: str) -> str:
+@dataclass
+class ScrubStats:
+    """Tracks what the scrubber changed."""
+    filler_removed: int = 0
+    words_substituted: int = 0
+    paragraphs_split: int = 0
+    zero_width_stripped: int = 0
+    em_dashes_replaced: int = 0
+
+
+def _scrub_text(text: str, stats: ScrubStats) -> str:
     """Apply all scrubbing operations to a text block."""
     # 1. Strip zero-width Unicode
-    text = _ZERO_WIDTH.sub("", text)
+    new_text = _ZERO_WIDTH.sub("", text)
+    stats.zero_width_stripped += len(text) - len(new_text)
+    text = new_text
 
     # 2. Replace em-dashes with --
+    count = text.count("\u2014")
+    stats.em_dashes_replaced += count
     text = text.replace("\u2014", " -- ")
 
     # 3. Remove AI filler opener phrases
-    # Handle sentence-start fillers: remove the filler but keep the rest
     def _remove_filler(match: re.Match) -> str:
+        stats.filler_removed += 1
         full = match.group(0)
-        # If it starts with ". ", preserve the sentence boundary
         if full.startswith("."):
             return ". "
         return ""
@@ -64,9 +78,12 @@ def _scrub_text(text: str) -> str:
 
     # 4. Word substitutions
     for pattern, replacement in _WORD_SUBS:
-        text = pattern.sub(replacement, text)
+        new_text = pattern.sub(replacement, text)
+        if new_text != text:
+            stats.words_substituted += len(pattern.findall(text))
+            text = new_text
 
-    # 5. Split long paragraphs (>4 sentences)
+    # 5. Split long paragraphs
     paragraphs = text.split("\n\n")
     result_paragraphs = []
     for para in paragraphs:
@@ -75,6 +92,7 @@ def _scrub_text(text: str) -> str:
             continue
         sentences = _SENTENCE_END.split(para)
         if len(sentences) > _MAX_SENTENCES_PER_PARA:
+            stats.paragraphs_split += 1
             chunks = []
             for i in range(0, len(sentences), _MAX_SENTENCES_PER_PARA):
                 chunk = " ".join(sentences[i:i + _MAX_SENTENCES_PER_PARA])
@@ -85,7 +103,7 @@ def _scrub_text(text: str) -> str:
 
     text = "\n\n".join(result_paragraphs)
 
-    # 6. Clean up artifacts: double spaces, trailing whitespace
+    # 6. Clean up artifacts
     text = re.sub(r"  +", " ", text)
     text = re.sub(r" +\n", "\n", text)
     text = text.strip()
@@ -93,21 +111,22 @@ def _scrub_text(text: str) -> str:
     return text
 
 
-def scrub_article(article: ArticleContent) -> ArticleContent:
+def scrub_article(article: ArticleContent) -> tuple[ArticleContent, ScrubStats]:
     """Apply content scrubbing to all sections and FAQ answers."""
+    stats = ScrubStats()
     sections = [
         ArticleSection(
             heading=s.heading,
             heading_level=s.heading_level,
-            content=_scrub_text(s.content),
+            content=_scrub_text(s.content, stats),
         )
         for s in article.sections
     ]
     faq = [
         FaqItem(
             question=f.question,
-            answer=_scrub_text(f.answer),
+            answer=_scrub_text(f.answer, stats),
         )
         for f in article.faq
     ]
-    return ArticleContent(sections=sections, faq=faq)
+    return ArticleContent(sections=sections, faq=faq), stats

@@ -113,7 +113,7 @@ class TestWordCount:
             ]
         )
         dim = score_word_count(article, 1500)
-        assert dim.score == 0.6
+        assert dim.score == 0.7
 
     def test_way_off(self):
         article = ArticleContent(
@@ -126,7 +126,7 @@ class TestWordCount:
             ]
         )
         dim = score_word_count(article, 1500)
-        assert dim.score <= 0.3
+        assert dim.score == 0.0
 
 
 class TestReadabilityScore:

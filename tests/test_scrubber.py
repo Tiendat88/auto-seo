@@ -15,7 +15,7 @@ class TestZeroWidthRemoval:
                 )
             ]
         )
-        result = scrub_article(article)
+        result, _stats = scrub_article(article)
         assert "\u200b" not in result.sections[0].content
         assert "\u200c" not in result.sections[0].content
         assert "\u200d" not in result.sections[0].content
@@ -34,7 +34,7 @@ class TestEmDashReplacement:
                 )
             ]
         )
-        result = scrub_article(article)
+        result, _stats = scrub_article(article)
         assert "\u2014" not in result.sections[0].content
         assert " -- " in result.sections[0].content
 
@@ -54,7 +54,7 @@ class TestFillerPhraseRemoval:
                 )
             ]
         )
-        result = scrub_article(article)
+        result, _stats = scrub_article(article)
         text = result.sections[0].content
         assert "In today's digital landscape" not in text
         assert "It's worth noting that" not in text
@@ -71,7 +71,7 @@ class TestFillerPhraseRemoval:
                 )
             ]
         )
-        result = scrub_article(article)
+        result, _stats = scrub_article(article)
         assert "Teams need better tools" in result.sections[0].content
 
 
@@ -90,7 +90,7 @@ class TestWordSubstitutions:
                 )
             ]
         )
-        result = scrub_article(article)
+        result, _stats = scrub_article(article)
         text = result.sections[0].content
         assert "leverage" not in text.lower()
         assert "delve" not in text.lower()
@@ -107,7 +107,8 @@ class TestParagraphSplitting:
         long_para = (
             "First sentence here. Second sentence here. "
             "Third sentence here. Fourth sentence here. "
-            "Fifth sentence here. Sixth sentence here."
+            "Fifth sentence here. Sixth sentence here. "
+            "Seventh sentence here. Eighth sentence here."
         )
         article = ArticleContent(
             sections=[
@@ -118,7 +119,7 @@ class TestParagraphSplitting:
                 )
             ]
         )
-        result = scrub_article(article)
+        result, _stats = scrub_article(article)
         paragraphs = result.sections[0].content.split("\n\n")
         assert len(paragraphs) >= 2
 
@@ -133,7 +134,7 @@ class TestParagraphSplitting:
                 )
             ]
         )
-        result = scrub_article(article)
+        result, _stats = scrub_article(article)
         paragraphs = result.sections[0].content.split("\n\n")
         assert len(paragraphs) == 1
 
@@ -155,7 +156,7 @@ class TestFaqScrubbing:
                 )
             ],
         )
-        result = scrub_article(article)
+        result, _stats = scrub_article(article)
         answer = result.faq[0].answer
         assert "In today's digital landscape" not in answer
         assert "\u200b" not in answer
@@ -173,5 +174,5 @@ class TestCleanPassthrough:
                 )
             ]
         )
-        result = scrub_article(article)
+        result, _stats = scrub_article(article)
         assert result.sections[0].content == content

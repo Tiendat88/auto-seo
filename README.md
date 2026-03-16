@@ -41,7 +41,7 @@ POST /jobs → Job(PENDING) → Background pipeline:
 4. **Generate** — Single LLM call produces the full article with FAQ, parsed from markdown. Three parallel calls generate SEO metadata, link suggestions, and 5 meta tag options. Content is post-processed by the scrubber (AI filler removal, zero-width Unicode stripping, paragraph splitting)
 5. **Score** — Hybrid quality scoring: 6 algorithmic checks (keyword usage, heading structure, word count, readability, humanity, keyword distribution) + 6 LLM-evaluated dimensions (content depth, differentiation, accuracy, consistency, readability, actionability) = 12 total
 6. **Review** — Holistic LLM editorial review across 7 quality categories with issue-level feedback
-7. **Edit** *(conditional)* — If score or review fails, the article is edited in place using feedback, scrubbed again, then re-scored and re-reviewed (capped at `MAX_REVISIONS`)
+7. **Edit** *(conditional)* — If score or review fails, the article is edited in place using feedback, scrubbed again, then re-scored and re-reviewed (capped at `MAX_REVISIONS`, default 10)
 
 ### Multi-Provider Scoring
 
@@ -57,7 +57,7 @@ Falls back to single-provider (Claude only) when `GOOGLE_API_KEY` is not set.
 |-----------|--------|
 | API | FastAPI |
 | Database | PostgreSQL + async SQLAlchemy |
-| LLM | Anthropic Claude (API or Agent SDK) + Google Gemini |
+| LLM | Anthropic Claude (API or Agent SDK) + OpenAI Codex SDK + Google Gemini |
 | SERP | Mock provider (default) / SerpAPI |
 | Cache | Redis |
 | CLI | Typer + Rich |
@@ -152,12 +152,15 @@ Environment variables (or `.env` file):
 | `GOOGLE_API_KEY` | — | Enables Gemini as secondary provider for scoring and review |
 | `LLM_MODEL` | `claude-sonnet-4-6` | Anthropic model to use |
 | `GEMINI_MODEL` | `gemini-3-pro-preview` | Gemini model to use |
+| `OPENAI_API_KEY` | — | Optional OpenAI API key |
+| `OPENAI_MODEL` | `o3-mini` | OpenAI model to use |
+| `OPENAI_CODEX` | `false` | Enable Codex SDK backend (uses ChatGPT subscription) |
 | `SERP_PROVIDER` | `mock` | `mock` or `serpapi` |
 | `SERPAPI_KEY` | — | Required if `SERP_PROVIDER=serpapi` |
 | `DATABASE_URL` | `postgresql+asyncpg://seo:seo@localhost:5432/seo_agent` | PostgreSQL connection |
 | `REDIS_URL` | `redis://localhost:6379/0` | Redis connection for caching |
-| `QUALITY_THRESHOLD` | `0.7` | Minimum quality score (0-1) to skip edit loop |
-| `MAX_REVISIONS` | `2` | Max edit loop iterations on quality/review failure |
+| `QUALITY_THRESHOLD` | `0.8` | Minimum quality score (0-1) to skip edit loop |
+| `MAX_REVISIONS` | `10` | Max edit loop iterations on quality/review failure |
 
 ## Design Decisions
 
@@ -271,8 +274,8 @@ GOOGLE_API_KEY=...                # Optional: enables dual-provider scoring
 SERP_PROVIDER=serpapi             # Real SERP data
 SERPAPI_KEY=...                   # Required with serpapi provider
 DATABASE_URL=postgresql+asyncpg://user:pass@host:5432/db
-QUALITY_THRESHOLD=0.7             # Min score to skip editing
-MAX_REVISIONS=2                   # Edit loop cap
+QUALITY_THRESHOLD=0.8             # Min score to skip editing
+MAX_REVISIONS=10                  # Edit loop cap
 ```
 
 > **Note**: Use `--workers 2` with uvicorn. The Claude Agent SDK blocks the event loop during long generation calls (~5 min). Multiple workers ensure the API remains responsive while the pipeline runs.

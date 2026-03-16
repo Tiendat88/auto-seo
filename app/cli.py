@@ -28,15 +28,26 @@ STAGES: list[tuple[str, str, str]] = [
 
 
 def _api_url(ctx: typer.Context) -> str:
-    return ctx.obj or DEFAULT_API_URL
+    obj = ctx.obj or {}
+    if isinstance(obj, dict):
+        return obj.get("url", DEFAULT_API_URL)
+    return obj or DEFAULT_API_URL
+
+
+def _is_verbose(ctx: typer.Context) -> bool:
+    obj = ctx.obj or {}
+    if isinstance(obj, dict):
+        return obj.get("verbose", False)
+    return False
 
 
 @app.callback(invoke_without_command=True)
 def main(
     ctx: typer.Context,
     api_url: str = typer.Option(DEFAULT_API_URL, "--api-url", help="API server URL"),
+    verbose: bool = typer.Option(False, "--verbose", "-v", help="Show detailed pipeline events"),
 ) -> None:
-    ctx.obj = api_url.rstrip("/")
+    ctx.obj = {"url": api_url.rstrip("/"), "verbose": verbose}
     if ctx.invoked_subcommand is None:
         console.print(ctx.get_help())
 
@@ -70,7 +81,7 @@ def generate(
     if not poll:
         return
 
-    _poll_job(url, job_id)
+    _poll_job(url, job_id, verbose=_is_verbose(ctx))
 
 
 @app.command()
@@ -181,7 +192,7 @@ def watch(
         return
 
     console.print(f"Watching job: [bold]{job_id}[/bold] (status: {data['status']})")
-    _poll_job(url, job_id)
+    _poll_job(url, job_id, verbose=_is_verbose(ctx))
 
 
 @app.command()
@@ -191,11 +202,12 @@ def resume(
 ) -> None:
     """Resume a failed job."""
     url = _api_url(ctx)
+    verbose = _is_verbose(ctx)
     with httpx.Client(timeout=30) as client:
         resp = client.post(f"{url}/api/jobs/{job_id}/resume")
         if resp.status_code == 409:
             console.print("[yellow]Job is already running — watching progress...[/yellow]")
-            _poll_job(url, job_id)
+            _poll_job(url, job_id, verbose=verbose)
             return
         if resp.status_code == 400:
             console.print(f"[red]{resp.json().get('detail', 'Bad request')}[/red]")
@@ -203,7 +215,7 @@ def resume(
         resp.raise_for_status()
 
     console.print(f"Resumed job: [bold]{job_id}[/bold]")
-    _poll_job(url, job_id)
+    _poll_job(url, job_id, verbose=verbose)
 
 
 @app.command(name="export")
@@ -410,10 +422,11 @@ STAGE_RENDERERS: dict[str, callable] = {  # type: ignore[type-arg]
 # --- Polling ---
 
 
-def _poll_job(api_url: str, job_id: str) -> None:
+def _poll_job(api_url: str, job_id: str, verbose: bool = False) -> None:
     """Poll job status with Rich progress bar and step-by-step output."""
     rendered_stages: set[str] = set()
     prev_revision = 0
+    last_event_count = 0
 
     progress = Progress(
         SpinnerColumn(),
@@ -483,6 +496,17 @@ def _poll_job(api_url: str, job_id: str) -> None:
                             progress.update(task_id, stage=f"{label}...")
                             break
 
+                # Verbose: render new pipeline events
+                if verbose:
+                    events = data.get("events_data") or []
+                    if len(events) > last_event_count:
+                        progress.stop()
+                        for ev in events[last_event_count:]:
+                            ts = ev.get("timestamp", "")[11:19]
+                            console.print(f"  [dim]{ts}[/dim] {ev.get('detail', '')}")
+                        last_event_count = len(events)
+                        progress.start()
+
                 if data["status"] == "completed":
                     progress.update(task_id, completed=len(STAGES), stage="done")
                     progress.stop()
@@ -525,6 +549,7 @@ def _render_completion_summary(data: dict) -> None:
         f"[green bold]Completed:[/green bold] {title}"
         f" | slug: {slug} | {words} words | {revisions} revision(s)"
     )
+    _render_token_summary(data)
     console.print(f"View full article: [bold]autoseo result {data['job_id']}[/bold]")
 
 
@@ -551,6 +576,23 @@ def _render_summary(data: dict) -> None:
     console.print(f"Sections: {len(content.get('sections', []))}")
     console.print(f"FAQ: {len(content.get('faq', []))}")
     console.print(f"Revisions: {data.get('revision_count', 0)}")
+    _render_token_summary(data)
+
+
+def _render_token_summary(data: dict) -> None:
+    """Show token usage and cost if available."""
+    usage = data.get("usage_data")
+    if not usage:
+        return
+    total_in = sum(u.get("input_tokens", 0) for u in usage)
+    total_out = sum(u.get("output_tokens", 0) for u in usage)
+    total = total_in + total_out
+    total_cost = sum(u.get("cost", 0) for u in usage)
+    cost_str = f" | ~${total_cost:.2f}" if total_cost > 0 else ""
+    console.print(
+        f"Tokens: [dim]{total_in:,} in / {total_out:,} out "
+        f"({total:,} total){cost_str}[/dim]"
+    )
 
 
 # --- Markdown rendering ---

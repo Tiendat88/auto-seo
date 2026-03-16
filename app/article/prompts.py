@@ -173,6 +173,7 @@ def generate_article_prompt(
     language: str,
     revision_instructions: str | None = None,
     brand_voice: BrandVoice | None = None,
+    target_word_count: int = 1500,
 ) -> str:
     """Single-call prompt for full article + inline FAQ."""
     brief_block = format_brief(outline.brief) if outline.brief else ""
@@ -200,6 +201,9 @@ def generate_article_prompt(
             "Address these issues in your rewrite.\n"
         )
 
+    wc_lower = int(target_word_count * 0.8)
+    wc_upper = int(target_word_count * 1.2)
+
     return f"""You are an expert content writer. Write a complete article in {language}.
 
 {brief_block}
@@ -215,6 +219,7 @@ Output format:
 - Each FAQ question should be a ### heading, followed by a 2-4 sentence answer
 
 Guidelines:
+- WORD COUNT: Target {target_word_count} words ({wc_lower}–{wc_upper} range). Be concise.
 - Write naturally and engagingly; avoid keyword stuffing
 - Use concrete examples, data points, and actionable advice
 - Vary sentence length and structure for readability
@@ -446,6 +451,8 @@ def edit_prompt(
     score_dimensions: list[ScoreDimension],
     review: ReviewResult | None,
     brand_voice: BrandVoice | None = None,
+    target_word_count: int = 1500,
+    actual_word_count: int = 0,
 ) -> str:
     """Prompt for editing an article in place based on score and review feedback."""
     brief_block = format_brief(brief) if brief else ""
@@ -467,6 +474,17 @@ def edit_prompt(
             f"Strengths to PRESERVE:\n{strengths_block}\n"
         )
 
+    wc_lower = int(target_word_count * 0.8)
+    wc_upper = int(target_word_count * 1.2)
+    if actual_word_count > wc_upper:
+        wc_block = (
+            f"- WORD COUNT: Article is {actual_word_count} words, target is "
+            f"{target_word_count}. Cut to {wc_lower}–{wc_upper} words by "
+            "tightening prose. Do NOT delete entire sections."
+        )
+    else:
+        wc_block = f"- WORD COUNT: Keep within {wc_lower}–{wc_upper} words."
+
     return f"""You are an expert editor. Revise this article to address the feedback below.
 
 {brief_block}
@@ -483,7 +501,8 @@ Instructions:
 - Edit in place: keep the same structure and headings, improve the content
 - Output the full revised article in markdown format (# H1, ## H2, ### H3)
 - Include the FAQ section at the end if present
-- Focus your edits on the weakest dimensions; don't over-edit strong sections"""
+- Focus your edits on the weakest dimensions; don't over-edit strong sections
+{wc_block}"""
 
 
 # --- Meta Options Prompt ---

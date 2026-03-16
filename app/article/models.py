@@ -224,6 +224,31 @@ class ReviewResult(BaseModel):
 # --- Composite Result ---
 
 
+class TokenUsage(BaseModel):
+    """Token consumption for a single LLM call."""
+    input_tokens: int = 0
+    output_tokens: int = 0
+    total_tokens: int = 0
+    cost: float = 0.0
+    provider: str = ""
+    step: str = ""
+    model: str = ""
+
+    @model_validator(mode="after")
+    def _compute_total(self) -> "TokenUsage":
+        if not self.total_tokens:
+            self.total_tokens = self.input_tokens + self.output_tokens
+        return self
+
+
+class PipelineEvent(BaseModel):
+    """Structured event emitted during pipeline execution."""
+    timestamp: str = ""
+    step: str = ""
+    event: str = ""
+    detail: str = ""
+
+
 class ArticleResult(BaseModel):
     seo_metadata: SeoMetadata
     content: ArticleContent

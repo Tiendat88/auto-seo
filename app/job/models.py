@@ -19,6 +19,7 @@ from app.article.models import (
     ReviewResult,
     SeoMetadata,
     SeoMetaOptions,
+    TokenUsage,
 )
 from app.db import Base
 from app.serp.models import SerpData
@@ -64,6 +65,8 @@ class Job(Base):
     review_data: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
     meta_options_data: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
     brand_voice_data: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
+    usage_data: Mapped[list[dict[str, Any]] | None] = mapped_column(JSON, nullable=True)
+    events_data: Mapped[list[dict[str, Any]] | None] = mapped_column(JSON, nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
@@ -167,6 +170,25 @@ class Job(Base):
         self.brand_voice_data = data.model_dump(mode="json")
         self.updated_at = datetime.now(timezone.utc)
 
+    def get_usage(self) -> list[TokenUsage]:
+        if self.usage_data:
+            return [TokenUsage.model_validate(u) for u in self.usage_data]
+        return []
+
+    def append_usage(self, items: list[TokenUsage]) -> None:
+        existing = self.usage_data or []
+        existing.extend(u.model_dump(mode="json") for u in items)
+        self.usage_data = existing
+
+    def append_event(self, step: str, event: str, detail: str) -> None:
+        entry = {
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "step": step, "event": event, "detail": detail,
+        }
+        existing = self.events_data or []
+        existing.append(entry)
+        self.events_data = existing
+
     def build_result(self) -> ArticleResult | None:
         """Build composite result from all intermediate data. Returns None if incomplete."""
         seo = self.get_seo_metadata()
@@ -235,6 +257,8 @@ class JobResponse(JobSummaryResponse):
     article_data: ArticleContent | None = None
     quality_data: QualityScore | None = None
     review_data: ReviewResult | None = None
+    usage_data: list[dict[str, Any]] | None = None
+    events_data: list[dict[str, Any]] | None = None
 
 
 class JobListResponse(BaseModel):
