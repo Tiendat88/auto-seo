@@ -41,8 +41,9 @@ State machine: `RESEARCHING → ANALYZING → OUTLINING → GENERATING → SCORI
 ### Content scrubber (`app/article/scrubber.py`)
 
 Post-processes articles after generation and editing. Returns `(ArticleContent, ScrubStats)`:
-- Zero-width Unicode removal, AI filler phrase removal (~5 openers), word substitutions (~10: leverage→use, delve→explore, etc.), paragraph splitting (>6 sentences)
-- `ScrubStats` tracks changes for verbose CLI display
+- **Modifies**: zero-width Unicode strip, AI filler opener removal (~5 patterns), long paragraph splitting (>6 sentences)
+- **Counts only** (logged, not scrubbed): em-dashes, double-hyphens, AI-favored words (leverage, delve, etc.)
+- Prompt handles style enforcement (tells LLM to avoid em-dashes and AI words upfront)
 
 ### SEO outputs (`app/article/schema.py`)
 
@@ -58,7 +59,7 @@ Post-processes articles after generation and editing. Returns `(ArticleContent, 
 | `app/article/prompts.py` | All LLM prompt templates + `format_brand_voice`, `meta_options_prompt` |
 | `app/article/models.py` | Pydantic models (BrandVoice, SeoMetaOptions, KeywordDistribution, etc.) |
 | `app/article/scorer.py` | 6 algorithmic scoring functions + AI_FILLER_PHRASES/VAGUE_WORDS constants |
-| `app/article/scrubber.py` | Content post-processor (filler removal, word subs, paragraph splitting) |
+| `app/article/scrubber.py` | Content post-processor (filler removal, paragraph splitting, AI word/em-dash counting) |
 | `app/article/schema.py` | JSON-LD generation, snippet opportunity detection |
 | `app/llm.py` | LlmClient (quad backend), `get_llm_council()`, `MODEL_PRICING`, call logging |
 | `app/job/models.py` | Job ORM model (includes `brand_voice_data`, `meta_options_data`), API schemas |
