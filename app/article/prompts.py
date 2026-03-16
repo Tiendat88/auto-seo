@@ -224,6 +224,8 @@ Guidelines:
 - Use concrete examples, data points, and actionable advice
 - Vary sentence length and structure for readability
 - Do NOT use filler phrases like "In today's world", "It's important to note", "In conclusion"
+- Do NOT use em-dashes or double-hyphens; use commas, semicolons, or separate sentences instead
+- Avoid overused AI words: leverage, utilize, delve, tapestry, paradigm, synergy, holistic, robust
 - Naturally include the specified keywords for each section
 - Maintain narrative flow between sections — each section should connect to the next
 - Write in {language}"""

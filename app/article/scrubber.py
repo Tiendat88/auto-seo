@@ -21,21 +21,11 @@ _FILLER_RE = re.compile(
     re.IGNORECASE | re.MULTILINE,
 )
 
-# Word substitutions: AI-favored → natural
-_WORD_SUBS: list[tuple[re.Pattern, str]] = [
-    (re.compile(r"\bleverage\b", re.IGNORECASE), "use"),
-    (re.compile(r"\butilize\b", re.IGNORECASE), "use"),
-    (re.compile(r"\butilization\b", re.IGNORECASE), "use"),
-    (re.compile(r"\bdelve\b", re.IGNORECASE), "explore"),
-    (re.compile(r"\bdelving\b", re.IGNORECASE), "exploring"),
-    (re.compile(r"\btapestry\b", re.IGNORECASE), "mix"),
-    (re.compile(r"\bnavigate\b(?!\s+to\b)", re.IGNORECASE), "handle"),
-    (re.compile(r"\blandscape\b", re.IGNORECASE), "space"),
-    (re.compile(r"\bparadigm\b", re.IGNORECASE), "approach"),
-    (re.compile(r"\bsynergy\b", re.IGNORECASE), "collaboration"),
-    (re.compile(r"\bholistic\b", re.IGNORECASE), "complete"),
-    (re.compile(r"\brobust\b", re.IGNORECASE), "strong"),
-]
+# AI-favored words to count (logged, not replaced)
+_AI_WORDS = re.compile(
+    r"\b(?:leverage|utilize|delve|tapestry|paradigm|synergy|holistic|robust)\b",
+    re.IGNORECASE,
+)
 
 # Sentence boundary regex (approximate)
 _SENTENCE_END = re.compile(r"(?<=[.!?])\s+")
@@ -46,27 +36,28 @@ _MAX_SENTENCES_PER_PARA = 6
 
 @dataclass
 class ScrubStats:
-    """Tracks what the scrubber changed."""
+    """Tracks what the scrubber changed and found."""
     filler_removed: int = 0
-    words_substituted: int = 0
     paragraphs_split: int = 0
     zero_width_stripped: int = 0
-    em_dashes_replaced: int = 0
+    em_dashes_found: int = 0
+    ai_words_found: int = 0
 
 
 def _scrub_text(text: str, stats: ScrubStats) -> str:
-    """Apply all scrubbing operations to a text block."""
+    """Apply safe scrubbing operations to a text block."""
     # 1. Strip zero-width Unicode
     new_text = _ZERO_WIDTH.sub("", text)
     stats.zero_width_stripped += len(text) - len(new_text)
     text = new_text
 
-    # 2. Replace em-dashes with --
-    count = text.count("\u2014")
-    stats.em_dashes_replaced += count
-    text = text.replace("\u2014", " -- ")
+    # 2. Count em-dashes and double-hyphens (logged, not scrubbed)
+    stats.em_dashes_found += text.count("\u2014") + text.count(" -- ")
 
-    # 3. Remove AI filler opener phrases
+    # 3. Count AI-favored words (logged, not replaced)
+    stats.ai_words_found += len(_AI_WORDS.findall(text))
+
+    # 4. Remove AI filler opener phrases
     def _remove_filler(match: re.Match) -> str:
         stats.filler_removed += 1
         full = match.group(0)
@@ -75,13 +66,6 @@ def _scrub_text(text: str, stats: ScrubStats) -> str:
         return ""
 
     text = _FILLER_RE.sub(_remove_filler, text)
-
-    # 4. Word substitutions
-    for pattern, replacement in _WORD_SUBS:
-        new_text = pattern.sub(replacement, text)
-        if new_text != text:
-            stats.words_substituted += len(pattern.findall(text))
-            text = new_text
 
     # 5. Split long paragraphs
     paragraphs = text.split("\n\n")

@@ -23,20 +23,21 @@ class TestZeroWidthRemoval:
         assert "Hello world test content here." in result.sections[0].content
 
 
-class TestEmDashReplacement:
-    def test_replaces_em_dashes(self):
+class TestEmDashCounting:
+    def test_counts_em_dashes(self):
         article = ArticleContent(
             sections=[
                 ArticleSection(
                     heading="Test",
                     heading_level=HeadingLevel.H2,
-                    content="First point\u2014second point\u2014third point.",
+                    content="First point\u2014second point -- third point.",
                 )
             ]
         )
-        result, _stats = scrub_article(article)
-        assert "\u2014" not in result.sections[0].content
-        assert " -- " in result.sections[0].content
+        result, stats = scrub_article(article)
+        # Em-dashes are counted but not scrubbed
+        assert "\u2014" in result.sections[0].content
+        assert stats.em_dashes_found == 2
 
 
 class TestFillerPhraseRemoval:
@@ -75,8 +76,8 @@ class TestFillerPhraseRemoval:
         assert "Teams need better tools" in result.sections[0].content
 
 
-class TestWordSubstitutions:
-    def test_replaces_ai_words(self):
+class TestAiWordCounting:
+    def test_counts_ai_words(self):
         article = ArticleContent(
             sections=[
                 ArticleSection(
@@ -84,22 +85,15 @@ class TestWordSubstitutions:
                     heading_level=HeadingLevel.H2,
                     content=(
                         "Teams leverage AI to delve into productivity. "
-                        "The tapestry of tools helps navigate challenges. "
                         "This holistic paradigm creates synergy."
                     ),
                 )
             ]
         )
-        result, _stats = scrub_article(article)
-        text = result.sections[0].content
-        assert "leverage" not in text.lower()
-        assert "delve" not in text.lower()
-        assert "tapestry" not in text.lower()
-        assert "paradigm" not in text.lower()
-        assert "synergy" not in text.lower()
-        assert "holistic" not in text.lower()
-        assert "use" in text.lower()
-        assert "explore" in text.lower()
+        result, stats = scrub_article(article)
+        # Words are counted but NOT replaced
+        assert "leverage" in result.sections[0].content
+        assert stats.ai_words_found == 5
 
 
 class TestParagraphSplitting:
@@ -152,7 +146,7 @@ class TestFaqScrubbing:
             faq=[
                 FaqItem(
                     question="What is this?",
-                    answer="In today's digital landscape, this leverage\u200bs AI.",
+                    answer="In today's digital landscape, this uses\u200b AI.",
                 )
             ],
         )

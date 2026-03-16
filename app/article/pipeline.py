@@ -155,9 +155,10 @@ async def generate_step(
     job.append_event("generating", "result",
         f"Article: {article.total_word_count} words, {len(faq_items)} FAQ items")
     job.append_event("generating", "scrub",
-        f"Scrubbed: {scrub_stats.filler_removed} fillers, "
-        f"{scrub_stats.words_substituted} word subs, "
-        f"{scrub_stats.paragraphs_split} para splits")
+        f"Scrubbed: {scrub_stats.filler_removed} fillers removed, "
+        f"{scrub_stats.paragraphs_split} para splits | "
+        f"Found: {scrub_stats.ai_words_found} AI words, "
+        f"{scrub_stats.em_dashes_found} em-dashes")
 
     # 3. Parallel: metadata + links + meta options
     job.current_step = "generating:metadata"

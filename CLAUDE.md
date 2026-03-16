@@ -41,7 +41,7 @@ State machine: `RESEARCHING → ANALYZING → OUTLINING → GENERATING → SCORI
 ### Content scrubber (`app/article/scrubber.py`)
 
 Post-processes articles after generation and editing. Returns `(ArticleContent, ScrubStats)`:
-- Zero-width Unicode removal, em-dash → `--`, AI filler phrase removal (~5 openers), word substitutions (~10: leverage→use, delve→explore, etc.), paragraph splitting (>6 sentences)
+- Zero-width Unicode removal, AI filler phrase removal (~5 openers), word substitutions (~10: leverage→use, delve→explore, etc.), paragraph splitting (>6 sentences)
 - `ScrubStats` tracks changes for verbose CLI display
 
 ### SEO outputs (`app/article/schema.py`)
