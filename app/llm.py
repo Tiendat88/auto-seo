@@ -190,6 +190,7 @@ class LlmClient:
                     "WebFetch", "WebSearch", "NotebookEdit", "Agent",
                 ],
                 max_turns=50,
+                max_budget_usd=1.00,
                 model=self._model,
                 system_prompt=(
                     "You are a direct text generator. "
@@ -267,7 +268,8 @@ class LlmClient:
             thread = codex.start_thread()
             turn = await thread.run(prompt)
             result = turn.final_response or ""
-            self._record_usage(turn.usage.input_tokens, turn.usage.output_tokens)
+            in_tok = turn.usage.input_tokens + turn.usage.cached_input_tokens
+            self._record_usage(in_tok, turn.usage.output_tokens)
             if not result:
                 raise LlmError("Empty response from Codex SDK")
             log.info("Codex SDK response: result_len=%d", len(result))
