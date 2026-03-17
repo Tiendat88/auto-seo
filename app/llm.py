@@ -253,6 +253,74 @@ class LlmClient:
 
         return await _call()
 
+    async def _generate_structured_via_sdk(
+        self, prompt: str, schema: type[T],
+    ) -> T:
+        """Generate structured output via Claude Agent SDK's --json-schema."""
+        from claude_agent_sdk import (
+            AssistantMessage,
+            ClaudeAgentOptions,
+            ResultMessage,
+            ToolUseBlock,
+            query,
+        )
+
+        @retry(
+            stop=stop_after_attempt(3),
+            wait=wait_exponential(multiplier=1, min=2, max=30),
+            reraise=True,
+        )
+        async def _call() -> T:
+            self._log_call("llm_start", f"Calling {self._backend} ({self._model})")
+            options = ClaudeAgentOptions(
+                disallowed_tools=[
+                    "Bash", "Read", "Write", "Edit", "Glob", "Grep",
+                    "WebFetch", "WebSearch", "NotebookEdit", "Agent",
+                ],
+                max_turns=50,
+                max_budget_usd=1.00,
+                model=self._model,
+                output_format={
+                    "type": "json_schema",
+                    "schema": schema.model_json_schema(),
+                },
+                system_prompt=(
+                    "You are a direct text generator. "
+                    "Respond only with the requested content."
+                ),
+            )
+            structured_data = None
+            async for message in query(prompt=prompt, options=options):
+                if isinstance(message, AssistantMessage):
+                    for block in message.content:
+                        if (
+                            isinstance(block, ToolUseBlock)
+                            and block.name == "StructuredOutput"
+                        ):
+                            structured_data = block.input
+                elif isinstance(message, ResultMessage):
+                    sdk_usage = message.usage or {}
+                    in_tok = (
+                        sdk_usage.get("input_tokens", 0)
+                        + sdk_usage.get("cache_creation_input_tokens", 0)
+                        + sdk_usage.get("cache_read_input_tokens", 0)
+                    )
+                    out_tok = sdk_usage.get("output_tokens", 0)
+                    self._record_usage(in_tok, out_tok)
+                    if message.total_cost_usd is not None and self._usage:
+                        self._usage[-1].cost = round(
+                            message.total_cost_usd, 6,
+                        )
+                    if message.is_error:
+                        raise LlmError(
+                            f"Agent SDK error: {message.result}"
+                        )
+            if structured_data is None:
+                raise LlmError("No structured output from Agent SDK")
+            return schema.model_validate(structured_data)
+
+        return await _call()
+
     async def _generate_via_codex(self, prompt: str) -> str:
         """Generate text via OpenAI Codex SDK (uses ChatGPT subscription)."""
         from openai_codex_sdk import Codex
@@ -401,6 +469,13 @@ class LlmClient:
         # Codex uses native outputSchema — no JSON extraction needed
         if self._backend == "openai-codex":
             result = await self._generate_structured_via_codex(prompt, schema)
+            if use_cache:
+                await cache.set(ck, result.model_dump_json(), ttl=3600)
+            return result
+
+        # Agent SDK uses native --json-schema via StructuredOutput tool
+        if self._backend == "claude-sdk":
+            result = await self._generate_structured_via_sdk(prompt, schema)
             if use_cache:
                 await cache.set(ck, result.model_dump_json(), ttl=3600)
             return result
