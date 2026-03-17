@@ -24,7 +24,7 @@ State machine: `RESEARCHING → PLANNING → GENERATING → SCORING → REVIEWIN
 - **Planning step**: Two-phase `planning_step` — multi-provider analysis (council fans out competitor analysis in parallel), then single-provider outline with embedded `ArticleBrief`
 - **Brand voice**: Optional `BrandVoice` injected into outline/generate/edit prompts via `format_brand_voice()`
 - **Hybrid scoring**: 7 algorithmic + 6 LLM = 13 dimensions, weighted average (`word_count_target` at 2x via `DIMENSION_WEIGHTS`)
-- **Token tracking**: `LlmClient._usage` accumulates `TokenUsage` per call with cost estimation via `MODEL_PRICING`; pipeline drains per step into `job.usage_data` JSON column
+- **Token tracking**: `LlmClient._usage` accumulates `TokenUsage` per call; Anthropic API and Agent SDK provide real token counts + cost, Gemini provides token counts, Codex SDK provides token counts; cost estimated via `MODEL_PRICING` (Agent SDK overrides with `total_cost_usd`); pipeline drains per step into `job.usage_data` JSON column
 - **Multi-provider council**: `get_llm_council()` returns ALL configured providers as equal peers; analysis, scoring + review fan out to every provider in parallel, results averaged/merged. Scorer/reviewer feedback grouped by number ("Scorer 1", "Reviewer 2") — no model names in edit prompts
 - **Event system**: `job.events_data` JSON column — pipeline appends structured events (LLM calls, results, scrub stats, timing, cache hits). Cleared on completion unless `PERSIST_EVENTS=true`
 - **Edit loop**: If score/review fails → edit in place (with word count constraint) → re-score → re-review (capped at `max_revisions`)

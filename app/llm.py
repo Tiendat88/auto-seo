@@ -213,16 +213,32 @@ class LlmClient:
                         raise LlmError(
                             f"Agent SDK error: {result_text}"
                         )
+                    # Extract real usage from SDK
+                    sdk_usage = message.usage or {}
+                    in_tok = (
+                        sdk_usage.get("input_tokens", 0)
+                        + sdk_usage.get("cache_creation_input_tokens", 0)
+                        + sdk_usage.get("cache_read_input_tokens", 0)
+                    )
+                    out_tok = sdk_usage.get("output_tokens", 0)
+                    self._record_usage(in_tok, out_tok)
+                    if message.total_cost_usd is not None:
+                        # Override estimated cost with SDK's actual cost
+                        if self._usage:
+                            self._usage[-1].cost = round(
+                                message.total_cost_usd, 6,
+                            )
                     log.info(
                         "Agent SDK response: subtype=%s, "
-                        "result_len=%d, turns=%s",
+                        "result_len=%d, turns=%s, "
+                        "tokens=%d/%d, cost=$%.4f",
                         message.subtype,
                         len(result_text),
-                        getattr(message, "num_turns", "?"),
+                        message.num_turns,
+                        in_tok, out_tok,
+                        message.total_cost_usd or 0,
                     )
             final = result_text or assistant_text
-            # Agent SDK doesn't expose token counts; estimate from text lengths
-            self._record_usage(len(prompt) // 4, len(final) // 4)
             if not final:
                 log.error(
                     "Agent SDK empty response. result_len=%d, "
