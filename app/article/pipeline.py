@@ -93,7 +93,7 @@ async def research_step(
     if settings.firecrawl_api_key:
         from app.serp.fetcher import fetch_page_content
 
-        for result in data.results[:settings.content_fetch_top_n]:
+        async def _fetch_one(result):
             try:
                 content, wc = await fetch_page_content(result.url)
                 result.content = content
@@ -104,6 +104,10 @@ async def research_step(
                 )
             except Exception as e:
                 log.warning("Failed to fetch %s: %s", result.url, e)
+
+        await asyncio.gather(
+            *[_fetch_one(r) for r in data.results[:settings.content_fetch_top_n]]
+        )
 
     job.set_serp(data)
 
@@ -131,10 +135,14 @@ async def planning_step(
         tasks = []
         for provider in council:
             if settings.firecrawl_api_key:
+                from functools import partial
+
                 from app.article.tools import RESEARCH_TOOLS, handle_tool_call
 
+                allowed_domains = {r.domain for r in serp_data.results}
+                handler = partial(handle_tool_call, allowed_domains=allowed_domains)
                 tasks.append(provider.generate_with_tools(
-                    prompt, RESEARCH_TOOLS, handle_tool_call, CompetitiveAnalysis,
+                    prompt, RESEARCH_TOOLS, handler, CompetitiveAnalysis,
                 ))
             else:
                 tasks.append(
@@ -806,13 +814,17 @@ def _compute_keyword_analysis(
         ))
 
     # Distribution score: 1.0 = perfectly even, lower = clustered
-    if len(densities_list) > 1 and any(d > 0 for d in densities_list):
+    if primary.count == 0:
+        dist_score = 0.0
+    elif len(densities_list) < 2:
+        dist_score = 1.0
+    elif any(d > 0 for d in densities_list):
         mean_d = statistics.mean(densities_list)
         stdev_d = statistics.stdev(densities_list)
         normalized = stdev_d / mean_d if mean_d > 0 else 0
         dist_score = round(max(0.0, min(1.0, 1.0 - normalized)), 2)
     else:
-        dist_score = 1.0
+        dist_score = 0.0
 
     distribution = KeywordDistribution(
         primary_by_section=section_densities,

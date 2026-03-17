@@ -48,7 +48,7 @@ class Job(Base):
     language: Mapped[str] = mapped_column(String(2), default="en")
 
     status: Mapped[str] = mapped_column(String(20), default=JobStatus.PENDING)
-    current_step: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    current_step: Mapped[str | None] = mapped_column(String(50), nullable=True)
     error: Mapped[str | None] = mapped_column(Text, nullable=True)
     revision_count: Mapped[int] = mapped_column(Integer, default=0)
 
@@ -175,7 +175,7 @@ class Job(Base):
         return []
 
     def append_usage(self, items: list[TokenUsage]) -> None:
-        existing = self.usage_data or []
+        existing = list(self.usage_data or [])
         existing.extend(u.model_dump(mode="json") for u in items)
         self.usage_data = existing
 
@@ -184,7 +184,7 @@ class Job(Base):
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "step": step, "event": event, "detail": detail,
         }
-        existing = self.events_data or []
+        existing = list(self.events_data or [])
         existing.append(entry)
         self.events_data = existing
 

@@ -8,7 +8,10 @@ log = logging.getLogger(__name__)
 RESEARCH_TOOLS = [
     {
         "name": "search_web",
-        "description": "Search the web for a query. Returns top results with content.",
+        "description": (
+            "Search the web for a query."
+            " Returns top results with URL, title, and description."
+        ),
         "input_schema": {
             "type": "object",
             "properties": {
@@ -37,7 +40,7 @@ RESEARCH_TOOLS = [
 ]
 
 
-async def handle_tool_call(name: str, args: dict) -> str:
+async def handle_tool_call(name: str, args: dict, allowed_domains: set[str] | None = None) -> str:
     """Execute a research tool call and return the result as JSON string."""
     from app.serp.fetcher import fetch_page_content, search_web
 
@@ -46,7 +49,13 @@ async def handle_tool_call(name: str, args: dict) -> str:
         log.info("Tool search_web: %d results for '%s'", len(results), args["query"])
         return json.dumps(results)
     if name == "fetch_url":
-        content, wc = await fetch_page_content(args["url"])
-        log.info("Tool fetch_url: %d words from %s", wc, args["url"])
+        url = args.get("url", "")
+        if allowed_domains:
+            from urllib.parse import urlparse
+            domain = urlparse(url).netloc
+            if domain not in allowed_domains:
+                return json.dumps({"error": f"Domain {domain} not in allowed list"})
+        content, wc = await fetch_page_content(url)
+        log.info("Tool fetch_url: %d words from %s", wc, url)
         return json.dumps({"content": content, "word_count": wc})
     return json.dumps({"error": f"Unknown tool: {name}"})

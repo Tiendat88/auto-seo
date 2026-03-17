@@ -10,7 +10,7 @@ SEO article generator — agent-based pipeline that researches topics, analyzes 
 - **LLM**: Quad backend via `app/llm.py` — Anthropic API (with tool use), Claude Agent SDK (`max_turns=50`), OpenAI Codex SDK, Google Gemini (with tool use)
 - **CLI**: Typer + Rich (`autoseo` entrypoint, bare command shows help via `invoke_without_command`)
 - **Cache**: Redis (`app/cache.py`)
-- **Deps**: `textstat` (readability metrics), `google-genai` (Gemini), `openai-codex-sdk` (OpenAI Codex), `firecrawl` (SERP content fetching)
+- **Deps**: `textstat` (readability metrics), `google-genai` (Gemini), `openai-codex-sdk` (OpenAI Codex), `firecrawl-py` (SERP content fetching)
 - **Lint**: `ruff` (line-length=100, rules: E/F/I/N/W)
 - **Tests**: pytest + pytest-asyncio (asyncio_mode="auto"), **145 tests** across 8 files
 

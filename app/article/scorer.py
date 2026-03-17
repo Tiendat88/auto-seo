@@ -315,7 +315,7 @@ def score_differentiation(
     if brief and brief.differentiators:
         delivered = 0
         for diff in brief.differentiators:
-            words = [w for w in diff.lower().split() if len(w) > 3]
+            words = [w for w in diff.lower().split() if len(w) > 2]
             found = any(
                 f"{words[i]} {words[i + 1]}" in article_text
                 for i in range(len(words) - 1)

@@ -3,6 +3,7 @@
 import json
 import time
 from pathlib import Path
+from typing import Any
 
 import httpx
 import typer
@@ -293,6 +294,7 @@ def _render_analysis(data: dict) -> None:
 def _render_outline(data: dict) -> None:
     """Render article outline as a tree."""
     tree = Tree(f"[bold]{data.get('h1', 'Article')}[/bold]")
+    branch = tree
     for h in data.get("headings", []):
         level = h.get("level", "h2")
         wc = h.get("target_word_count", 0)
@@ -408,7 +410,7 @@ def _render_review(data: dict) -> None:
         console.print(table)
 
 
-STAGE_RENDERERS: dict[str, callable] = {  # type: ignore[type-arg]
+STAGE_RENDERERS: dict[str, Any] = {
     "serp_data": _render_serp,
     "analysis_data": _render_analysis,
     "outline_data": _render_outline,
