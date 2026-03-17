@@ -277,6 +277,33 @@ class LlmClient:
 
         return await _call()
 
+    async def _generate_structured_via_codex(
+        self, prompt: str, schema: type[T],
+    ) -> T:
+        """Generate structured output via Codex SDK's native outputSchema."""
+        from openai_codex_sdk import Codex
+
+        @retry(
+            stop=stop_after_attempt(3),
+            wait=wait_exponential(multiplier=1, min=2, max=30),
+            reraise=True,
+        )
+        async def _call() -> T:
+            self._log_call("llm_start", f"Calling {self._backend} ({self._model})")
+            codex = Codex()
+            thread = codex.start_thread()
+            output_schema = schema.model_json_schema()
+            turn = await thread.run(prompt, {"output_schema": output_schema})
+            result = turn.final_response or ""
+            in_tok = turn.usage.input_tokens + turn.usage.cached_input_tokens
+            self._record_usage(in_tok, turn.usage.output_tokens)
+            if not result:
+                raise LlmError("Empty structured response from Codex SDK")
+            json_str = _extract_json(result)
+            return schema.model_validate_json(json_str)
+
+        return await _call()
+
     async def _generate_via_gemini(self, prompt: str, max_tokens: int) -> str:
         """Generate text via Google Gemini API."""
         from google import genai
@@ -367,6 +394,13 @@ class LlmClient:
         # Gemini uses native structured output — no JSON extraction needed
         if self._backend == "gemini":
             result = await self._generate_structured_via_gemini(prompt, schema, max_tokens)
+            if use_cache:
+                await cache.set(ck, result.model_dump_json(), ttl=3600)
+            return result
+
+        # Codex uses native outputSchema — no JSON extraction needed
+        if self._backend == "openai-codex":
+            result = await self._generate_structured_via_codex(prompt, schema)
             if use_cache:
                 await cache.set(ck, result.model_dump_json(), ttl=3600)
             return result
