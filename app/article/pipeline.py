@@ -93,14 +93,15 @@ async def research_step(
     if settings.firecrawl_api_key:
         from app.serp.fetcher import fetch_page_content
 
+        fetch_events: list[tuple[str, str, str]] = []
+
         async def _fetch_one(result):
             try:
                 content, wc = await fetch_page_content(result.url)
                 result.content = content
                 result.word_count = wc
-                job.append_event(
-                    "researching", "fetch",
-                    f"Fetched {result.domain}: {wc} words",
+                fetch_events.append(
+                    ("researching", "fetch", f"Fetched {result.domain}: {wc} words")
                 )
             except Exception as e:
                 log.warning("Failed to fetch %s: %s", result.url, e)
@@ -108,6 +109,8 @@ async def research_step(
         await asyncio.gather(
             *[_fetch_one(r) for r in data.results[:settings.content_fetch_top_n]]
         )
+        for step, event, detail in fetch_events:
+            job.append_event(step, event, detail)
 
     job.set_serp(data)
 
@@ -660,16 +663,22 @@ def _merge_competitive_analyses(
             primary = a.keywords.primary
             break
 
-    # Secondary: union, dedup, frequency-rank
+    # Secondary: union, dedup, frequency-rank (preserve first-seen casing)
     sec_counter: Counter[str] = Counter()
-    lt_set: set[str] = set()
+    sec_original: dict[str, str] = {}
+    lt_original: dict[str, str] = {}
     for a in analyses:
         for kw in a.keywords.secondary:
-            sec_counter[kw.lower()] += 1
+            key = kw.lower()
+            sec_counter[key] += 1
+            if key not in sec_original:
+                sec_original[key] = kw
         for kw in a.keywords.long_tail:
-            lt_set.add(kw.lower())
-    secondary = [kw for kw, _ in sec_counter.most_common()]
-    long_tail = sorted(lt_set)
+            key = kw.lower()
+            if key not in lt_original:
+                lt_original[key] = kw
+    secondary = [sec_original[kw] for kw, _ in sec_counter.most_common()]
+    long_tail = sorted(lt_original.values(), key=lambda x: x.lower())
 
     # Themes: exact match (case-insensitive), average frequency, union subtopics
     theme_groups: dict[str, list[CompetitorTheme]] = {}
@@ -951,6 +960,8 @@ async def run_pipeline(
             for u in usage:
                 u.step = "editing"
             job.append_usage(usage)
+            for entry in llm.drain_call_log():
+                job.append_event("editing", entry["event"], entry["detail"])
             session.add(job)
             await session.commit()
         except Exception as e:
@@ -978,6 +989,8 @@ async def run_pipeline(
             for u in usage:
                 u.step = "scoring"
             job.append_usage(usage)
+            for entry in llm.drain_call_log():
+                job.append_event("scoring", entry["event"], entry["detail"])
             session.add(job)
             await session.commit()
         except Exception as e:
@@ -1005,6 +1018,8 @@ async def run_pipeline(
             for u in usage:
                 u.step = "reviewing"
             job.append_usage(usage)
+            for entry in llm.drain_call_log():
+                job.append_event("reviewing", entry["event"], entry["detail"])
             session.add(job)
             await session.commit()
         except Exception as e:

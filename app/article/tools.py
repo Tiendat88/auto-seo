@@ -52,8 +52,9 @@ async def handle_tool_call(name: str, args: dict, allowed_domains: set[str] | No
         url = args.get("url", "")
         if allowed_domains:
             from urllib.parse import urlparse
-            domain = urlparse(url).netloc
-            if domain not in allowed_domains:
+            domain = urlparse(url).netloc.removeprefix("www.")
+            normalized = {d.removeprefix("www.") for d in allowed_domains}
+            if domain not in normalized:
                 return json.dumps({"error": f"Domain {domain} not in allowed list"})
         content, wc = await fetch_page_content(url)
         log.info("Tool fetch_url: %d words from %s", wc, url)
