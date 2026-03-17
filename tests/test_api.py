@@ -122,7 +122,7 @@ class TestIntermediateData:
         # Manually inject serp_data onto the job
         async with test_session_factory() as session:
             job = await session.get(Job, job_id)
-            job.status = JobStatus.ANALYZING
+            job.status = JobStatus.PLANNING
             job.serp_data = {
                 "query": "test",
                 "results": [

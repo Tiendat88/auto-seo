@@ -7,10 +7,10 @@ SEO article generator — agent-based pipeline that researches topics, analyzes 
 ## Stack
 
 - **Python 3.12+**, FastAPI, SQLAlchemy async (PostgreSQL prod, SQLite tests), Pydantic v2
-- **LLM**: Quad backend via `app/llm.py` — Anthropic API, Claude Agent SDK (`max_turns=50`), OpenAI Codex SDK, Google Gemini
+- **LLM**: Quad backend via `app/llm.py` — Anthropic API (with tool use), Claude Agent SDK (`max_turns=50`), OpenAI Codex SDK, Google Gemini (with tool use)
 - **CLI**: Typer + Rich (`autoseo` entrypoint, bare command shows help via `invoke_without_command`)
 - **Cache**: Redis (`app/cache.py`)
-- **Deps**: `textstat` (readability metrics), `google-genai` (Gemini), `openai-codex-sdk` (OpenAI Codex)
+- **Deps**: `textstat` (readability metrics), `google-genai` (Gemini), `openai-codex-sdk` (OpenAI Codex), `firecrawl` (SERP content fetching)
 - **Lint**: `ruff` (line-length=100, rules: E/F/I/N/W)
 - **Tests**: pytest + pytest-asyncio (asyncio_mode="auto"), **145 tests** across 8 files
 
@@ -18,14 +18,14 @@ SEO article generator — agent-based pipeline that researches topics, analyzes 
 
 ### Pipeline (`app/article/pipeline.py`)
 
-State machine: `RESEARCHING → ANALYZING → OUTLINING → GENERATING → SCORING → REVIEWING → [EDITING] → COMPLETED`
+State machine: `RESEARCHING → PLANNING → GENERATING → SCORING → REVIEWING → [EDITING] → COMPLETED`
 
 - **Single-call generation**: Full article + FAQ in one `generate_text` call, parsed via `_parse_article_markdown`, then scrubbed via `scrub_article()`
-- **Editorial brief**: `ArticleBrief` embedded in `ArticleOutline` (not a separate step)
+- **Planning step**: Two-phase `planning_step` — multi-provider analysis (council fans out competitor analysis in parallel), then single-provider outline with embedded `ArticleBrief`
 - **Brand voice**: Optional `BrandVoice` injected into outline/generate/edit prompts via `format_brand_voice()`
-- **Hybrid scoring**: 6 algorithmic + 6 LLM = 12 dimensions, weighted average (`word_count_target` at 2x via `DIMENSION_WEIGHTS`)
+- **Hybrid scoring**: 7 algorithmic + 6 LLM = 13 dimensions, weighted average (`word_count_target` at 2x via `DIMENSION_WEIGHTS`)
 - **Token tracking**: `LlmClient._usage` accumulates `TokenUsage` per call with cost estimation via `MODEL_PRICING`; pipeline drains per step into `job.usage_data` JSON column
-- **Multi-provider council**: `get_llm_council()` returns ALL configured providers as equal peers; scoring + review fan out to every provider in parallel, results averaged/merged. Scorer/reviewer feedback grouped by number ("Scorer 1", "Reviewer 2") — no model names in edit prompts
+- **Multi-provider council**: `get_llm_council()` returns ALL configured providers as equal peers; analysis, scoring + review fan out to every provider in parallel, results averaged/merged. Scorer/reviewer feedback grouped by number ("Scorer 1", "Reviewer 2") — no model names in edit prompts
 - **Event system**: `job.events_data` JSON column — pipeline appends structured events (LLM calls, results, scrub stats, timing, cache hits). Cleared on completion unless `PERSIST_EVENTS=true`
 - **Edit loop**: If score/review fails → edit in place (with word count constraint) → re-score → re-review (capped at `max_revisions`)
 - **Sub-step visibility**: Generate and score steps update `current_step` with sub-steps (`generating:article`, `generating:metadata`, `scoring:algorithmic`, `scoring:llm`) for CLI progress tracking
@@ -35,7 +35,7 @@ State machine: `RESEARCHING → ANALYZING → OUTLINING → GENERATING → SCORI
 
 | Type | Dimensions | Source |
 |------|-----------|--------|
-| Algorithmic | keyword_usage, heading_structure, word_count_target, readability_metrics, humanity, keyword_distribution | `app/article/scorer.py` |
+| Algorithmic | keyword_usage, heading_structure, word_count_target, readability_metrics, humanity, keyword_distribution, differentiation_delivery | `app/article/scorer.py` |
 | LLM | content_depth, differentiation, accuracy, consistency, readability, actionability | 3 parallel `_ScorePair` calls |
 
 ### Content scrubber (`app/article/scrubber.py`)
@@ -55,11 +55,13 @@ Post-processes articles after generation and editing. Returns `(ArticleContent, 
 
 | Path | Purpose |
 |------|---------|
-| `app/article/pipeline.py` | Pipeline runner, step functions, markdown parser, merge logic |
+| `app/article/pipeline.py` | Pipeline runner, step functions (incl. two-phase planning_step), markdown parser, merge logic |
 | `app/article/prompts.py` | All LLM prompt templates + `format_brand_voice`, `meta_options_prompt` |
 | `app/article/models.py` | Pydantic models (BrandVoice, SeoMetaOptions, KeywordDistribution, etc.) |
-| `app/article/scorer.py` | 6 algorithmic scoring functions + AI_FILLER_PHRASES/VAGUE_WORDS constants |
+| `app/article/scorer.py` | 7 algorithmic scoring functions + AI_FILLER_PHRASES/VAGUE_WORDS constants |
 | `app/article/scrubber.py` | Content post-processor (filler removal, paragraph splitting, AI word/em-dash counting) |
+| `app/article/tools.py` | LLM tool definitions for Anthropic + Gemini tool use (research, content fetching) |
+| `app/serp/fetcher.py` | Firecrawl integration for SERP content fetching |
 | `app/article/schema.py` | JSON-LD generation, snippet opportunity detection |
 | `app/llm.py` | LlmClient (quad backend), `get_llm_council()`, `MODEL_PRICING`, call logging |
 | `app/job/models.py` | Job ORM model (includes `brand_voice_data`, `meta_options_data`), API schemas |
@@ -91,6 +93,8 @@ autoseo export <id> article.md            # Export with JSON-LD
 - `DATABASE_URL` — PostgreSQL connection string
 - `QUALITY_THRESHOLD` — Min overall score (default 0.8)
 - `MAX_REVISIONS` — Edit loop cap (default 10)
+- `FIRECRAWL_API_KEY` — Firecrawl API key for SERP content fetching
+- `CONTENT_FETCH_TOP_N` — Number of top SERP results to fetch content for (default varies)
 - `PERSIST_EVENTS` — Keep pipeline events after completion (default `false`)
 
 ## DB migration
@@ -101,6 +105,9 @@ ALTER TABLE jobs ADD COLUMN IF NOT EXISTS meta_options_data JSON;
 ALTER TABLE jobs ADD COLUMN IF NOT EXISTS brand_voice_data JSON;
 ALTER TABLE jobs ADD COLUMN IF NOT EXISTS usage_data JSON;
 ALTER TABLE jobs ADD COLUMN IF NOT EXISTS events_data JSON;
+
+-- Status rename: analyzing/outlining → planning
+UPDATE jobs SET status='planning' WHERE status IN ('analyzing', 'outlining');
 ```
 New databases auto-create via `Base.metadata.create_all` on startup.
 
@@ -129,4 +136,4 @@ New databases auto-create via `Base.metadata.create_all` on startup.
 - Pipeline tests patch `get_llm_council` (return `[mock_llm]`) and `settings` (control threshold)
 - Mock LLM requires: `drain_usage = MagicMock(return_value=[])` and `drain_call_log = MagicMock(return_value=[])`
 - Threshold for edit loop tests: use 0.6 (weighted scoring with word_count at 2x makes 0.75 too strict for test fixtures)
-- Dimension count assertion: 8 = 6 algo + 2 merged LLM (single-provider council)
+- Dimension count assertion: 9 = 7 algo + 2 merged LLM (single-provider council)

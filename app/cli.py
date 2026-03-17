@@ -19,8 +19,7 @@ DEFAULT_API_URL = "http://localhost:8000"
 
 STAGES: list[tuple[str, str, str]] = [
     ("researching", "Research", "serp_data"),
-    ("analyzing", "Analyze", "analysis_data"),
-    ("outlining", "Outline", "outline_data"),
+    ("planning", "Plan", "outline_data"),
     ("generating", "Generate", "article_data"),
     ("scoring", "Score", "quality_data"),
     ("reviewing", "Review", "review_data"),

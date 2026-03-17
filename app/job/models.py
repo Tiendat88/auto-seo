@@ -28,8 +28,7 @@ from app.serp.models import SerpData
 class JobStatus(StrEnum):
     PENDING = "pending"
     RESEARCHING = "researching"
-    ANALYZING = "analyzing"
-    OUTLINING = "outlining"
+    PLANNING = "planning"
     GENERATING = "generating"
     SCORING = "scoring"
     REVIEWING = "reviewing"

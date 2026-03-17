@@ -17,9 +17,12 @@ from app.article.models import (
     ArticleOutline,
     ArticleSection,
     CompetitiveAnalysis,
+    CompetitorTheme,
+    ContentGap,
     FaqItem,
     HeadingLevel,
     KeywordAnalysis,
+    KeywordCluster,
     KeywordDistribution,
     KeywordUsage,
     LinkSuggestions,
@@ -46,6 +49,7 @@ from app.article.prompts import (
     seo_metadata_prompt,
 )
 from app.article.scorer import (
+    score_differentiation,
     score_heading_structure,
     score_humanity,
     score_keyword_distribution,
@@ -81,41 +85,117 @@ class _ScorePair(BaseModel):
 async def research_step(
     job: Job, session: AsyncSession, llm: LlmClient, serp: SerpProvider
 ) -> None:
-    """Fetch SERP data for the topic."""
+    """Fetch SERP data and optionally scrape top result pages via Firecrawl."""
     if job.serp_data:
         return
     data = await serp.search(job.topic)
+
+    if settings.firecrawl_api_key:
+        from app.serp.fetcher import fetch_page_content
+
+        for result in data.results[:settings.content_fetch_top_n]:
+            try:
+                content, wc = await fetch_page_content(result.url)
+                result.content = content
+                result.word_count = wc
+                job.append_event(
+                    "researching", "fetch",
+                    f"Fetched {result.domain}: {wc} words",
+                )
+            except Exception as e:
+                log.warning("Failed to fetch %s: %s", result.url, e)
+
     job.set_serp(data)
 
 
-async def analyze_step(
+async def planning_step(
     job: Job, session: AsyncSession, llm: LlmClient, serp: SerpProvider
 ) -> None:
-    """Extract competitive analysis from SERP data."""
-    if job.analysis_data:
-        return
-    serp_data = job.get_serp()
-    if not serp_data:
-        raise StepError("Cannot analyze without SERP data")
-
-    prompt = analysis_prompt(serp_data)
-    analysis = await llm.generate_structured(prompt, CompetitiveAnalysis)
-    job.set_analysis(analysis)
-
-
-async def outline_step(
-    job: Job, session: AsyncSession, llm: LlmClient, serp: SerpProvider
-) -> None:
-    """Generate article outline with editorial brief from competitive analysis."""
+    """Multi-provider analysis + single-provider outline in one pipeline state."""
     if job.outline_data:
         return
-    analysis = job.get_analysis()
-    if not analysis:
-        raise StepError("Cannot outline without competitive analysis")
 
+    serp_data = job.get_serp()
+    if not serp_data:
+        raise StepError("Cannot plan without SERP data")
+
+    # --- Phase 1: Multi-provider analysis with tools ---
+    if not job.analysis_data:
+        job.current_step = "planning:analysis"
+        session.add(job)
+        await session.commit()
+
+        prompt = analysis_prompt(serp_data)
+        council = get_llm_council()
+
+        tasks = []
+        for provider in council:
+            if settings.firecrawl_api_key:
+                from app.article.tools import RESEARCH_TOOLS, handle_tool_call
+
+                tasks.append(provider.generate_with_tools(
+                    prompt, RESEARCH_TOOLS, handle_tool_call, CompetitiveAnalysis,
+                ))
+            else:
+                tasks.append(
+                    provider.generate_structured(prompt, CompetitiveAnalysis)
+                )
+
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+
+        for provider in council:
+            usage = provider.drain_usage()
+            for u in usage:
+                u.step = "planning"
+            job.append_usage(usage)
+            for entry in provider.drain_call_log():
+                job.append_event("planning", entry["event"], entry["detail"])
+
+        analyses: list[CompetitiveAnalysis] = []
+        for i, r in enumerate(results):
+            if isinstance(r, CompetitiveAnalysis):
+                name = council[i]._backend
+                job.append_event(
+                    "planning", "result",
+                    f"{name}: primary='{r.keywords.primary}', "
+                    f"{len(r.themes)} themes, {len(r.content_gaps)} gaps",
+                )
+                analyses.append(r)
+            elif isinstance(r, Exception):
+                log.warning("Analysis call failed: %s", r)
+
+        if not analyses:
+            raise StepError("All analysis calls failed")
+
+        analysis = (
+            _merge_competitive_analyses(analyses)
+            if len(analyses) > 1
+            else analyses[0]
+        )
+        if len(analyses) > 1:
+            job.append_event(
+                "planning", "merge",
+                f"Merged {len(analyses)} analyses from {len(council)} providers",
+            )
+        job.set_analysis(analysis)
+        session.add(job)
+        await session.commit()
+    else:
+        analysis = job.get_analysis()
+
+    # --- Phase 2: Single-provider outline from merged analysis ---
+    job.current_step = "planning:outline"
+    session.add(job)
+    await session.commit()
+
+    from app.article.prompts import extract_competitor_headings
+
+    competitor_headings = extract_competitor_headings(serp_data)
     brand_voice = job.get_brand_voice()
     prompt = outline_prompt(
-        job.topic, job.target_word_count, job.language, analysis, brand_voice=brand_voice
+        job.topic, job.target_word_count, job.language, analysis,
+        brand_voice=brand_voice,
+        competitor_headings=competitor_headings,
     )
     outline = await llm.generate_structured(prompt, ArticleOutline)
     job.set_outline(outline)
@@ -146,6 +226,7 @@ async def generate_step(
     prompt = generate_article_prompt(
         outline, job.language, revision_instructions,
         brand_voice=brand_voice, target_word_count=job.target_word_count,
+        content_gaps=analysis.content_gaps,
     )
     article_md = await llm.generate_text(prompt, max_tok)
 
@@ -175,6 +256,9 @@ async def generate_step(
         ),
         SeoMetadata,
     )
+    competitor_pages = [
+        (r.title, r.url) for r in serp_data.results if r.content
+    ]
     links_task = llm.generate_structured(
         links_prompt(
             job.topic,
@@ -183,6 +267,7 @@ async def generate_step(
             serp_data,
             brief=brief,
             section_summaries=_section_summaries(article.sections),
+            competitor_pages=competitor_pages,
         ),
         LinkSuggestions,
     )
@@ -241,12 +326,14 @@ async def score_step(
     session.add(job)
     await session.commit()
 
+    serp_data = job.get_serp()
     algo_dims = [
         score_keyword_usage(article, analysis, seo_meta),
         score_heading_structure(article),
         score_word_count(article, job.target_word_count),
         score_readability(article),
         score_humanity(article),
+        score_differentiation(article, outline.brief, serp_data),
     ]
     if kw_analysis:
         algo_dims.append(score_keyword_distribution(kw_analysis))
@@ -551,6 +638,79 @@ def _section_summaries(sections: list[ArticleSection]) -> list[tuple[str, str]]:
     return result
 
 
+def _merge_competitive_analyses(
+    analyses: list[CompetitiveAnalysis],
+) -> CompetitiveAnalysis:
+    """Merge multiple competitive analyses by consensus."""
+    from collections import Counter
+
+    # Primary keyword: majority vote
+    primaries = Counter(a.keywords.primary.lower() for a in analyses)
+    primary = primaries.most_common(1)[0][0]
+    for a in analyses:
+        if a.keywords.primary.lower() == primary:
+            primary = a.keywords.primary
+            break
+
+    # Secondary: union, dedup, frequency-rank
+    sec_counter: Counter[str] = Counter()
+    lt_set: set[str] = set()
+    for a in analyses:
+        for kw in a.keywords.secondary:
+            sec_counter[kw.lower()] += 1
+        for kw in a.keywords.long_tail:
+            lt_set.add(kw.lower())
+    secondary = [kw for kw, _ in sec_counter.most_common()]
+    long_tail = sorted(lt_set)
+
+    # Themes: exact match (case-insensitive), average frequency, union subtopics
+    theme_groups: dict[str, list[CompetitorTheme]] = {}
+    for a in analyses:
+        for t in a.themes:
+            key = t.theme.lower()
+            theme_groups.setdefault(key, []).append(t)
+    themes = []
+    for key, group in theme_groups.items():
+        avg_freq = round(sum(t.frequency for t in group) / len(group))
+        all_subs = list(dict.fromkeys(s for t in group for s in t.subtopics))
+        themes.append(CompetitorTheme(
+            theme=group[0].theme, frequency=max(avg_freq, 1), subtopics=all_subs,
+        ))
+    themes.sort(key=lambda t: t.frequency, reverse=True)
+
+    # Content gaps: union, dedup by topic
+    seen_gaps: set[str] = set()
+    gaps: list[ContentGap] = []
+    for a in analyses:
+        for g in a.content_gaps:
+            key = g.topic.lower()
+            if key not in seen_gaps:
+                seen_gaps.add(key)
+                gaps.append(g)
+
+    avg_wc = round(sum(a.avg_word_count for a in analyses) / len(analyses))
+
+    pattern_counter: Counter[str] = Counter()
+    for a in analyses:
+        for p in a.common_heading_patterns:
+            pattern_counter[p.lower()] += 1
+    patterns = [p for p, _ in pattern_counter.most_common()]
+
+    intents = Counter(a.search_intent for a in analyses)
+    intent = intents.most_common(1)[0][0]
+
+    return CompetitiveAnalysis(
+        keywords=KeywordCluster(
+            primary=primary, secondary=secondary, long_tail=long_tail,
+        ),
+        themes=themes,
+        content_gaps=gaps,
+        avg_word_count=avg_wc,
+        common_heading_patterns=patterns,
+        search_intent=intent,
+    )
+
+
 def _merge_score_dimensions(dims: list[ScoreDimension]) -> list[ScoreDimension]:
     """Average scores for dimensions with the same name, group feedback by scorer."""
     groups: dict[str, list[ScoreDimension]] = defaultdict(list)
@@ -675,8 +835,7 @@ DIMENSION_WEIGHTS: dict[str, float] = {
 
 STEP_SEQUENCE: list[tuple[JobStatus, StepFn]] = [
     (JobStatus.RESEARCHING, research_step),
-    (JobStatus.ANALYZING, analyze_step),
-    (JobStatus.OUTLINING, outline_step),
+    (JobStatus.PLANNING, planning_step),
     (JobStatus.GENERATING, generate_step),
     (JobStatus.SCORING, score_step),
     (JobStatus.REVIEWING, review_step),
@@ -684,8 +843,7 @@ STEP_SEQUENCE: list[tuple[JobStatus, StepFn]] = [
 
 _DATA_CHECKS: list[tuple[JobStatus, str]] = [
     (JobStatus.RESEARCHING, "serp_data"),
-    (JobStatus.ANALYZING, "analysis_data"),
-    (JobStatus.OUTLINING, "outline_data"),
+    (JobStatus.PLANNING, "outline_data"),
     (JobStatus.GENERATING, "links_data"),
     (JobStatus.SCORING, "quality_data"),
     (JobStatus.REVIEWING, "review_data"),

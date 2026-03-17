@@ -1,6 +1,7 @@
 import json
 import logging
 import re
+from collections.abc import Callable
 from typing import TypeVar
 
 from pydantic import BaseModel, ValidationError
@@ -381,3 +382,137 @@ class LlmClient:
             await cache.set(ck, result.model_dump_json(), ttl=3600)
 
         return result
+
+    async def generate_with_tools(
+        self,
+        prompt: str,
+        tools: list[dict],
+        tool_handler: Callable,
+        schema: type[T],
+        max_tool_rounds: int = 5,
+    ) -> T:
+        """Generate structured output with tool use. Routes to backend."""
+        if self._backend == "anthropic":
+            return await self._generate_with_tools_anthropic(
+                prompt, tools, tool_handler, schema, max_tool_rounds,
+            )
+        if self._backend == "gemini":
+            return await self._generate_with_tools_gemini(
+                prompt, tools, tool_handler, schema, max_tool_rounds,
+            )
+        # Codex/Claude SDK: no custom tool support, fall back
+        return await self.generate_structured(prompt, schema, use_cache=False)
+
+    async def _generate_with_tools_anthropic(
+        self, prompt: str, tools: list[dict], tool_handler: Callable,
+        schema: type[T], max_tool_rounds: int = 5,
+    ) -> T:
+        """Tool use via Anthropic API."""
+        schema_json = json.dumps(schema.model_json_schema(), indent=2)
+        system = (
+            f"You have research tools available. Use them to gather data, "
+            f"then respond with JSON matching this schema:\n{schema_json}"
+        )
+        messages: list[dict] = [{"role": "user", "content": prompt}]
+
+        for round_num in range(max_tool_rounds):
+            self._log_call("llm_start", f"Tool round {round_num + 1}")
+            response = await self._client.messages.create(
+                model=self._model,
+                max_tokens=4096,
+                system=system,
+                messages=messages,
+                tools=tools,
+            )
+            if hasattr(response, "usage") and response.usage:
+                self._record_usage(
+                    response.usage.input_tokens, response.usage.output_tokens,
+                )
+
+            tool_uses = [b for b in response.content if b.type == "tool_use"]
+            if not tool_uses:
+                text = "".join(
+                    b.text for b in response.content if hasattr(b, "text")
+                )
+                json_str = _extract_json(text)
+                return schema.model_validate_json(json_str)
+
+            messages.append({"role": "assistant", "content": response.content})
+            tool_results = []
+            for tu in tool_uses:
+                result_str = await tool_handler(tu.name, tu.input)
+                self._log_call(
+                    "tool_use", f"{tu.name}({json.dumps(tu.input)[:100]})",
+                )
+                tool_results.append({
+                    "type": "tool_result",
+                    "tool_use_id": tu.id,
+                    "content": result_str,
+                })
+            messages.append({"role": "user", "content": tool_results})
+
+        raise LlmError(f"Tool use exceeded {max_tool_rounds} rounds")
+
+    async def _generate_with_tools_gemini(
+        self, prompt: str, tools: list[dict], tool_handler: Callable,
+        schema: type[T], max_tool_rounds: int = 5,
+    ) -> T:
+        """Tool use via Google Gemini function calling."""
+        from google import genai
+        from google.genai import types
+
+        gemini_tools = [types.Tool(function_declarations=[
+            types.FunctionDeclaration(
+                name=t["name"],
+                description=t["description"],
+                parameters=t["input_schema"],
+            )
+            for t in tools
+        ])]
+
+        schema_json = json.dumps(schema.model_json_schema(), indent=2)
+        full_prompt = (
+            f"You have research tools. Use them, then respond with JSON "
+            f"matching:\n{schema_json}\n\n{prompt}"
+        )
+
+        client = genai.Client(api_key=self._google_key)
+        contents: list = [full_prompt]
+
+        for _ in range(max_tool_rounds):
+            self._log_call("llm_start", f"Calling {self._backend} ({self._model})")
+            response = await client.aio.models.generate_content(
+                model=self._model,
+                contents=contents,
+                config=types.GenerateContentConfig(tools=gemini_tools),
+            )
+            meta = getattr(response, "usage_metadata", None)
+            if meta:
+                self._record_usage(
+                    getattr(meta, "prompt_token_count", 0),
+                    getattr(meta, "candidates_token_count", 0),
+                )
+
+            parts = response.candidates[0].content.parts
+            fn_calls = [
+                p for p in parts
+                if hasattr(p, "function_call") and p.function_call
+            ]
+            if not fn_calls:
+                json_str = _extract_json(response.text)
+                return schema.model_validate_json(json_str)
+
+            contents.append(response.candidates[0].content)
+            for fc in fn_calls:
+                result = await tool_handler(
+                    fc.function_call.name, dict(fc.function_call.args),
+                )
+                self._log_call("tool_use", f"{fc.function_call.name}(...)")
+                contents.append(types.Content(parts=[types.Part(
+                    function_response=types.FunctionResponse(
+                        name=fc.function_call.name,
+                        response={"result": result},
+                    ),
+                )]))
+
+        raise LlmError(f"Gemini tool use exceeded {max_tool_rounds} rounds")

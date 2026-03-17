@@ -5,6 +5,7 @@ import re
 import textstat
 
 from app.article.models import (
+    ArticleBrief,
     ArticleContent,
     CompetitiveAnalysis,
     HeadingLevel,
@@ -12,6 +13,7 @@ from app.article.models import (
     ScoreDimension,
     SeoMetadata,
 )
+from app.serp.models import SerpData
 
 # --- Constants ---
 
@@ -296,4 +298,61 @@ def score_keyword_distribution(kw_analysis: KeywordAnalysis) -> ScoreDimension:
         name="keyword_distribution",
         score=round(score, 2),
         feedback="; ".join(feedback_parts),
+    )
+
+
+def score_differentiation(
+    article: ArticleContent,
+    brief: ArticleBrief | None,
+    serp_data: SerpData | None,
+) -> ScoreDimension:
+    """Score brief differentiator delivery + unique value vs competitors."""
+    feedback = []
+    article_text = " ".join(s.content for s in article.sections).lower()
+
+    # Part 1: Brief differentiator delivery (0.5 weight)
+    brief_score = 1.0
+    if brief and brief.differentiators:
+        delivered = 0
+        for diff in brief.differentiators:
+            words = [w for w in diff.lower().split() if len(w) > 3]
+            found = any(
+                f"{words[i]} {words[i + 1]}" in article_text
+                for i in range(len(words) - 1)
+            ) if len(words) > 1 else any(w in article_text for w in words)
+            if found:
+                delivered += 1
+        brief_score = delivered / len(brief.differentiators)
+        if brief_score < 1.0:
+            missing = len(brief.differentiators) - delivered
+            feedback.append(
+                f"{missing}/{len(brief.differentiators)} differentiators missing"
+            )
+
+    # Part 2: Competitor uniqueness (0.5 weight)
+    uniqueness_score = 1.0
+    if serp_data:
+        competitor_text = " ".join(
+            r.content.lower() for r in serp_data.results if r.content
+        )
+        if competitor_text:
+            sentences = [
+                s.strip() for s in article_text.split(".") if len(s.strip()) > 30
+            ]
+            if sentences:
+                unique = sum(
+                    1 for s in sentences if s[:50] not in competitor_text
+                )
+                uniqueness_score = unique / len(sentences)
+                if uniqueness_score < 0.7:
+                    feedback.append(
+                        f"Only {unique}/{len(sentences)} sentences "
+                        f"unique vs competitors"
+                    )
+
+    score = round(brief_score * 0.5 + uniqueness_score * 0.5, 3)
+    return ScoreDimension(
+        name="differentiation_delivery",
+        score=score,
+        feedback=" | ".join(feedback) or "Strong differentiation from competitors",
     )

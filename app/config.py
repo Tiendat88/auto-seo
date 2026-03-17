@@ -16,6 +16,8 @@ class Settings(BaseSettings):
     # SERP
     serp_provider: str = "mock"
     serpapi_key: str = ""
+    firecrawl_api_key: str = ""
+    content_fetch_top_n: int = 10
 
     # Database
     database_url: str = "postgresql+asyncpg://seo:seo@localhost:5432/seo_agent"

@@ -47,6 +47,13 @@ ARTICLE_MARKDOWN = (
 )
 
 
+def _apply_test_settings(mock_settings: MagicMock) -> None:
+    """Apply common test settings to mock pipeline settings."""
+    mock_settings.firecrawl_api_key = ""
+    mock_settings.content_fetch_top_n = 0
+    mock_settings.persist_events = False
+
+
 def _make_outline() -> ArticleOutline:
     return ArticleOutline(
         h1="Test Article",
@@ -201,8 +208,8 @@ class TestResumeIndex:
         sample_job.set_seo_metadata(sample_seo_metadata)
         sample_job.set_keyword_analysis(sample_keyword_analysis)
         sample_job.set_links(sample_links)
-        # Quality data still missing -> scoring step (index 4)
-        assert _determine_resume_index(sample_job) == 4
+        # Quality data still missing -> scoring step (index 3)
+        assert _determine_resume_index(sample_job) == 3
 
 
 # --- TestPipelineExecution ---
@@ -234,6 +241,7 @@ class TestPipelineExecution:
         ):
             mock_settings.quality_threshold = 0.3
             mock_settings.max_revisions = 2
+            _apply_test_settings(mock_settings)
             await run_pipeline(sample_job.id, session, mock_llm, mock_serp)
 
         refreshed = await session.get(Job, sample_job.id)
@@ -289,6 +297,7 @@ class TestPipelineExecution:
         ):
             mock_settings.quality_threshold = 0.3
             mock_settings.max_revisions = 2
+            _apply_test_settings(mock_settings)
             await run_pipeline(sample_job.id, session, mock_llm, mock_serp)
 
         refreshed = await session.get(Job, sample_job.id)
@@ -474,6 +483,7 @@ class TestEditLoop:
         ):
             mock_settings.quality_threshold = 0.6
             mock_settings.max_revisions = 2
+            _apply_test_settings(mock_settings)
             await run_pipeline(sample_job.id, session, mock_llm, mock_serp)
 
         refreshed = await session.get(Job, sample_job.id)
@@ -510,6 +520,7 @@ class TestEditLoop:
         ):
             mock_settings.quality_threshold = 0.99
             mock_settings.max_revisions = 2
+            _apply_test_settings(mock_settings)
             await run_pipeline(sample_job.id, session, mock_llm, mock_serp)
 
         refreshed = await session.get(Job, sample_job.id)
@@ -559,6 +570,7 @@ class TestEditLoop:
         ):
             mock_settings.quality_threshold = 0.3
             mock_settings.max_revisions = 2
+            _apply_test_settings(mock_settings)
             await run_pipeline(sample_job.id, session, mock_llm, mock_serp)
 
         refreshed = await session.get(Job, sample_job.id)
@@ -864,7 +876,7 @@ class TestSingleProviderFallback:
 
         quality = sample_job.get_quality()
         assert quality is not None
-        # 6 algo + 2 merged LLM (3 calls same dims → merged to 2 unique)
-        assert len(quality.dimensions) == 8
+        # 7 algo + 2 merged LLM (single-provider council)
+        assert len(quality.dimensions) == 9
         depth = next(d for d in quality.dimensions if d.name == "content_depth")
         assert depth.score == 0.9

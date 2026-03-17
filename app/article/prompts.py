@@ -1,15 +1,31 @@
 """LLM prompt templates for article generation pipeline."""
 
+import re
+
 from app.article.models import (
     ArticleBrief,
     ArticleContent,
     ArticleOutline,
     BrandVoice,
     CompetitiveAnalysis,
+    ContentGap,
     ReviewResult,
     ScoreDimension,
 )
 from app.serp.models import SerpData
+
+
+def extract_competitor_headings(
+    serp: SerpData, max_pages: int = 10,
+) -> list[list[str]]:
+    """Extract H2 headings from SERP results that have content."""
+    result = []
+    for r in serp.results[:max_pages]:
+        if r.content:
+            headings = re.findall(r"^##\s+(.+)$", r.content, re.MULTILINE)
+            if headings:
+                result.append(headings)
+    return result
 
 # --- Helpers ---
 
@@ -82,15 +98,36 @@ def format_brand_voice(voice: BrandVoice | None) -> str:
 
 
 def analysis_prompt(serp: SerpData) -> str:
-    results_block = "\n".join(
-        f"{r.rank}. [{r.title}]({r.url})\n   {r.snippet}" for r in serp.results
-    )
+    parts = []
+    for r in serp.results:
+        entry = f"{r.rank}. [{r.title}]({r.url})\n   {r.snippet}"
+        if r.content:
+            preview = r.content[:2000]
+            entry += f"\n   --- Page Content ({r.word_count} words) ---\n{preview}"
+        parts.append(entry)
+    results_block = "\n".join(parts)
+
     questions_block = "\n".join(f"- {q.question}" for q in serp.questions) or (
         "None available"
     )
 
+    has_content = any(r.content for r in serp.results)
+    word_count_note = (
+        "Average word count of top results (from actual page data)"
+        if has_content
+        else "Estimated average word count (estimate from snippet depth)"
+    )
+
+    tool_note = (
+        "You may have research tools available. Use them to verify claims, "
+        "fetch thin pages, or search for related gaps. Focus on the provided "
+        "SERP data first."
+        if has_content
+        else ""
+    )
+
     query_str = serp.query
-    return f"""You are an SEO analyst. Analyze these top 10 search results
+    return f"""You are an SEO analyst. Analyze these top search results \
 for the query "{query_str}".
 
 Results:
@@ -104,10 +141,16 @@ Extract the following:
 2. 3-5 long-tail keyword variations
 3. Major themes covered across the top results, with how many results address each theme
 4. Subtopics within each theme
-5. Content gaps — topics NOT well covered that would add value
-6. Estimated average word count of top results (estimate from snippet depth and title complexity)
-7. Common heading patterns (estimate what H2-level topics competitors likely use)
-8. Search intent classification: informational | transactional | navigational | commercial"""
+5. Content gaps — topics NOT covered or only superficially covered by competitors. \
+For each gap, explain WHY it matters to the searcher and HOW to fill it. \
+Use actual page content to verify gaps, not guesses from titles alone.
+6. {word_count_note}
+7. Common heading patterns — list actual H2-level headings competitors use \
+(extract from page content where available, not inferred)
+8. Search intent: informational | transactional | navigational | commercial — \
+justify based on the content structure you observed
+
+{tool_note}"""
 
 
 def outline_prompt(
@@ -116,6 +159,7 @@ def outline_prompt(
     language: str,
     analysis: CompetitiveAnalysis,
     brand_voice: BrandVoice | None = None,
+    competitor_headings: list[list[str]] | None = None,
 ) -> str:
     themes_block = "\n".join(
         f"- {t.theme} (covered by {t.frequency}/10 results): {', '.join(t.subtopics)}"
@@ -126,6 +170,17 @@ def outline_prompt(
     ) or "None identified"
 
     brand_block = format_brand_voice(brand_voice) if brand_voice else ""
+
+    headings_block = ""
+    if competitor_headings:
+        lines = []
+        for i, page_headings in enumerate(competitor_headings[:5], 1):
+            lines.append(f"Page {i}: {', '.join(page_headings[:8])}")
+        headings_block = (
+            "\nActual competitor heading structures (from top-ranking pages):\n"
+            + "\n".join(lines)
+            + "\n\nDifferentiate from these — do NOT copy headings verbatim.\n"
+        )
 
     return f"""You are an SEO content strategist. Create a detailed article outline for: "{topic}"
 
@@ -146,7 +201,7 @@ Content gaps to exploit:
 {gaps_block}
 
 Common heading patterns: {", ".join(analysis.common_heading_patterns)}
-
+{headings_block}
 Requirements for the OUTLINE:
 - One H1 that includes the primary keyword naturally
 - 5-8 H2 sections covering the major themes
@@ -174,6 +229,7 @@ def generate_article_prompt(
     revision_instructions: str | None = None,
     brand_voice: BrandVoice | None = None,
     target_word_count: int = 1500,
+    content_gaps: list[ContentGap] | None = None,
 ) -> str:
     """Single-call prompt for full article + inline FAQ."""
     brief_block = format_brief(outline.brief) if outline.brief else ""
@@ -191,6 +247,15 @@ def generate_article_prompt(
         faq_block = (
             "\n\nFAQ questions to answer at the end:\n"
             + "\n".join(f"- {q}" for q in outline.faq_questions)
+        )
+
+    gaps_block = ""
+    if content_gaps:
+        gaps_lines = "\n".join(f"- {g.topic}: {g.reason}" for g in content_gaps)
+        gaps_block = (
+            f"Content gaps to exploit (topics competitors miss):\n"
+            f"{gaps_lines}\n"
+            f"Address each gap substantively, not just in passing.\n\n"
         )
 
     revision_block = ""
@@ -218,7 +283,7 @@ Output format:
 - If there are FAQ questions, write them at the end under a ## FAQ heading
 - Each FAQ question should be a ### heading, followed by a 2-4 sentence answer
 
-Guidelines:
+{gaps_block}Guidelines:
 - WORD COUNT: Target {target_word_count} words ({wc_lower}–{wc_upper} range). Be concise.
 - Write naturally and engagingly; avoid keyword stuffing
 - Use concrete examples, data points, and actionable advice
@@ -268,6 +333,7 @@ def links_prompt(
     serp: SerpData,
     brief: ArticleBrief | None = None,
     section_summaries: list[tuple[str, str]] | None = None,
+    competitor_pages: list[tuple[str, str]] | None = None,
 ) -> str:
     headings_block = "\n".join(f"- {h}" for h in section_headings)
     domains_block = "\n".join(f"- {r.domain}" for r in serp.results[:5])
@@ -277,6 +343,14 @@ def links_prompt(
     if section_summaries:
         context_block = "\n\nSection summaries:\n" + "\n".join(
             f"- {heading}: {summary}" for heading, summary in section_summaries
+        )
+
+    competitor_block = ""
+    if competitor_pages:
+        lines = [f"- {title} ({url})" for title, url in competitor_pages[:10]]
+        competitor_block = (
+            "\nReal competitor pages (use as external reference candidates):\n"
+            + "\n".join(lines) + "\n"
         )
 
     brief_block = ""
@@ -302,7 +376,8 @@ in the article it fits).
 2. External references (2-4): Select authoritative sources that would add
 credibility (industry reports, established publications, academic research).
 For each, use ONLY URLs from the competitor domains listed above or other
-real, well-known authoritative domains. Do NOT invent or guess URLs. Provide
+real, well-known authoritative domains. Do NOT invent or guess URLs.
+{competitor_block}Provide
 title, url, authority_reason, and which placement_section of the article it
 belongs in.
 

@@ -12,6 +12,8 @@ class SerpResult(BaseModel):
     title: str
     snippet: str
     domain: str = ""
+    content: str = ""
+    word_count: int = 0
 
     @model_validator(mode="after")
     def extract_domain(self) -> "SerpResult":
