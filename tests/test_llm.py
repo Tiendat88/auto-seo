@@ -14,7 +14,7 @@ class _FakeSchema(BaseModel):
 class TestProviderSelection:
     def test_gemini_provider(self):
         client = LlmClient(provider="gemini", api_key="fake-key")
-        assert client._backend == "gemini"
+        assert client.backend == "gemini"
 
     @patch("app.llm.settings", MagicMock(
         anthropic_api_key="sk-test", llm_model="claude-sonnet-4-6", openai_codex=False,
@@ -22,23 +22,23 @@ class TestProviderSelection:
     @patch("app.llm.AsyncAnthropic", create=True)
     def test_anthropic_provider(self, _mock_anthropic):
         client = LlmClient(api_key="sk-test")
-        assert client._backend == "anthropic"
+        assert client.backend == "anthropic"
 
     @patch("app.llm.settings", MagicMock(
         anthropic_api_key="", llm_model="claude-sonnet-4-6", openai_codex=False,
     ))
     def test_sdk_fallback(self):
         client = LlmClient()
-        assert client._backend == "claude-sdk"
+        assert client.backend == "claude-sdk"
 
     def test_codex_provider(self):
         client = LlmClient(provider="openai-codex")
-        assert client._backend == "openai-codex"
+        assert client.backend == "openai-codex"
 
     @patch("app.llm.settings", MagicMock(openai_model="o3-mini"))
     def test_codex_with_model(self):
         client = LlmClient(provider="openai-codex")
-        assert client._backend == "openai-codex"
+        assert client.backend == "openai-codex"
         assert client._model == "o3-mini"
 
 
@@ -49,7 +49,7 @@ class TestGetLlmCouncil:
     @patch.object(settings, "openai_model", "o3-mini")
     def test_returns_all_configured(self):
         council = get_llm_council()
-        backends = [c._backend for c in council]
+        backends = [c.backend for c in council]
         assert "anthropic" in backends
         assert "gemini" in backends
         assert "openai-codex" in backends
@@ -61,7 +61,7 @@ class TestGetLlmCouncil:
     def test_fallback_to_claude_sdk(self):
         council = get_llm_council()
         assert len(council) == 1
-        assert council[0]._backend == "claude-sdk"
+        assert council[0].backend == "claude-sdk"
 
     @patch.object(settings, "anthropic_api_key", "")
     @patch.object(settings, "google_api_key", "gk-test")
@@ -69,7 +69,7 @@ class TestGetLlmCouncil:
     def test_single_provider(self):
         council = get_llm_council()
         assert len(council) == 1
-        assert council[0]._backend == "gemini"
+        assert council[0].backend == "gemini"
 
 
 class TestGeminiBackend:

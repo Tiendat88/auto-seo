@@ -26,17 +26,27 @@ MODEL_PRICING: dict[str, tuple[float, float]] = {
     "gemini-3-pro-preview": (1.25, 10.0),
 }
 
+# Shared retry decorator — 3 attempts, exponential backoff
+_LLM_RETRY = retry(
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(multiplier=1, min=2, max=30),
+    reraise=True,
+)
+
+# SDK options shared between text + structured paths
+_SDK_DISALLOWED_TOOLS = [
+    "Bash", "Read", "Write", "Edit", "Glob", "Grep",
+    "WebFetch", "WebSearch", "NotebookEdit", "Agent",
+]
+
 
 def _extract_json(text: str) -> str:
     """Extract JSON from LLM response, handling markdown code blocks."""
-    # Try markdown code block first
     match = re.search(r"```(?:json)?\s*\n?(.*?)\n?```", text, re.DOTALL)
     if match:
         return match.group(1).strip()
-    # Try raw JSON (find first { or [)
     for i, ch in enumerate(text):
         if ch in "{[":
-            # Find matching close
             depth = 0
             open_ch = ch
             close_ch = "}" if ch == "{" else "]"
@@ -69,26 +79,33 @@ class LlmClient:
     """LLM client: Anthropic API, Claude Agent SDK, OpenAI Codex SDK, or Gemini."""
 
     def __init__(self, api_key: str = "", model: str = "", provider: str = "") -> None:
+        # Defaults for all backends (prevents AttributeError on misroute)
+        self._client = None
+        self._google_key = ""
+        self._api_key = ""
+
         if provider == "gemini":
-            self._backend = "gemini"
+            self.backend = "gemini"
             self._google_key = api_key or settings.google_api_key
             self._model = model or settings.gemini_model
         elif provider == "openai-codex":
-            self._backend = "openai-codex"
+            self.backend = "openai-codex"
             self._model = model or settings.openai_model
         elif api_key or settings.anthropic_api_key:
-            self._backend = "anthropic"
+            self.backend = "anthropic"
             self._api_key = api_key or settings.anthropic_api_key
             self._model = model or settings.llm_model
             from anthropic import AsyncAnthropic
 
             self._client = AsyncAnthropic(api_key=self._api_key)
         else:
-            self._backend = "claude-sdk"
+            self.backend = "claude-sdk"
             self._model = model or settings.llm_model
 
         self._usage: list[TokenUsage] = []
         self._call_log: list[dict] = []
+
+    # --- Usage tracking ---
 
     def drain_usage(self) -> list[TokenUsage]:
         """Return accumulated token usage and reset."""
@@ -104,34 +121,68 @@ class LlmClient:
 
     def _log_call(self, event: str, detail: str) -> None:
         self._call_log.append({
-            "event": event, "detail": detail, "backend": self._backend,
+            "event": event, "detail": detail, "backend": self.backend,
         })
 
     def _record_usage(self, input_tokens: int, output_tokens: int) -> None:
         prices = MODEL_PRICING.get(self._model, (0, 0))
+        if prices == (0, 0) and self._model:
+            log.warning("No pricing for model %s — cost will show $0", self._model)
         cost = (input_tokens * prices[0] + output_tokens * prices[1]) / 1_000_000
         usage = TokenUsage(
             input_tokens=input_tokens,
             output_tokens=output_tokens,
             cost=round(cost, 6),
-            provider=self._backend,
+            provider=self.backend,
             model=self._model,
         )
         self._usage.append(usage)
         self._log_call(
             "llm_done",
-            f"{self._backend}: {input_tokens} in / {output_tokens} out",
+            f"{self.backend}: {input_tokens} in / {output_tokens} out",
         )
-        log.info("LLM usage: %d in / %d out (%s)", input_tokens, output_tokens, self._backend)
+        log.info("LLM usage: %d in / %d out (%s)", input_tokens, output_tokens, self.backend)
+
+    def _record_sdk_usage(self, message: object) -> None:
+        """Extract real usage from Agent SDK ResultMessage."""
+        sdk_usage = message.usage or {}
+        in_tok = (
+            sdk_usage.get("input_tokens", 0)
+            + sdk_usage.get("cache_creation_input_tokens", 0)
+            + sdk_usage.get("cache_read_input_tokens", 0)
+        )
+        out_tok = sdk_usage.get("output_tokens", 0)
+        self._record_usage(in_tok, out_tok)
+        if message.total_cost_usd is not None and self._usage:
+            self._usage[-1].cost = round(message.total_cost_usd, 6)
+
+    def _sdk_options(self, **overrides: object) -> object:
+        """Build ClaudeAgentOptions with shared defaults."""
+        from claude_agent_sdk import ClaudeAgentOptions
+
+        defaults = {
+            "disallowed_tools": _SDK_DISALLOWED_TOOLS,
+            "max_turns": 50,
+            "max_budget_usd": 1.00,
+            "model": self._model,
+            "system_prompt": (
+                "You are a direct text generator. "
+                "Respond only with the requested content."
+            ),
+        }
+        defaults.update(overrides)
+        return ClaudeAgentOptions(**defaults)
+
+    # --- Text generation ---
 
     async def generate_text(self, prompt: str, max_tokens: int = 4096) -> str:
         """Generate free-form text."""
         try:
-            if self._backend == "gemini":
+            if self.backend == "gemini":
                 return await self._generate_via_gemini(prompt, max_tokens)
-            if self._backend == "openai-codex":
+            if self.backend == "openai-codex":
                 return await self._generate_via_codex(prompt)
-            if self._backend == "claude-sdk":
+            if self.backend == "claude-sdk":
                 return await self._generate_via_sdk(prompt)
             return await self._generate_via_api(prompt, max_tokens)
         except LlmError:
@@ -140,15 +191,9 @@ class LlmClient:
             raise LlmError(f"LLM text generation failed: {e}") from e
 
     async def _generate_via_api(self, prompt: str, max_tokens: int) -> str:
-        """Generate text via Anthropic API directly."""
-
-        @retry(
-            stop=stop_after_attempt(3),
-            wait=wait_exponential(multiplier=1, min=2, max=30),
-            reraise=True,
-        )
+        @_LLM_RETRY
         async def _call() -> str:
-            self._log_call("llm_start", f"Calling {self._backend} ({self._model})")
+            self._log_call("llm_start", f"Calling {self.backend} ({self._model})")
             response = await self._client.messages.create(
                 model=self._model,
                 max_tokens=max_tokens,
@@ -158,9 +203,7 @@ class LlmClient:
                 self._record_usage(
                     response.usage.input_tokens, response.usage.output_tokens,
                 )
-            parts = [
-                b.text for b in response.content if hasattr(b, "text")
-            ]
+            parts = [b.text for b in response.content if hasattr(b, "text")]
             if not parts:
                 raise LlmError("No text content in API response")
             return "".join(parts)
@@ -168,35 +211,12 @@ class LlmClient:
         return await _call()
 
     async def _generate_via_sdk(self, prompt: str) -> str:
-        """Generate text via Claude Agent SDK (uses Claude Code OAuth)."""
-        from claude_agent_sdk import (
-            AssistantMessage,
-            ClaudeAgentOptions,
-            ResultMessage,
-            TextBlock,
-            query,
-        )
+        from claude_agent_sdk import AssistantMessage, ResultMessage, TextBlock, query
 
-        @retry(
-            stop=stop_after_attempt(3),
-            wait=wait_exponential(multiplier=1, min=2, max=30),
-            reraise=True,
-        )
+        @_LLM_RETRY
         async def _call() -> str:
-            self._log_call("llm_start", f"Calling {self._backend} ({self._model})")
-            options = ClaudeAgentOptions(
-                disallowed_tools=[
-                    "Bash", "Read", "Write", "Edit", "Glob", "Grep",
-                    "WebFetch", "WebSearch", "NotebookEdit", "Agent",
-                ],
-                max_turns=50,
-                max_budget_usd=1.00,
-                model=self._model,
-                system_prompt=(
-                    "You are a direct text generator. "
-                    "Respond only with the requested content."
-                ),
-            )
+            self._log_call("llm_start", f"Calling {self.backend} ({self._model})")
+            options = self._sdk_options()
             result_text = ""
             assistant_text = ""
             async for message in query(prompt=prompt, options=options):
@@ -207,131 +227,26 @@ class LlmClient:
                 elif isinstance(message, ResultMessage):
                     result_text = message.result or ""
                     if message.is_error:
-                        log.error(
-                            "Agent SDK error (is_error=True): %s",
-                            result_text,
-                        )
-                        raise LlmError(
-                            f"Agent SDK error: {result_text}"
-                        )
-                    # Extract real usage from SDK
-                    sdk_usage = message.usage or {}
-                    in_tok = (
-                        sdk_usage.get("input_tokens", 0)
-                        + sdk_usage.get("cache_creation_input_tokens", 0)
-                        + sdk_usage.get("cache_read_input_tokens", 0)
-                    )
-                    out_tok = sdk_usage.get("output_tokens", 0)
-                    self._record_usage(in_tok, out_tok)
-                    if message.total_cost_usd is not None:
-                        # Override estimated cost with SDK's actual cost
-                        if self._usage:
-                            self._usage[-1].cost = round(
-                                message.total_cost_usd, 6,
-                            )
+                        raise LlmError(f"Agent SDK error: {result_text}")
+                    self._record_sdk_usage(message)
                     log.info(
-                        "Agent SDK response: subtype=%s, "
-                        "result_len=%d, turns=%s, "
-                        "tokens=%d/%d, cost=$%.4f",
-                        message.subtype,
-                        len(result_text),
-                        message.num_turns,
-                        in_tok, out_tok,
+                        "Agent SDK: subtype=%s, len=%d, turns=%s, cost=$%.4f",
+                        message.subtype, len(result_text), message.num_turns,
                         message.total_cost_usd or 0,
                     )
             final = result_text or assistant_text
             if not final:
-                log.error(
-                    "Agent SDK empty response. result_len=%d, "
-                    "assistant_len=%d, prompt_len=%d",
-                    len(result_text),
-                    len(assistant_text),
-                    len(prompt),
-                )
                 raise LlmError("No response from Agent SDK")
             return final
 
         return await _call()
 
-    async def _generate_structured_via_sdk(
-        self, prompt: str, schema: type[T],
-    ) -> T:
-        """Generate structured output via Claude Agent SDK's --json-schema."""
-        from claude_agent_sdk import (
-            AssistantMessage,
-            ClaudeAgentOptions,
-            ResultMessage,
-            ToolUseBlock,
-            query,
-        )
-
-        @retry(
-            stop=stop_after_attempt(3),
-            wait=wait_exponential(multiplier=1, min=2, max=30),
-            reraise=True,
-        )
-        async def _call() -> T:
-            self._log_call("llm_start", f"Calling {self._backend} ({self._model})")
-            options = ClaudeAgentOptions(
-                disallowed_tools=[
-                    "Bash", "Read", "Write", "Edit", "Glob", "Grep",
-                    "WebFetch", "WebSearch", "NotebookEdit", "Agent",
-                ],
-                max_turns=50,
-                max_budget_usd=1.00,
-                model=self._model,
-                output_format={
-                    "type": "json_schema",
-                    "schema": schema.model_json_schema(),
-                },
-                system_prompt=(
-                    "You are a direct text generator. "
-                    "Respond only with the requested content."
-                ),
-            )
-            structured_data = None
-            async for message in query(prompt=prompt, options=options):
-                if isinstance(message, AssistantMessage):
-                    for block in message.content:
-                        if (
-                            isinstance(block, ToolUseBlock)
-                            and block.name == "StructuredOutput"
-                        ):
-                            structured_data = block.input
-                elif isinstance(message, ResultMessage):
-                    sdk_usage = message.usage or {}
-                    in_tok = (
-                        sdk_usage.get("input_tokens", 0)
-                        + sdk_usage.get("cache_creation_input_tokens", 0)
-                        + sdk_usage.get("cache_read_input_tokens", 0)
-                    )
-                    out_tok = sdk_usage.get("output_tokens", 0)
-                    self._record_usage(in_tok, out_tok)
-                    if message.total_cost_usd is not None and self._usage:
-                        self._usage[-1].cost = round(
-                            message.total_cost_usd, 6,
-                        )
-                    if message.is_error:
-                        raise LlmError(
-                            f"Agent SDK error: {message.result}"
-                        )
-            if structured_data is None:
-                raise LlmError("No structured output from Agent SDK")
-            return schema.model_validate(structured_data)
-
-        return await _call()
-
     async def _generate_via_codex(self, prompt: str) -> str:
-        """Generate text via OpenAI Codex SDK (uses ChatGPT subscription)."""
         from openai_codex_sdk import Codex
 
-        @retry(
-            stop=stop_after_attempt(3),
-            wait=wait_exponential(multiplier=1, min=2, max=30),
-            reraise=True,
-        )
+        @_LLM_RETRY
         async def _call() -> str:
-            self._log_call("llm_start", f"Calling {self._backend} ({self._model})")
+            self._log_call("llm_start", f"Calling {self.backend} ({self._model})")
             codex = Codex()
             thread = codex.start_thread()
             turn = await thread.run(prompt)
@@ -340,50 +255,17 @@ class LlmClient:
             self._record_usage(in_tok, turn.usage.output_tokens)
             if not result:
                 raise LlmError("Empty response from Codex SDK")
-            log.info("Codex SDK response: result_len=%d", len(result))
             return result
 
         return await _call()
 
-    async def _generate_structured_via_codex(
-        self, prompt: str, schema: type[T],
-    ) -> T:
-        """Generate structured output via Codex SDK's native outputSchema."""
-        from openai_codex_sdk import Codex
-
-        @retry(
-            stop=stop_after_attempt(3),
-            wait=wait_exponential(multiplier=1, min=2, max=30),
-            reraise=True,
-        )
-        async def _call() -> T:
-            self._log_call("llm_start", f"Calling {self._backend} ({self._model})")
-            codex = Codex()
-            thread = codex.start_thread()
-            output_schema = schema.model_json_schema()
-            turn = await thread.run(prompt, {"output_schema": output_schema})
-            result = turn.final_response or ""
-            in_tok = turn.usage.input_tokens + turn.usage.cached_input_tokens
-            self._record_usage(in_tok, turn.usage.output_tokens)
-            if not result:
-                raise LlmError("Empty structured response from Codex SDK")
-            json_str = _extract_json(result)
-            return schema.model_validate_json(json_str)
-
-        return await _call()
-
     async def _generate_via_gemini(self, prompt: str, max_tokens: int) -> str:
-        """Generate text via Google Gemini API."""
         from google import genai
         from google.genai import types
 
-        @retry(
-            stop=stop_after_attempt(3),
-            wait=wait_exponential(multiplier=1, min=2, max=30),
-            reraise=True,
-        )
+        @_LLM_RETRY
         async def _call() -> str:
-            self._log_call("llm_start", f"Calling {self._backend} ({self._model})")
+            self._log_call("llm_start", f"Calling {self.backend} ({self._model})")
             client = genai.Client(api_key=self._google_key)
             response = await client.aio.models.generate_content(
                 model=self._model,
@@ -402,20 +284,64 @@ class LlmClient:
 
         return await _call()
 
+    # --- Structured output (native per backend) ---
+
+    async def _generate_structured_via_sdk(self, prompt: str, schema: type[T]) -> T:
+        from claude_agent_sdk import AssistantMessage, ResultMessage, ToolUseBlock, query
+
+        @_LLM_RETRY
+        async def _call() -> T:
+            self._log_call("llm_start", f"Calling {self.backend} ({self._model})")
+            options = self._sdk_options(
+                output_format={"type": "json_schema", "schema": schema.model_json_schema()},
+            )
+            structured_data = None
+            async for message in query(prompt=prompt, options=options):
+                if isinstance(message, AssistantMessage):
+                    for block in message.content:
+                        if (
+                            isinstance(block, ToolUseBlock)
+                            and block.name == "StructuredOutput"
+                        ):
+                            structured_data = block.input
+                elif isinstance(message, ResultMessage):
+                    self._record_sdk_usage(message)
+                    if message.is_error:
+                        raise LlmError(f"Agent SDK error: {message.result}")
+            if structured_data is None:
+                raise LlmError("No structured output from Agent SDK")
+            return schema.model_validate(structured_data)
+
+        return await _call()
+
+    async def _generate_structured_via_codex(self, prompt: str, schema: type[T]) -> T:
+        from openai_codex_sdk import Codex
+
+        @_LLM_RETRY
+        async def _call() -> T:
+            self._log_call("llm_start", f"Calling {self.backend} ({self._model})")
+            codex = Codex()
+            thread = codex.start_thread()
+            turn = await thread.run(prompt, {"output_schema": schema.model_json_schema()})
+            result = turn.final_response or ""
+            in_tok = turn.usage.input_tokens + turn.usage.cached_input_tokens
+            self._record_usage(in_tok, turn.usage.output_tokens)
+            if not result:
+                raise LlmError("Empty structured response from Codex SDK")
+            json_str = _extract_json(result)
+            return schema.model_validate_json(json_str)
+
+        return await _call()
+
     async def _generate_structured_via_gemini(
-        self, prompt: str, schema: type[T], max_tokens: int
+        self, prompt: str, schema: type[T], max_tokens: int,
     ) -> T:
-        """Generate structured output via Gemini's native JSON schema enforcement."""
         from google import genai
         from google.genai import types
 
-        @retry(
-            stop=stop_after_attempt(3),
-            wait=wait_exponential(multiplier=1, min=2, max=30),
-            reraise=True,
-        )
+        @_LLM_RETRY
         async def _call() -> T:
-            self._log_call("llm_start", f"Calling {self._backend} ({self._model})")
+            self._log_call("llm_start", f"Calling {self.backend} ({self._model})")
             client = genai.Client(api_key=self._google_key)
             response = await client.aio.models.generate_content(
                 model=self._model,
@@ -456,30 +382,24 @@ class LlmClient:
                     self._log_call("cache_hit", f"Cache HIT for {schema.__name__}")
                     return schema.model_validate_json(cached)
                 except ValidationError:
-                    log.warning("Stale cache entry for schema=%s, regenerating", schema.__name__)
+                    log.warning("Stale cache for schema=%s", schema.__name__)
                     await cache.invalidate(ck)
 
-        # Gemini uses native structured output — no JSON extraction needed
-        if self._backend == "gemini":
-            result = await self._generate_structured_via_gemini(prompt, schema, max_tokens)
+        # Native structured output per backend
+        if self.backend in ("gemini", "openai-codex", "claude-sdk"):
+            if self.backend == "gemini":
+                result = await self._generate_structured_via_gemini(
+                    prompt, schema, max_tokens,
+                )
+            elif self.backend == "openai-codex":
+                result = await self._generate_structured_via_codex(prompt, schema)
+            else:
+                result = await self._generate_structured_via_sdk(prompt, schema)
             if use_cache:
                 await cache.set(ck, result.model_dump_json(), ttl=3600)
             return result
 
-        # Codex uses native outputSchema — no JSON extraction needed
-        if self._backend == "openai-codex":
-            result = await self._generate_structured_via_codex(prompt, schema)
-            if use_cache:
-                await cache.set(ck, result.model_dump_json(), ttl=3600)
-            return result
-
-        # Agent SDK uses native --json-schema via StructuredOutput tool
-        if self._backend == "claude-sdk":
-            result = await self._generate_structured_via_sdk(prompt, schema)
-            if use_cache:
-                await cache.set(ck, result.model_dump_json(), ttl=3600)
-            return result
-
+        # Anthropic API: JSON-in-prompt with validation retry
         schema_json = json.dumps(schema.model_json_schema(), indent=2)
         full_prompt = (
             f"{prompt}\n\n"
@@ -503,12 +423,16 @@ class LlmClient:
             try:
                 result = schema.model_validate_json(json_str)
             except ValidationError as e2:
-                raise LlmError(f"Structured output failed after retry: {e2}") from e2
+                raise LlmError(
+                    f"Structured output failed after retry: {e2}"
+                ) from e2
 
         if use_cache:
             await cache.set(ck, result.model_dump_json(), ttl=3600)
 
         return result
+
+    # --- Tool use ---
 
     async def generate_with_tools(
         self,
@@ -519,22 +443,23 @@ class LlmClient:
         max_tool_rounds: int = 5,
     ) -> T:
         """Generate structured output with tool use. Routes to backend."""
-        if self._backend == "anthropic":
+        if self.backend == "anthropic":
             return await self._generate_with_tools_anthropic(
                 prompt, tools, tool_handler, schema, max_tool_rounds,
             )
-        if self._backend == "gemini":
+        if self.backend == "gemini":
             return await self._generate_with_tools_gemini(
                 prompt, tools, tool_handler, schema, max_tool_rounds,
             )
         # Codex/Claude SDK: no custom tool support, fall back
+        log.warning("Backend %s has no tool support, falling back to structured", self.backend)
         return await self.generate_structured(prompt, schema, use_cache=False)
 
+    @_LLM_RETRY
     async def _generate_with_tools_anthropic(
         self, prompt: str, tools: list[dict], tool_handler: Callable,
         schema: type[T], max_tool_rounds: int = 5,
     ) -> T:
-        """Tool use via Anthropic API."""
         schema_json = json.dumps(schema.model_json_schema(), indent=2)
         system = (
             f"You have research tools available. Use them to gather data, "
@@ -580,11 +505,11 @@ class LlmClient:
 
         raise LlmError(f"Tool use exceeded {max_tool_rounds} rounds")
 
+    @_LLM_RETRY
     async def _generate_with_tools_gemini(
         self, prompt: str, tools: list[dict], tool_handler: Callable,
         schema: type[T], max_tool_rounds: int = 5,
     ) -> T:
-        """Tool use via Google Gemini function calling."""
         from google import genai
         from google.genai import types
 
@@ -607,7 +532,7 @@ class LlmClient:
         contents: list = [full_prompt]
 
         for _ in range(max_tool_rounds):
-            self._log_call("llm_start", f"Calling {self._backend} ({self._model})")
+            self._log_call("llm_start", f"Calling {self.backend} ({self._model})")
             response = await client.aio.models.generate_content(
                 model=self._model,
                 contents=contents,

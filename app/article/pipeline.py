@@ -165,7 +165,7 @@ async def planning_step(
         analyses: list[CompetitiveAnalysis] = []
         for i, r in enumerate(results):
             if isinstance(r, CompetitiveAnalysis):
-                name = council[i]._backend
+                name = council[i].backend
                 job.append_event(
                     "planning", "result",
                     f"{name}: primary='{r.keywords.primary}', "
@@ -387,7 +387,7 @@ async def score_step(
     all_dims: list[ScoreDimension] = []
     for i, r in enumerate(results):
         if isinstance(r, _ScorePair):
-            provider_name = council[i // n_prompts]._backend
+            provider_name = council[i // n_prompts].backend
             dims = ", ".join(f"{d.name}={d.score:.2f}" for d in r.dimensions)
             job.append_event("scoring", "result", f"{provider_name}: {dims}")
             all_dims.extend(r.dimensions)
@@ -459,7 +459,7 @@ async def review_step(
     reviews: list[ReviewResult] = []
     for i, r in enumerate(results):
         if isinstance(r, ReviewResult):
-            provider_name = council[i]._backend
+            provider_name = council[i].backend
             n_issues = len(r.issues)
             critical = sum(
                 1 for x in r.issues if x.severity in ("critical", "major")
