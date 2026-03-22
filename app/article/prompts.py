@@ -46,7 +46,7 @@ def format_brief(brief: ArticleBrief | None) -> str:
     )
 
 
-def _structured_article_text(article: ArticleContent, char_limit: int) -> str:
+def structured_article_text(article: ArticleContent, char_limit: int) -> str:
     """Format article with section markers, proportionally truncated to char_limit."""
     parts: list[str] = []
     for s in article.sections:

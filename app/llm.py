@@ -2,7 +2,7 @@ import json
 import logging
 import re
 from collections.abc import Callable
-from typing import TypeVar
+from typing import Any, TypeVar
 
 from pydantic import BaseModel, ValidationError
 from tenacity import retry, stop_after_attempt, wait_exponential
@@ -81,6 +81,8 @@ class LlmClient:
     def __init__(self, api_key: str = "", model: str = "", provider: str = "") -> None:
         # Defaults for all backends (prevents AttributeError on misroute)
         self._client = None
+        self._gemini_client = None
+        self._codex_client = None
         self._google_key = ""
         self._api_key = ""
 
@@ -88,9 +90,15 @@ class LlmClient:
             self.backend = "gemini"
             self._google_key = api_key or settings.google_api_key
             self._model = model or settings.gemini_model
+            from google import genai
+
+            self._gemini_client = genai.Client(api_key=self._google_key)
         elif provider == "openai-codex":
             self.backend = "openai-codex"
             self._model = model or settings.openai_model
+            from openai_codex_sdk import Codex
+
+            self._codex_client = Codex()
         elif api_key or settings.anthropic_api_key:
             self.backend = "anthropic"
             self._api_key = api_key or settings.anthropic_api_key
@@ -143,7 +151,7 @@ class LlmClient:
         )
         log.info("LLM usage: %d in / %d out (%s)", input_tokens, output_tokens, self.backend)
 
-    def _record_sdk_usage(self, message: object) -> None:
+    def _record_sdk_usage(self, message: Any) -> None:
         """Extract real usage from Agent SDK ResultMessage."""
         sdk_usage = message.usage or {}
         in_tok = (
@@ -156,11 +164,25 @@ class LlmClient:
         if message.total_cost_usd is not None and self._usage:
             self._usage[-1].cost = round(message.total_cost_usd, 6)
 
-    def _sdk_options(self, **overrides: object) -> object:
+    def _record_gemini_usage(self, response: Any) -> None:
+        """Extract usage from Gemini response metadata."""
+        meta = getattr(response, "usage_metadata", None)
+        if meta:
+            self._record_usage(
+                getattr(meta, "prompt_token_count", 0),
+                getattr(meta, "candidates_token_count", 0),
+            )
+
+    def _record_codex_usage(self, turn: Any) -> None:
+        """Extract usage from Codex turn."""
+        in_tok = turn.usage.input_tokens + turn.usage.cached_input_tokens
+        self._record_usage(in_tok, turn.usage.output_tokens)
+
+    def _sdk_options(self, **overrides: Any) -> Any:
         """Build ClaudeAgentOptions with shared defaults."""
         from claude_agent_sdk import ClaudeAgentOptions
 
-        defaults = {
+        defaults: dict[str, Any] = {
             "disallowed_tools": _SDK_DISALLOWED_TOOLS,
             "max_turns": 50,
             "max_budget_usd": 1.00,
@@ -171,7 +193,7 @@ class LlmClient:
             ),
         }
         defaults.update(overrides)
-        return ClaudeAgentOptions(**defaults)
+        return ClaudeAgentOptions(**defaults)  # type: ignore[arg-type]
 
     # --- Text generation ---
 
@@ -191,6 +213,8 @@ class LlmClient:
             raise LlmError(f"LLM text generation failed: {e}") from e
 
     async def _generate_via_api(self, prompt: str, max_tokens: int) -> str:
+        assert self._client is not None
+
         @_LLM_RETRY
         async def _call() -> str:
             self._log_call("llm_start", f"Calling {self.backend} ({self._model})")
@@ -203,7 +227,7 @@ class LlmClient:
                 self._record_usage(
                     response.usage.input_tokens, response.usage.output_tokens,
                 )
-            parts = [b.text for b in response.content if hasattr(b, "text")]
+            parts = [b.text for b in response.content if hasattr(b, "text")]  # type: ignore[union-attr]
             if not parts:
                 raise LlmError("No text content in API response")
             return "".join(parts)
@@ -242,17 +266,15 @@ class LlmClient:
         return await _call()
 
     async def _generate_via_codex(self, prompt: str) -> str:
-        from openai_codex_sdk import Codex
+        assert self._codex_client is not None
 
         @_LLM_RETRY
         async def _call() -> str:
             self._log_call("llm_start", f"Calling {self.backend} ({self._model})")
-            codex = Codex()
-            thread = codex.start_thread()
+            thread = self._codex_client.start_thread()
             turn = await thread.run(prompt)
             result = turn.final_response or ""
-            in_tok = turn.usage.input_tokens + turn.usage.cached_input_tokens
-            self._record_usage(in_tok, turn.usage.output_tokens)
+            self._record_codex_usage(turn)
             if not result:
                 raise LlmError("Empty response from Codex SDK")
             return result
@@ -260,26 +282,20 @@ class LlmClient:
         return await _call()
 
     async def _generate_via_gemini(self, prompt: str, max_tokens: int) -> str:
-        from google import genai
         from google.genai import types
+        assert self._gemini_client is not None
 
         @_LLM_RETRY
         async def _call() -> str:
             self._log_call("llm_start", f"Calling {self.backend} ({self._model})")
-            client = genai.Client(api_key=self._google_key)
-            response = await client.aio.models.generate_content(
+            response = await self._gemini_client.aio.models.generate_content(
                 model=self._model,
                 contents=prompt,
                 config=types.GenerateContentConfig(max_output_tokens=max_tokens),
             )
             if not response.text:
                 raise LlmError("Empty response from Gemini")
-            meta = getattr(response, "usage_metadata", None)
-            if meta:
-                self._record_usage(
-                    getattr(meta, "prompt_token_count", 0),
-                    getattr(meta, "candidates_token_count", 0),
-                )
+            self._record_gemini_usage(response)
             return response.text
 
         return await _call()
@@ -315,17 +331,15 @@ class LlmClient:
         return await _call()
 
     async def _generate_structured_via_codex(self, prompt: str, schema: type[T]) -> T:
-        from openai_codex_sdk import Codex
+        assert self._codex_client is not None
 
         @_LLM_RETRY
         async def _call() -> T:
             self._log_call("llm_start", f"Calling {self.backend} ({self._model})")
-            codex = Codex()
-            thread = codex.start_thread()
+            thread = self._codex_client.start_thread()
             turn = await thread.run(prompt, {"output_schema": schema.model_json_schema()})
             result = turn.final_response or ""
-            in_tok = turn.usage.input_tokens + turn.usage.cached_input_tokens
-            self._record_usage(in_tok, turn.usage.output_tokens)
+            self._record_codex_usage(turn)
             if not result:
                 raise LlmError("Empty structured response from Codex SDK")
             json_str = _extract_json(result)
@@ -336,14 +350,13 @@ class LlmClient:
     async def _generate_structured_via_gemini(
         self, prompt: str, schema: type[T], max_tokens: int,
     ) -> T:
-        from google import genai
         from google.genai import types
+        assert self._gemini_client is not None
 
         @_LLM_RETRY
         async def _call() -> T:
             self._log_call("llm_start", f"Calling {self.backend} ({self._model})")
-            client = genai.Client(api_key=self._google_key)
-            response = await client.aio.models.generate_content(
+            response = await self._gemini_client.aio.models.generate_content(
                 model=self._model,
                 contents=prompt,
                 config=types.GenerateContentConfig(
@@ -354,12 +367,7 @@ class LlmClient:
             )
             if not response.text:
                 raise LlmError("Empty structured response from Gemini")
-            meta = getattr(response, "usage_metadata", None)
-            if meta:
-                self._record_usage(
-                    getattr(meta, "prompt_token_count", 0),
-                    getattr(meta, "candidates_token_count", 0),
-                )
+            self._record_gemini_usage(response)
             return schema.model_validate_json(response.text)
 
         return await _call()
@@ -385,16 +393,23 @@ class LlmClient:
                     log.warning("Stale cache for schema=%s", schema.__name__)
                     await cache.invalidate(ck)
 
-        # Native structured output per backend
+        # Native structured output per backend (normalized error handling)
         if self.backend in ("gemini", "openai-codex", "claude-sdk"):
-            if self.backend == "gemini":
-                result = await self._generate_structured_via_gemini(
-                    prompt, schema, max_tokens,
-                )
-            elif self.backend == "openai-codex":
-                result = await self._generate_structured_via_codex(prompt, schema)
-            else:
-                result = await self._generate_structured_via_sdk(prompt, schema)
+            try:
+                if self.backend == "gemini":
+                    result = await self._generate_structured_via_gemini(
+                        prompt, schema, max_tokens,
+                    )
+                elif self.backend == "openai-codex":
+                    result = await self._generate_structured_via_codex(prompt, schema)
+                else:
+                    result = await self._generate_structured_via_sdk(prompt, schema)
+            except LlmError:
+                raise
+            except (ValidationError, Exception) as e:
+                raise LlmError(
+                    f"Structured output failed ({self.backend}): {e}"
+                ) from e
             if use_cache:
                 await cache.set(ck, result.model_dump_json(), ttl=3600)
             return result
@@ -460,6 +475,7 @@ class LlmClient:
         self, prompt: str, tools: list[dict], tool_handler: Callable,
         schema: type[T], max_tool_rounds: int = 5,
     ) -> T:
+        assert self._client is not None
         schema_json = json.dumps(schema.model_json_schema(), indent=2)
         system = (
             f"You have research tools available. Use them to gather data, "
@@ -484,7 +500,7 @@ class LlmClient:
             tool_uses = [b for b in response.content if b.type == "tool_use"]
             if not tool_uses:
                 text = "".join(
-                    b.text for b in response.content if hasattr(b, "text")
+                    b.text for b in response.content if hasattr(b, "text")  # type: ignore[union-attr]
                 )
                 json_str = _extract_json(text)
                 return schema.model_validate_json(json_str)
@@ -510,8 +526,8 @@ class LlmClient:
         self, prompt: str, tools: list[dict], tool_handler: Callable,
         schema: type[T], max_tool_rounds: int = 5,
     ) -> T:
-        from google import genai
         from google.genai import types
+        assert self._gemini_client is not None
 
         gemini_tools = [types.Tool(function_declarations=[
             types.FunctionDeclaration(
@@ -528,22 +544,16 @@ class LlmClient:
             f"matching:\n{schema_json}\n\n{prompt}"
         )
 
-        client = genai.Client(api_key=self._google_key)
         contents: list = [full_prompt]
 
         for _ in range(max_tool_rounds):
             self._log_call("llm_start", f"Calling {self.backend} ({self._model})")
-            response = await client.aio.models.generate_content(
+            response = await self._gemini_client.aio.models.generate_content(
                 model=self._model,
                 contents=contents,
                 config=types.GenerateContentConfig(tools=gemini_tools),
             )
-            meta = getattr(response, "usage_metadata", None)
-            if meta:
-                self._record_usage(
-                    getattr(meta, "prompt_token_count", 0),
-                    getattr(meta, "candidates_token_count", 0),
-                )
+            self._record_gemini_usage(response)
 
             parts = response.candidates[0].content.parts
             fn_calls = [

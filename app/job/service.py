@@ -55,12 +55,7 @@ async def claim_job_for_resume(
     result = await session.execute(
         update(Job)
         .where(Job.id == job_id)
-        .where(
-            Job.status.in_([
-                JobStatus.FAILED,
-                JobStatus.PENDING,
-            ])
-        )
+        .where(Job.status == JobStatus.FAILED)
         .values(status=JobStatus.PENDING, error=None)
         .returning(Job.id)
     )

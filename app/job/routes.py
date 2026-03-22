@@ -23,6 +23,14 @@ from app.serp.client import get_serp_provider
 log = logging.getLogger(__name__)
 router = APIRouter(prefix="/jobs", tags=["jobs"])
 
+# Prevent GC from silently killing running pipeline tasks
+_running_tasks: set[asyncio.Task] = set()
+
+
+def _track_task(task: asyncio.Task) -> None:
+    _running_tasks.add(task)
+    task.add_done_callback(_running_tasks.discard)
+
 
 def _job_to_summary(job: Job) -> JobSummaryResponse:
     return JobSummaryResponse(
@@ -91,7 +99,7 @@ async def create_job_endpoint(
     session: AsyncSession = Depends(get_session),
 ) -> JobResponse:
     job = await create_job(session, request)
-    asyncio.create_task(_run_pipeline_background(job.id))
+    _track_task(asyncio.create_task(_run_pipeline_background(job.id)))
     log.info("Created job=%s for topic=%s", job.id, job.topic)
     return _job_to_response(job)
 
@@ -138,6 +146,6 @@ async def resume_job_endpoint(
             status_code=409, detail="Job could not be claimed for resume"
         )
 
-    asyncio.create_task(_run_pipeline_background(job.id))
+    _track_task(asyncio.create_task(_run_pipeline_background(job.id)))
     log.info("Resumed job=%s", job.id)
     return _job_to_response(job)

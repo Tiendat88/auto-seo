@@ -3,32 +3,19 @@
 import re
 from dataclasses import dataclass
 
+from app.article.constants import (
+    AI_FILLER_OPENERS,
+    AI_WORDS_RE,
+    SENTENCE_END_RE,
+    ZERO_WIDTH_RE,
+)
 from app.article.models import ArticleContent, ArticleSection, FaqItem
 
-# Zero-width Unicode characters to strip
-_ZERO_WIDTH = re.compile("[\u200b\u200c\u200d\ufeff]")
-
-# AI filler opener phrases to remove (case-insensitive, at sentence/paragraph start)
-_FILLER_OPENERS = [
-    r"In today's digital landscape,?\s*",
-    r"In today's fast-paced world,?\s*",
-    r"It's worth noting that\s+",
-    r"It's important to note that\s+",
-    r"When it comes to\s+",
-]
+# Compiled filler opener regex (sentence/paragraph start)
 _FILLER_RE = re.compile(
-    r"(?:^|\.\s+)(" + "|".join(_FILLER_OPENERS) + ")",
+    r"(?:^|\.\s+)(" + "|".join(AI_FILLER_OPENERS) + ")",
     re.IGNORECASE | re.MULTILINE,
 )
-
-# AI-favored words to count (logged, not replaced)
-_AI_WORDS = re.compile(
-    r"\b(?:leverage|utilize|delve|tapestry|paradigm|synergy|holistic|robust)\b",
-    re.IGNORECASE,
-)
-
-# Sentence boundary regex (approximate)
-_SENTENCE_END = re.compile(r"(?<=[.!?])\s+")
 
 # Max sentences per paragraph
 _MAX_SENTENCES_PER_PARA = 6
@@ -47,7 +34,7 @@ class ScrubStats:
 def _scrub_text(text: str, stats: ScrubStats) -> str:
     """Apply safe scrubbing operations to a text block."""
     # 1. Strip zero-width Unicode
-    new_text = _ZERO_WIDTH.sub("", text)
+    new_text = ZERO_WIDTH_RE.sub("", text)
     stats.zero_width_stripped += len(text) - len(new_text)
     text = new_text
 
@@ -55,15 +42,19 @@ def _scrub_text(text: str, stats: ScrubStats) -> str:
     stats.em_dashes_found += text.count("\u2014") + text.count(" -- ")
 
     # 3. Count AI-favored words (logged, not replaced)
-    stats.ai_words_found += len(_AI_WORDS.findall(text))
+    stats.ai_words_found += len(AI_WORDS_RE.findall(text))
 
-    # 4. Remove AI filler opener phrases
+    # 4. Remove AI filler opener phrases, capitalize the word that follows
     def _remove_filler(match: re.Match) -> str:
         stats.filler_removed += 1
         full = match.group(0)
+        # Find what comes after the match to capitalize it
+        end = match.end()
+        rest = text[end:end + 1]
+        cap = rest.upper() if rest.isalpha() else ""
         if full.startswith("."):
-            return ". "
-        return ""
+            return ". " + cap
+        return cap
 
     text = _FILLER_RE.sub(_remove_filler, text)
 
@@ -74,7 +65,7 @@ def _scrub_text(text: str, stats: ScrubStats) -> str:
         para = para.strip()
         if not para:
             continue
-        sentences = _SENTENCE_END.split(para)
+        sentences = SENTENCE_END_RE.split(para)
         if len(sentences) > _MAX_SENTENCES_PER_PARA:
             stats.paragraphs_split += 1
             chunks = []

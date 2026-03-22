@@ -34,7 +34,6 @@ from app.article.models import (
     SeoMetaOptions,
 )
 from app.article.prompts import (
-    _structured_article_text,
     accuracy_consistency_score_prompt,
     analysis_prompt,
     depth_differentiation_score_prompt,
@@ -47,8 +46,10 @@ from app.article.prompts import (
     readability_actionability_score_prompt,
     review_prompt,
     seo_metadata_prompt,
+    structured_article_text,
 )
 from app.article.scorer import (
+    full_text,
     score_differentiation,
     score_heading_structure,
     score_humanity,
@@ -95,7 +96,7 @@ async def research_step(
 
         fetch_events: list[tuple[str, str, str]] = []
 
-        async def _fetch_one(result):
+        async def _fetch_one(result: Any) -> None:
             try:
                 content, wc = await fetch_page_content(result.url)
                 result.content = content
@@ -153,14 +154,7 @@ async def planning_step(
                 )
 
         results = await asyncio.gather(*tasks, return_exceptions=True)
-
-        for provider in council:
-            usage = provider.drain_usage()
-            for u in usage:
-                u.step = "planning"
-            job.append_usage(usage)
-            for entry in provider.drain_call_log():
-                job.append_event("planning", entry["event"], entry["detail"])
+        _drain_telemetry(job, council, "planning")
 
         analyses: list[CompetitiveAnalysis] = []
         for i, r in enumerate(results):
@@ -193,6 +187,8 @@ async def planning_step(
         await session.commit()
     else:
         analysis = job.get_analysis()
+        if not analysis:
+            raise StepError("Analysis data missing")
 
     # --- Phase 2: Single-provider outline from merged analysis ---
     job.current_step = "planning:outline"
@@ -233,7 +229,7 @@ async def generate_step(
     session.add(job)
     await session.commit()
 
-    max_tok = max(4096, int(job.target_word_count * 1.5))
+    max_tok = max(4096, int(job.target_word_count * 2.0))
     prompt = generate_article_prompt(
         outline, job.language, revision_instructions,
         brand_voice=brand_voice, target_word_count=job.target_word_count,
@@ -257,13 +253,13 @@ async def generate_step(
     session.add(job)
     await session.commit()
     brief = outline.brief
+    section_headings = [s.heading for s in article.sections]
+    article_intro = article.sections[0].content if article.sections else ""
+
     meta_task = llm.generate_structured(
         seo_metadata_prompt(
-            job.topic,
-            analysis.keywords.primary,
-            article.sections[0].content if article.sections else "",
-            brief=brief,
-            section_headings=[s.heading for s in article.sections],
+            job.topic, analysis.keywords.primary, article_intro,
+            brief=brief, section_headings=section_headings,
         ),
         SeoMetadata,
     )
@@ -272,10 +268,7 @@ async def generate_step(
     ]
     links_task = llm.generate_structured(
         links_prompt(
-            job.topic,
-            [s.heading for s in article.sections],
-            analysis,
-            serp_data,
+            job.topic, section_headings, analysis, serp_data,
             brief=brief,
             section_summaries=_section_summaries(article.sections),
             competitor_pages=competitor_pages,
@@ -284,11 +277,8 @@ async def generate_step(
     )
     meta_opts_task = llm.generate_structured(
         meta_options_prompt(
-            job.topic,
-            analysis.keywords.primary,
-            article.sections[0].content if article.sections else "",
-            [s.heading for s in article.sections],
-            brief=brief,
+            job.topic, analysis.keywords.primary, article_intro,
+            section_headings, brief=brief,
         ),
         SeoMetaOptions,
     )
@@ -296,15 +286,18 @@ async def generate_step(
     results = await asyncio.gather(
         meta_task, links_task, meta_opts_task, return_exceptions=True
     )
-    seo_meta = results[0]
-    links = results[1]
-    meta_opts = results[2] if not isinstance(results[2], Exception) else None
-    if isinstance(results[2], Exception):
-        log.warning("Meta options generation failed: %s", results[2])
-    if isinstance(seo_meta, Exception):
-        raise seo_meta
-    if isinstance(links, Exception):
-        raise links
+    raw_meta, raw_links, raw_opts = results[0], results[1], results[2]
+    if isinstance(raw_opts, Exception):
+        log.warning("Meta options generation failed: %s", raw_opts)
+    if isinstance(raw_meta, Exception):
+        raise StepError(f"Metadata generation failed: {raw_meta}") from raw_meta
+    if isinstance(raw_links, Exception):
+        raise StepError(f"Links generation failed: {raw_links}") from raw_links
+
+    assert isinstance(raw_meta, SeoMetadata)
+    assert isinstance(raw_links, LinkSuggestions)
+    seo_meta = raw_meta
+    links = raw_links
 
     # 4. Keyword analysis (algorithmic)
     kw_analysis = _compute_keyword_analysis(article, analysis, seo_meta)
@@ -314,8 +307,8 @@ async def generate_step(
     job.set_seo_metadata(seo_meta)
     job.set_keyword_analysis(kw_analysis)
     job.set_links(links)
-    if meta_opts:
-        job.set_meta_options(meta_opts)
+    if isinstance(raw_opts, SeoMetaOptions):
+        job.set_meta_options(raw_opts)
 
 
 async def score_step(
@@ -354,7 +347,7 @@ async def score_step(
     session.add(job)
     await session.commit()
     brief = outline.brief
-    structured_text = _structured_article_text(article, 20000)
+    structured_text = structured_article_text(article, 20000)
     brief_text = format_brief(brief) if brief else ""
 
     score_prompts = [
@@ -372,16 +365,8 @@ async def score_step(
         )
 
     results = await asyncio.gather(*tasks, return_exceptions=True)
-
-    # Drain usage and call logs from all council members
+    _drain_telemetry(job, council, "scoring")
     n_prompts = len(score_prompts)
-    for provider in council:
-        usage = provider.drain_usage()
-        for u in usage:
-            u.step = "scoring"
-        job.append_usage(usage)
-        for entry in provider.drain_call_log():
-            job.append_event("scoring", entry["event"], entry["detail"])
 
     # Collect all successful dimensions, log per-provider results
     all_dims: list[ScoreDimension] = []
@@ -402,8 +387,12 @@ async def score_step(
     )
 
     succeeded = sum(1 for r in results if isinstance(r, _ScorePair))
-    if succeeded < 2:
-        raise StepError(f"Only {succeeded} scoring calls succeeded, need at least 2")
+    # Need at least one full set of scoring prompts from any provider
+    if succeeded < n_prompts:
+        raise StepError(
+            f"Only {succeeded}/{len(results)} scoring calls succeeded, "
+            f"need at least {n_prompts}"
+        )
 
     dimensions = algo_dims + llm_dims
     total_weight = sum(DIMENSION_WEIGHTS.get(d.name, 1.0) for d in dimensions)
@@ -433,7 +422,7 @@ async def review_step(
         raise StepError("Cannot review without article and outline")
 
     brief = outline.brief
-    structured_text = _structured_article_text(article, 20000)
+    structured_text = structured_article_text(article, 20000)
     headings = [h.text for h in outline.headings]
     prompt = review_prompt(structured_text, headings, brief, job.target_word_count)
 
@@ -445,15 +434,7 @@ async def review_step(
     ]
 
     results = await asyncio.gather(*tasks, return_exceptions=True)
-
-    # Drain usage and call logs from all council members
-    for provider in council:
-        usage = provider.drain_usage()
-        for u in usage:
-            u.step = "reviewing"
-        job.append_usage(usage)
-        for entry in provider.drain_call_log():
-            job.append_event("reviewing", entry["event"], entry["detail"])
+    _drain_telemetry(job, council, "reviewing")
 
     # Log per-provider results
     reviews: list[ReviewResult] = []
@@ -505,7 +486,7 @@ async def edit_step(
     if not article or not outline or not quality:
         raise StepError("Cannot edit without article, outline, and quality data")
 
-    structured_text = _structured_article_text(article, 20000)
+    structured_text = structured_article_text(article, 20000)
     brief = outline.brief
     prompt = edit_prompt(
         structured_text, brief, quality.dimensions, review,
@@ -513,12 +494,12 @@ async def edit_step(
         actual_word_count=article.total_word_count,
     )
 
-    max_tok = max(4096, int(job.target_word_count * 1.5))
+    max_tok = max(4096, int(job.target_word_count * 2.0))
     edited_md = await llm.generate_text(prompt, max_tok)
 
     sections, faq_items = _parse_article_markdown(edited_md, outline)
     # Prefer parsed FAQ, fall back to existing if edit didn't include FAQ, then scrub
-    edited, scrub_stats = scrub_article(ArticleContent(
+    edited, _scrub_stats = scrub_article(ArticleContent(
         sections=sections,
         faq=faq_items if faq_items else article.faq,
     ))
@@ -621,9 +602,17 @@ def _match_heading_level(
         return outline_map[text_lower]
 
     # Fuzzy: check if outline heading is substring of parsed or vice versa
+    # Prefer the longest match to avoid short headings like "tools" matching too broadly
+    best_match: HeadingLevel | None = None
+    best_len = 0
     for outline_text, level in outline_map.items():
         if outline_text in text_lower or text_lower in outline_text:
-            return level
+            overlap = min(len(outline_text), len(text_lower))
+            if overlap > best_len:
+                best_len = overlap
+                best_match = level
+    if best_match is not None:
+        return best_match
 
     # Infer from # count
     hash_count = len(level_str)
@@ -714,7 +703,7 @@ def _merge_competitive_analyses(
     patterns = [p for p, _ in pattern_counter.most_common()]
 
     intents = Counter(a.search_intent for a in analyses)
-    intent = intents.most_common(1)[0][0]
+    intent: Any = intents.most_common(1)[0][0]
 
     return CompetitiveAnalysis(
         keywords=KeywordCluster(
@@ -757,8 +746,9 @@ def _merge_reviews(reviews: list[ReviewResult]) -> ReviewResult:
         label = f"Reviewer {i + 1}"
         summaries.append(f"{label}: {r.summary}")
         for issue in r.issues:
-            issue.description = f"[{label}] {issue.description}"
-            all_issues.append(issue)
+            all_issues.append(issue.model_copy(
+                update={"description": f"[{label}] {issue.description}"}
+            ))
         all_strengths.extend(r.strengths)
 
     unique_strengths = list(dict.fromkeys(all_strengths))
@@ -779,14 +769,12 @@ def _compute_keyword_analysis(
     seo_meta: SeoMetadata,
 ) -> KeywordAnalysis:
     """Compute keyword usage statistics algorithmically."""
-    parts = [s.content for s in article.sections]
-    parts.extend(f"{f.question} {f.answer}" for f in article.faq)
-    full_text = " ".join(parts)
-    word_count = len(full_text.split())
+    all_text = full_text(article)
+    word_count = len(all_text.split())
 
     def usage(keyword: str) -> KeywordUsage:
         kw = keyword.lower()
-        text = full_text.lower()
+        text = all_text.lower()
         count = len(re.findall(r"\b" + re.escape(kw) + r"\b", text))
         density = round(count / word_count * 100, 2) if word_count else 0
         locations: list[str] = []
@@ -852,7 +840,62 @@ DIMENSION_WEIGHTS: dict[str, float] = {
 }
 
 
+# --- Pipeline Helpers (DRY) ---
+
+
+def _drain_telemetry(
+    job: Job, providers: list[LlmClient], step: str,
+) -> None:
+    """Drain usage + call logs from providers into job. Shared by council steps."""
+    for provider in providers:
+        usage = provider.drain_usage()
+        for u in usage:
+            u.step = step
+        job.append_usage(usage)
+        for entry in provider.drain_call_log():
+            job.append_event(step, entry["event"], entry["detail"])
+
+
+async def _run_step_safely(
+    job: Job,
+    session: AsyncSession,
+    llm: LlmClient,
+    serp: SerpProvider,
+    step_fn: StepFn,
+    step_name: str,
+    job_id: str,
+) -> bool:
+    """Run a pipeline step with error handling + telemetry drain. Returns True on success."""
+    try:
+        job.append_event(step_name, "step_start", f"Starting {step_name}")
+        step_start = time.monotonic()
+        await step_fn(job, session, llm, serp)
+        elapsed = time.monotonic() - step_start
+        job.append_event(step_name, "timing", f"{elapsed:.1f}s")
+        _drain_telemetry(job, [llm], step_name)
+        session.add(job)
+        await session.commit()
+        return True
+    except Exception as e:
+        log.exception("Pipeline step %s failed for job=%s", step_name, job_id)
+        try:
+            await session.rollback()
+            job.status = JobStatus.FAILED
+            job.error = f"{type(e).__name__}: {e}"
+            session.add(job)
+            await session.commit()
+        except Exception:
+            log.exception("Failed to persist failure state for job=%s", job_id)
+        return False
+
+
 # --- Step Registry ---
+
+_EDIT_CYCLE: list[tuple[JobStatus, str, StepFn, str | None]] = [
+    (JobStatus.EDITING, "editing", edit_step, None),
+    (JobStatus.SCORING, "scoring", score_step, "quality_data"),
+    (JobStatus.REVIEWING, "reviewing", review_step, "review_data"),
+]
 
 STEP_SEQUENCE: list[tuple[JobStatus, StepFn]] = [
     (JobStatus.RESEARCHING, research_step),
@@ -901,33 +944,10 @@ async def run_pipeline(
         session.add(job)
         await session.commit()
 
-        try:
-            job.append_event(next_status.value, "step_start", f"Starting {next_status.value}")
-            step_start = time.monotonic()
-            await step_fn(job, session, llm, serp_client)
-            elapsed = time.monotonic() - step_start
-            job.append_event(next_status.value, "timing", f"{elapsed:.1f}s")
-            # Drain token usage and call logs from LLM client
-            usage = llm.drain_usage()
-            for u in usage:
-                u.step = next_status.value
-            job.append_usage(usage)
-            for entry in llm.drain_call_log():
-                job.append_event(next_status.value, entry["event"], entry["detail"])
-            session.add(job)
-            await session.commit()
-        except Exception as e:
-            log.exception("Pipeline step %s failed for job=%s", next_status, job_id)
-            try:
-                await session.rollback()
-                job.status = JobStatus.FAILED
-                job.error = f"{type(e).__name__}: {e}"
-                session.add(job)
-                await session.commit()
-            except Exception:
-                log.exception(
-                    "Failed to persist failure state for job=%s", job_id
-                )
+        ok = await _run_step_safely(
+            job, session, llm, serp_client, step_fn, next_status.value, job_id,
+        )
+        if not ok:
             return
 
     # Edit loop: edit → re-score → re-review
@@ -948,91 +968,19 @@ async def run_pipeline(
             job.revision_count + 1, quality_ok, review_ok,
         )
 
-        # EDITING
-        job.status = JobStatus.EDITING
-        job.current_step = "editing"
-        session.add(job)
-        await session.commit()
-
-        try:
-            await edit_step(job, session, llm, serp_client)
-            usage = llm.drain_usage()
-            for u in usage:
-                u.step = "editing"
-            job.append_usage(usage)
-            for entry in llm.drain_call_log():
-                job.append_event("editing", entry["event"], entry["detail"])
+        for status, step_name, step_fn, clear_attr in _EDIT_CYCLE:
+            if clear_attr:
+                setattr(job, clear_attr, None)
+            job.status = status
+            job.current_step = step_name
             session.add(job)
             await session.commit()
-        except Exception as e:
-            log.exception("Edit step failed for job=%s", job_id)
-            try:
-                await session.rollback()
-                job.status = JobStatus.FAILED
-                job.error = f"{type(e).__name__}: {e}"
-                session.add(job)
-                await session.commit()
-            except Exception:
-                log.exception("Failed to persist failure state for job=%s", job_id)
-            return
 
-        # RE-SCORE
-        job.quality_data = None
-        job.status = JobStatus.SCORING
-        job.current_step = "scoring"
-        session.add(job)
-        await session.commit()
-
-        try:
-            await score_step(job, session, llm, serp_client)
-            usage = llm.drain_usage()
-            for u in usage:
-                u.step = "scoring"
-            job.append_usage(usage)
-            for entry in llm.drain_call_log():
-                job.append_event("scoring", entry["event"], entry["detail"])
-            session.add(job)
-            await session.commit()
-        except Exception as e:
-            log.exception("Re-score step failed for job=%s", job_id)
-            try:
-                await session.rollback()
-                job.status = JobStatus.FAILED
-                job.error = f"{type(e).__name__}: {e}"
-                session.add(job)
-                await session.commit()
-            except Exception:
-                log.exception("Failed to persist failure state for job=%s", job_id)
-            return
-
-        # RE-REVIEW
-        job.review_data = None
-        job.status = JobStatus.REVIEWING
-        job.current_step = "reviewing"
-        session.add(job)
-        await session.commit()
-
-        try:
-            await review_step(job, session, llm, serp_client)
-            usage = llm.drain_usage()
-            for u in usage:
-                u.step = "reviewing"
-            job.append_usage(usage)
-            for entry in llm.drain_call_log():
-                job.append_event("reviewing", entry["event"], entry["detail"])
-            session.add(job)
-            await session.commit()
-        except Exception as e:
-            log.exception("Re-review step failed for job=%s", job_id)
-            try:
-                await session.rollback()
-                job.status = JobStatus.FAILED
-                job.error = f"{type(e).__name__}: {e}"
-                session.add(job)
-                await session.commit()
-            except Exception:
-                log.exception("Failed to persist failure state for job=%s", job_id)
-            return
+            ok = await _run_step_safely(
+                job, session, llm, serp_client, step_fn, step_name, job_id,
+            )
+            if not ok:
+                return
 
     job.status = JobStatus.COMPLETED
     job.current_step = None

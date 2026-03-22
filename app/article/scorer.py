@@ -4,6 +4,12 @@ import re
 
 import textstat
 
+from app.article.constants import (
+    AI_FILLER_PHRASES,
+    SENTENCE_END_RE,
+    VAGUE_WORDS,
+    ZERO_WIDTH_RE,
+)
 from app.article.models import (
     ArticleBrief,
     ArticleContent,
@@ -17,45 +23,15 @@ from app.serp.models import SerpData
 
 # --- Constants ---
 
-AI_FILLER_PHRASES = frozenset({
-    "in today's digital landscape",
-    "in today's fast-paced world",
-    "it's worth noting that",
-    "it's important to note that",
-    "when it comes to",
-    "in the realm of",
-    "at the end of the day",
-    "in conclusion",
-    "without further ado",
-    "it goes without saying",
-    "needless to say",
-    "as we all know",
-    "in this day and age",
-    "dive deep into",
-    "game-changer",
-    "take your .+ to the next level",
-    "unlock the power",
-    "harness the potential",
-    "embark on a journey",
-    "navigating the complexities",
-})
-
-VAGUE_WORDS = frozenset({
-    "things", "stuff", "very", "really", "quite",
-    "basically", "actually", "essentially", "generally", "overall",
-})
-
 _PASSIVE_RE = re.compile(
     r"\b(?:is|are|was|were|been|being)\s+\w+ed\b", re.IGNORECASE
 )
-_SENTENCE_RE = re.compile(r"[.!?]+\s+")
-_ZERO_WIDTH_RE = re.compile("[\u200b\u200c\u200d\ufeff]")
 
 
 # --- Helpers ---
 
 
-def _full_text(article: ArticleContent) -> str:
+def full_text(article: ArticleContent) -> str:
     """Get concatenated text from all sections."""
     parts = [s.content for s in article.sections]
     parts.extend(f"{f.question} {f.answer}" for f in article.faq)
@@ -72,7 +48,7 @@ def score_keyword_usage(
 ) -> ScoreDimension:
     """Score primary keyword placement and density."""
     primary = analysis.keywords.primary.lower()
-    full = _full_text(article).lower()
+    full = full_text(article).lower()
     title = seo_meta.title_tag.lower()
     intro = article.sections[0].content.lower() if article.sections else ""
 
@@ -169,7 +145,7 @@ def score_word_count(article: ArticleContent, target: int) -> ScoreDimension:
 
 def score_readability(article: ArticleContent) -> ScoreDimension:
     """Score readability using Flesch Reading Ease and grade level."""
-    text = _full_text(article)
+    text = full_text(article)
 
     if len(text.split()) < 30:
         return ScoreDimension(
@@ -208,7 +184,7 @@ def score_readability(article: ArticleContent) -> ScoreDimension:
 
 def score_humanity(article: ArticleContent) -> ScoreDimension:
     """Score content for AI-generated tells: filler phrases, passive voice, vague words."""
-    text = _full_text(article)
+    text = full_text(article)
     text_lower = text.lower()
     word_count = len(text.split())
 
@@ -232,7 +208,7 @@ def score_humanity(article: ArticleContent) -> ScoreDimension:
         feedback_parts.append(f"Some AI filler phrases: {filler_count}")
 
     # 2. Passive voice ratio
-    sentences = _SENTENCE_RE.split(text)
+    sentences = SENTENCE_END_RE.split(text)
     sentence_count = max(len(sentences), 1)
     passive_count = len(_PASSIVE_RE.findall(text))
     passive_ratio = passive_count / sentence_count
@@ -257,7 +233,7 @@ def score_humanity(article: ArticleContent) -> ScoreDimension:
         feedback_parts.append(f"Some vague words: {vague_count}")
 
     # 4. Zero-width Unicode
-    if _ZERO_WIDTH_RE.search(text):
+    if ZERO_WIDTH_RE.search(text):
         score -= 0.2
         feedback_parts.append("Contains zero-width Unicode characters (AI watermark)")
 
@@ -315,13 +291,19 @@ def score_differentiation(
     if brief and brief.differentiators:
         delivered = 0
         for diff in brief.differentiators:
-            words = [w for w in diff.lower().split() if len(w) > 2]
-            found = any(
-                f"{words[i]} {words[i + 1]}" in article_text
-                for i in range(len(words) - 1)
-            ) if len(words) > 1 else any(w in article_text for w in words)
-            if found:
-                delivered += 1
+            words = [w for w in diff.lower().split() if len(w) > 1]
+            if not words:
+                delivered += 1  # Trivial differentiator, don't penalize
+            elif len(words) > 1:
+                found = any(
+                    f"{words[i]} {words[i + 1]}" in article_text
+                    for i in range(len(words) - 1)
+                )
+                if found:
+                    delivered += 1
+            else:
+                if words[0] in article_text:
+                    delivered += 1
         brief_score = delivered / len(brief.differentiators)
         if brief_score < 1.0:
             missing = len(brief.differentiators) - delivered
@@ -337,11 +319,12 @@ def score_differentiation(
         )
         if competitor_text:
             sentences = [
-                s.strip() for s in article_text.split(".") if len(s.strip()) > 30
+                s.strip() for s in SENTENCE_END_RE.split(article_text)
+                if len(s.strip()) > 30
             ]
             if sentences:
                 unique = sum(
-                    1 for s in sentences if s[:50] not in competitor_text
+                    1 for s in sentences if s[:60] not in competitor_text
                 )
                 uniqueness_score = unique / len(sentences)
                 if uniqueness_score < 0.7:
