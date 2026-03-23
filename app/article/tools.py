@@ -50,7 +50,7 @@ async def handle_tool_call(
     try:
         if name == "search_web":
             query = args.get("query")
-            if not query or not isinstance(query, str):
+            if not query:
                 return json.dumps({"error": "Missing or invalid 'query' argument"})
             results = await search_web(query)
             log.info("Tool search_web: %d results for '%s'", len(results), query)
@@ -58,7 +58,7 @@ async def handle_tool_call(
 
         if name == "fetch_url":
             url = args.get("url", "")
-            if not url or not isinstance(url, str):
+            if not url:
                 return json.dumps({"error": "Missing or invalid 'url' argument"})
             if allowed_domains:
                 domain = urlparse(url).netloc.removeprefix("www.")

@@ -26,7 +26,6 @@ MODEL_PRICING: dict[str, tuple[float, float]] = {
     "gemini-3-pro-preview": (1.25, 10.0),
 }
 
-# Shared retry decorator — 3 attempts, exponential backoff
 _LLM_RETRY = retry(
     stop=stop_after_attempt(3),
     wait=wait_exponential(multiplier=1, min=2, max=30),
@@ -79,7 +78,6 @@ class LlmClient:
     """LLM client: Anthropic API, Claude Agent SDK, OpenAI Codex SDK, or Gemini."""
 
     def __init__(self, api_key: str = "", model: str = "", provider: str = "") -> None:
-        # Defaults for all backends (prevents AttributeError on misroute)
         self._client = None
         self._gemini_client = None
         self._codex_client = None
@@ -213,7 +211,8 @@ class LlmClient:
             raise LlmError(f"LLM text generation failed: {e}") from e
 
     async def _generate_via_api(self, prompt: str, max_tokens: int) -> str:
-        assert self._client is not None
+        if self._client is None:
+            raise LlmError(f"Anthropic client not initialized (backend={self.backend})")
 
         @_LLM_RETRY
         async def _call() -> str:
@@ -223,7 +222,7 @@ class LlmClient:
                 max_tokens=max_tokens,
                 messages=[{"role": "user", "content": prompt}],
             )
-            if hasattr(response, "usage") and response.usage:
+            if response.usage:
                 self._record_usage(
                     response.usage.input_tokens, response.usage.output_tokens,
                 )
@@ -266,7 +265,8 @@ class LlmClient:
         return await _call()
 
     async def _generate_via_codex(self, prompt: str) -> str:
-        assert self._codex_client is not None
+        if self._codex_client is None:
+            raise LlmError(f"Codex client not initialized (backend={self.backend})")
 
         @_LLM_RETRY
         async def _call() -> str:
@@ -283,7 +283,8 @@ class LlmClient:
 
     async def _generate_via_gemini(self, prompt: str, max_tokens: int) -> str:
         from google.genai import types
-        assert self._gemini_client is not None
+        if self._gemini_client is None:
+            raise LlmError(f"Gemini client not initialized (backend={self.backend})")
 
         @_LLM_RETRY
         async def _call() -> str:
@@ -331,7 +332,8 @@ class LlmClient:
         return await _call()
 
     async def _generate_structured_via_codex(self, prompt: str, schema: type[T]) -> T:
-        assert self._codex_client is not None
+        if self._codex_client is None:
+            raise LlmError(f"Codex client not initialized (backend={self.backend})")
 
         @_LLM_RETRY
         async def _call() -> T:
@@ -351,7 +353,8 @@ class LlmClient:
         self, prompt: str, schema: type[T], max_tokens: int,
     ) -> T:
         from google.genai import types
-        assert self._gemini_client is not None
+        if self._gemini_client is None:
+            raise LlmError(f"Gemini client not initialized (backend={self.backend})")
 
         @_LLM_RETRY
         async def _call() -> T:
@@ -406,7 +409,7 @@ class LlmClient:
                     result = await self._generate_structured_via_sdk(prompt, schema)
             except LlmError:
                 raise
-            except (ValidationError, Exception) as e:
+            except Exception as e:
                 raise LlmError(
                     f"Structured output failed ({self.backend}): {e}"
                 ) from e
@@ -475,7 +478,8 @@ class LlmClient:
         self, prompt: str, tools: list[dict], tool_handler: Callable,
         schema: type[T], max_tool_rounds: int = 5,
     ) -> T:
-        assert self._client is not None
+        if self._client is None:
+            raise LlmError(f"Anthropic client not initialized (backend={self.backend})")
         schema_json = json.dumps(schema.model_json_schema(), indent=2)
         system = (
             f"You have research tools available. Use them to gather data, "
@@ -492,7 +496,7 @@ class LlmClient:
                 messages=messages,
                 tools=tools,
             )
-            if hasattr(response, "usage") and response.usage:
+            if response.usage:
                 self._record_usage(
                     response.usage.input_tokens, response.usage.output_tokens,
                 )
@@ -527,7 +531,8 @@ class LlmClient:
         schema: type[T], max_tool_rounds: int = 5,
     ) -> T:
         from google.genai import types
-        assert self._gemini_client is not None
+        if self._gemini_client is None:
+            raise LlmError(f"Gemini client not initialized (backend={self.backend})")
 
         gemini_tools = [types.Tool(function_declarations=[
             types.FunctionDeclaration(

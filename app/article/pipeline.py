@@ -7,7 +7,7 @@ import statistics
 import time
 from collections import defaultdict
 from collections.abc import Callable, Coroutine
-from typing import Any
+from typing import Any, cast
 
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -64,6 +64,7 @@ from app.errors import StepError
 from app.job.models import Job, JobStatus
 from app.llm import LlmClient, get_llm_council
 from app.serp.client import SerpProvider
+from app.serp.models import SerpResult
 
 log = logging.getLogger(__name__)
 
@@ -96,7 +97,7 @@ async def research_step(
 
         fetch_events: list[tuple[str, str, str]] = []
 
-        async def _fetch_one(result: Any) -> None:
+        async def _fetch_one(result: SerpResult) -> None:
             try:
                 content, wc = await fetch_page_content(result.url)
                 result.content = content
@@ -229,7 +230,7 @@ async def generate_step(
     session.add(job)
     await session.commit()
 
-    max_tok = max(4096, int(job.target_word_count * 2.0))
+    max_tok = _max_tokens(job.target_word_count)
     prompt = generate_article_prompt(
         outline, job.language, revision_instructions,
         brand_voice=brand_voice, target_word_count=job.target_word_count,
@@ -286,29 +287,25 @@ async def generate_step(
     results = await asyncio.gather(
         meta_task, links_task, meta_opts_task, return_exceptions=True
     )
-    raw_meta, raw_links, raw_opts = results[0], results[1], results[2]
-    if isinstance(raw_opts, Exception):
-        log.warning("Meta options generation failed: %s", raw_opts)
-    if isinstance(raw_meta, Exception):
-        raise StepError(f"Metadata generation failed: {raw_meta}") from raw_meta
-    if isinstance(raw_links, Exception):
-        raise StepError(f"Links generation failed: {raw_links}") from raw_links
-
-    assert isinstance(raw_meta, SeoMetadata)
-    assert isinstance(raw_links, LinkSuggestions)
-    seo_meta = raw_meta
-    links = raw_links
+    seo_meta, links, meta_opts = results[0], results[1], results[2]
+    if isinstance(meta_opts, Exception):
+        log.warning("Meta options generation failed: %s", meta_opts)
+        meta_opts = None
+    if isinstance(seo_meta, Exception):
+        raise StepError(f"Metadata generation failed: {seo_meta}") from seo_meta
+    if isinstance(links, Exception):
+        raise StepError(f"Links generation failed: {links}") from links
 
     # 4. Keyword analysis (algorithmic)
-    kw_analysis = _compute_keyword_analysis(article, analysis, seo_meta)
+    kw_analysis = _compute_keyword_analysis(article, analysis, seo_meta)  # type: ignore[arg-type]
 
     # Atomic write
     job.set_article(article)
-    job.set_seo_metadata(seo_meta)
+    job.set_seo_metadata(seo_meta)  # type: ignore[arg-type]
     job.set_keyword_analysis(kw_analysis)
-    job.set_links(links)
-    if isinstance(raw_opts, SeoMetaOptions):
-        job.set_meta_options(raw_opts)
+    job.set_links(links)  # type: ignore[arg-type]
+    if isinstance(meta_opts, SeoMetaOptions):
+        job.set_meta_options(meta_opts)
 
 
 async def score_step(
@@ -494,7 +491,7 @@ async def edit_step(
         actual_word_count=article.total_word_count,
     )
 
-    max_tok = max(4096, int(job.target_word_count * 2.0))
+    max_tok = _max_tokens(job.target_word_count)
     edited_md = await llm.generate_text(prompt, max_tok)
 
     sections, faq_items = _parse_article_markdown(edited_md, outline)
@@ -703,7 +700,7 @@ def _merge_competitive_analyses(
     patterns = [p for p, _ in pattern_counter.most_common()]
 
     intents = Counter(a.search_intent for a in analyses)
-    intent: Any = intents.most_common(1)[0][0]
+    intent = cast(str, intents.most_common(1)[0][0])
 
     return CompetitiveAnalysis(
         keywords=KeywordCluster(
@@ -770,12 +767,12 @@ def _compute_keyword_analysis(
 ) -> KeywordAnalysis:
     """Compute keyword usage statistics algorithmically."""
     all_text = full_text(article)
+    text_lower = all_text.lower()
     word_count = len(all_text.split())
 
     def usage(keyword: str) -> KeywordUsage:
         kw = keyword.lower()
-        text = all_text.lower()
-        count = len(re.findall(r"\b" + re.escape(kw) + r"\b", text))
+        count = len(re.findall(r"\b" + re.escape(kw) + r"\b", text_lower))
         density = round(count / word_count * 100, 2) if word_count else 0
         locations: list[str] = []
         if kw in seo_meta.title_tag.lower():
@@ -839,8 +836,16 @@ DIMENSION_WEIGHTS: dict[str, float] = {
     "word_count_target": 2.0,
 }
 
+_MIN_TOKENS = 4096
+_TOKENS_PER_WORD = 2.0
 
-# --- Pipeline Helpers (DRY) ---
+
+def _max_tokens(target_word_count: int) -> int:
+    return max(_MIN_TOKENS, int(target_word_count * _TOKENS_PER_WORD))
+
+
+# --- Pipeline Helpers ---
+
 
 
 def _drain_telemetry(

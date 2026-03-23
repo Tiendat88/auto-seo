@@ -10,7 +10,6 @@ from app.config import settings
 
 log = logging.getLogger(__name__)
 
-# Default timeout for Firecrawl operations (30 seconds)
 _FETCH_TIMEOUT = 30
 
 

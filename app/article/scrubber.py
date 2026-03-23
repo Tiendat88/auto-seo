@@ -11,7 +11,6 @@ from app.article.constants import (
 )
 from app.article.models import ArticleContent, ArticleSection, FaqItem
 
-# Compiled filler opener regex (sentence/paragraph start)
 _FILLER_RE = re.compile(
     r"(?:^|\.\s+)(" + "|".join(AI_FILLER_OPENERS) + ")",
     re.IGNORECASE | re.MULTILINE,
@@ -44,17 +43,12 @@ def _scrub_text(text: str, stats: ScrubStats) -> str:
     # 3. Count AI-favored words (logged, not replaced)
     stats.ai_words_found += len(AI_WORDS_RE.findall(text))
 
-    # 4. Remove AI filler opener phrases, capitalize the word that follows
+    # 4. Remove AI filler opener phrases
     def _remove_filler(match: re.Match) -> str:
         stats.filler_removed += 1
-        full = match.group(0)
-        # Find what comes after the match to capitalize it
-        end = match.end()
-        rest = text[end:end + 1]
-        cap = rest.upper() if rest.isalpha() else ""
-        if full.startswith("."):
-            return ". " + cap
-        return cap
+        if match.group(0).startswith("."):
+            return ". "
+        return ""
 
     text = _FILLER_RE.sub(_remove_filler, text)
 
