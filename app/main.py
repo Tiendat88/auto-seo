@@ -6,6 +6,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from sqlalchemy import update
 
+from app.aeo.routes import router as aeo_router
 from app.brand.routes import router as brand_router
 from app.cache import cache
 from app.db import async_session, init_db
@@ -58,6 +59,7 @@ app = FastAPI(
 
 app.include_router(jobs_router, prefix="/api")
 app.include_router(brand_router, prefix="/api")
+app.include_router(aeo_router, prefix="/api")
 
 
 @app.get("/health")

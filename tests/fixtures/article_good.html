@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>What Is Retrieval-Augmented Generation (RAG)?</title></head>
+<body>
+<nav><a href="/">Home</a> <a href="/blog">Blog</a></nav>
+<main>
+  <h1>What Is Retrieval-Augmented Generation (RAG)?</h1>
+
+  <p>Retrieval-augmented generation is a technique that combines a large language model with an external knowledge base. The model retrieves relevant documents at inference time and uses them to produce grounded, factual answers.</p>
+
+  <h2>How RAG Works</h2>
+  <p>A RAG pipeline has two stages. First, a retriever searches a vector store for passages related to the user's query. Then, a generator model reads those passages alongside the query and produces a response. This two-step process reduces hallucinations because the model cites real sources instead of relying solely on its training data.</p>
+
+  <h3>The Retriever</h3>
+  <p>The retriever converts queries and documents into dense vector embeddings. It uses cosine similarity to find the most relevant chunks. Popular choices include sentence-transformers models like all-MiniLM-L6-v2, which balance speed and accuracy for most use cases.</p>
+
+  <h3>The Generator</h3>
+  <p>The generator is a standard language model, such as GPT-4 or Gemini, prompted with the retrieved context. The prompt template places the retrieved passages before the user question so the model can reference them directly.</p>
+
+  <h2>When to Use RAG</h2>
+  <p>RAG is ideal when your data changes frequently or when you need answers grounded in specific documents. Common use cases include customer support bots, internal knowledge search, and compliance question answering.</p>
+
+  <h2>RAG vs. Fine-Tuning</h2>
+  <p>Fine-tuning bakes knowledge into model weights. RAG keeps knowledge external and queryable. Choose fine-tuning when you need a specific style or behavior. Choose RAG when you need up-to-date facts from a changing corpus.</p>
+
+  <h2>Getting Started</h2>
+  <p>You can build a basic RAG pipeline in under 50 lines of Python using LangChain or LlamaIndex. Start with a small document set, embed it with a sentence-transformer, store it in FAISS or Chroma, and wire it to your preferred LLM.</p>
+</main>
+<footer><p>&copy; 2025 AI Explained</p></footer>
+</body>
+</html>

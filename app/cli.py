@@ -828,5 +828,192 @@ def _render_brand_report(data: dict) -> None:
     console.print(summary_table)
 
 
+@app.command(name="aeo")
+def aeo_analyze(
+    ctx: typer.Context,
+    input_value: str = typer.Argument(..., help="URL or file path to analyze"),
+    json_out: bool = typer.Option(False, "--json", "-j", help="Output raw JSON"),
+) -> None:
+    """Score content for AEO readiness (direct answer, headings, readability)."""
+    url = _api_url(ctx)
+
+    # Detect if input is a file path
+    source_path = Path(input_value)
+    if source_path.exists():
+        content = source_path.read_text(encoding="utf-8")
+        payload = {"input_type": "text", "input_value": content}
+    elif input_value.startswith(("http://", "https://")):
+        payload = {"input_type": "url", "input_value": input_value}
+    else:
+        payload = {"input_type": "text", "input_value": input_value}
+
+    with console.status("Running AEO checks..."):
+        with httpx.Client(timeout=30) as client:
+            resp = client.post(f"{url}/api/aeo/analyze", json=payload)
+
+    if resp.status_code != 200:
+        detail = resp.json().get("detail", resp.text)
+        if isinstance(detail, dict):
+            detail = detail.get("message", str(detail))
+        console.print(f"[red]Error ({resp.status_code}): {detail}[/red]")
+        raise typer.Exit(1)
+
+    data = resp.json()
+
+    if json_out:
+        console.print_json(json.dumps(data, indent=2))
+        return
+
+    _render_aeo_report(data)
+
+
+@app.command(name="fanout")
+def fanout_generate(
+    ctx: typer.Context,
+    query: str = typer.Argument(..., help="Target query to decompose"),
+    content_file: Path | None = typer.Option(
+        None, "--content", "-c", help="File with existing content for gap analysis"
+    ),
+    provider: str | None = typer.Option(
+        None, "--provider", "-p", help="LLM provider: anthropic, gemini, openai-codex"
+    ),
+    model: str | None = typer.Option(
+        None, "--model", "-m", help="Model override (e.g. gemini-2.0-flash)"
+    ),
+    json_out: bool = typer.Option(False, "--json", "-j", help="Output raw JSON"),
+) -> None:
+    """Generate sub-queries via LLM and analyze content gaps."""
+    url = _api_url(ctx)
+    payload: dict[str, Any] = {"target_query": query}
+    if content_file:
+        payload["existing_content"] = content_file.read_text(encoding="utf-8")
+
+    params: dict[str, str] = {}
+    if provider:
+        params["provider"] = provider
+    if model:
+        params["model"] = model
+
+    with console.status("Generating sub-queries..."):
+        with httpx.Client(timeout=120) as client:
+            resp = client.post(f"{url}/api/aeo/fanout", json=payload, params=params)
+
+    if resp.status_code != 200:
+        detail = resp.json().get("detail", resp.text)
+        if isinstance(detail, dict):
+            detail = detail.get("message", str(detail))
+        console.print(f"[red]Error ({resp.status_code}): {detail}[/red]")
+        raise typer.Exit(1)
+
+    data = resp.json()
+
+    if json_out:
+        console.print_json(json.dumps(data, indent=2))
+        return
+
+    _render_fanout_report(data)
+
+
+def _render_aeo_report(data: dict) -> None:
+    """Render AEO analysis results."""
+    score = data["aeo_score"]
+    band = data["band"]
+
+    band_style = {
+        "AEO Optimized": "green bold",
+        "Needs Improvement": "yellow",
+        "Significant Gaps": "red",
+        "Not AEO Ready": "red bold",
+    }.get(band, "white")
+
+    console.print(
+        Panel(f"[{band_style}]{band}[/{band_style}] — Score: {score}/100", title="AEO Readiness")
+    )
+    console.print()
+
+    table = Table(show_lines=True)
+    table.add_column("Check", style="bold", max_width=25)
+    table.add_column("Score", justify="center", width=7)
+    table.add_column("Status", justify="center", width=6)
+    table.add_column("Details", max_width=60)
+
+    for check in data["checks"]:
+        status = "[green]PASS[/green]" if check["passed"] else "[red]FAIL[/red]"
+        details_parts = []
+        for k, v in check["details"].items():
+            if isinstance(v, list) and len(v) > 3:
+                v = v[:3]
+            details_parts.append(f"{k}={v}")
+        details_str = ", ".join(details_parts)
+        if len(details_str) > 60:
+            details_str = details_str[:57] + "..."
+
+        table.add_row(
+            check["name"],
+            f"{check['score']}/{check['max_score']}",
+            status,
+            details_str,
+        )
+
+    console.print(table)
+
+    # Recommendations
+    recs = [c for c in data["checks"] if c.get("recommendation")]
+    if recs:
+        console.print()
+        console.print("[bold]Recommendations:[/bold]")
+        for c in recs:
+            console.print(f"  [yellow]*[/yellow] {c['recommendation']}")
+
+
+def _render_fanout_report(data: dict) -> None:
+    """Render fan-out results."""
+    console.print(
+        Panel(
+            f"Query: [bold]{data['target_query']}[/bold]\n"
+            f"Model: {data['model_used']} | Sub-queries: {data['total_sub_queries']}",
+            title="Query Fan-Out",
+        )
+    )
+    console.print()
+
+    table = Table(show_lines=False)
+    table.add_column("Type", style="cyan", width=18)
+    table.add_column("Sub-Query", max_width=55)
+
+    if data["sub_queries"] and data["sub_queries"][0].get("covered") is not None:
+        table.add_column("Sim", justify="right", width=5)
+        table.add_column("Gap?", justify="center", width=5)
+        for sq in data["sub_queries"]:
+            sim = sq.get("similarity_score", 0)
+            covered = sq.get("covered", False)
+            gap_str = "[green]No[/green]" if covered else "[red]Yes[/red]"
+            sim_style = "green" if covered else "red"
+            table.add_row(
+                sq["type"], sq["query"],
+                f"[{sim_style}]{sim:.2f}[/{sim_style}]",
+                gap_str,
+            )
+    else:
+        for sq in data["sub_queries"]:
+            table.add_row(sq["type"], sq["query"])
+
+    console.print(table)
+
+    gap = data.get("gap_summary")
+    if gap:
+        console.print()
+        covered_pct = gap["coverage_percent"]
+        pct_style = "green" if covered_pct >= 70 else "yellow" if covered_pct >= 40 else "red"
+        console.print(
+            f"Coverage: [{pct_style}]{covered_pct}%[/{pct_style}] "
+            f"({gap['covered']}/{gap['total']} covered)"
+        )
+        if gap["covered_types"]:
+            console.print(f"  [green]Covered:[/green] {', '.join(gap['covered_types'])}")
+        if gap["missing_types"]:
+            console.print(f"  [red]Missing:[/red] {', '.join(gap['missing_types'])}")
+
+
 if __name__ == "__main__":
     app()

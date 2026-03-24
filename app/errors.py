@@ -18,3 +18,7 @@ class LlmError(SeoAgentError):
 
 class SerpError(SeoAgentError):
     """SERP API call failed."""
+
+
+class ContentFetchError(SeoAgentError):
+    """Failed to fetch or parse content from URL."""

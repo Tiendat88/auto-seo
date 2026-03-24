@@ -12,7 +12,7 @@ SEO article generator — agent-based pipeline that researches topics, analyzes 
 - **Cache**: Redis (`app/cache.py`)
 - **Deps**: `textstat` (readability metrics), `google-genai` (Gemini), `openai-codex-sdk` (OpenAI Codex), `firecrawl-py` (SERP content fetching)
 - **Lint**: `ruff` (line-length=100, rules: E/F/I/N/W), `pyright` strict (`pyrightconfig.json`)
-- **Tests**: pytest + pytest-asyncio (asyncio_mode="auto"), **145 tests** across 8 files
+- **Tests**: pytest + pytest-asyncio (asyncio_mode="auto"), **220 tests** across 8 files
 
 ## Architecture
 
@@ -51,6 +51,15 @@ Post-processes articles after generation and editing. Returns `(ArticleContent, 
 - **Snippet detection**: List, table, definition, Q&A opportunities — also lazy in `build_result()`
 - **Meta options**: 5 title tags + 5 meta descriptions via `SeoMetaOptions` (parallel LLM call in `generate_step`)
 
+### AEO Content Scorer & Fan-Out Engine (`app/aeo/`)
+
+- **AEO Scorer**: `POST /api/aeo/analyze` — 3 NLP checks (direct answer, h-tag hierarchy, readability), each max 20pts, aggregated to 0-100 score with band labels
+- **Query Fan-Out**: `POST /api/aeo/fanout` — LLM decomposes a query into 10-15 sub-queries across 6 types, optional gap analysis via sentence-transformer embeddings (cosine similarity, threshold `aeo_similarity_threshold`)
+- **Content Parser** (`parser.py`): httpx URL fetch + BeautifulSoup HTML parsing, boilerplate stripping, heading/paragraph extraction
+- **Checks** (`checks.py`): spaCy `en_core_web_sm` for declarative detection, textstat for FK grade, BeautifulSoup headings
+- **Fan-Out** (`fanout.py`): Uses `LlmClient.generate_structured()` for sub-query generation, `sentence-transformers` `all-MiniLM-L6-v2` for gap analysis
+- **Tests**: 47 tests across `test_aeo.py` (parser, 3 checks, aggregation) and `test_fanout.py` (prompt, parsing, gap analysis, mocked LLM)
+
 ### Key files
 
 | Path | Purpose |
@@ -69,13 +78,18 @@ Post-processes articles after generation and editing. Returns `(ArticleContent, 
 | `app/job/service.py` | Job CRUD, `claim_job_for_resume` (requires `session.refresh` after commit) |
 | `app/cli.py` | Typer CLI: generate, watch, resume (409→watch, 400→message), status, result, list, export |
 | `app/config.py` | Settings via pydantic-settings |
+| `app/aeo/checks.py` | 3 AEO check functions (direct_answer, htag_hierarchy, readability) + score aggregation |
+| `app/aeo/fanout.py` | LLM fan-out prompt, sub-query generation, sentence-transformer gap analysis |
+| `app/aeo/parser.py` | URL fetch via httpx, HTML parsing + boilerplate stripping via BeautifulSoup |
+| `app/aeo/models.py` | Pydantic models for AEO + fan-out request/response |
+| `app/aeo/routes.py` | POST /api/aeo/analyze and POST /api/aeo/fanout endpoints |
 
 ## Commands
 
 ```bash
 ruff check app/ tests/                    # Lint
 python -m pyright                         # Type check (strict)
-python -m pytest tests/ -x -q             # Test (145 tests)
+python -m pytest tests/ -x -q             # Test (220 tests)
 uvicorn app.main:app --workers 2          # Run server (2 workers: Agent SDK blocks event loop)
 autoseo generate "topic" --brand-voice brand.json  # CLI with brand voice
 autoseo -v generate "topic"                       # Verbose: stream all pipeline events
@@ -97,6 +111,7 @@ autoseo export <id> article.md            # Export with JSON-LD
 - `FIRECRAWL_API_KEY` — Firecrawl API key for SERP content fetching
 - `CONTENT_FETCH_TOP_N` — Number of top SERP results to fetch content for (default varies)
 - `PERSIST_EVENTS` — Keep pipeline events after completion (default `false`)
+- `AEO_SIMILARITY_THRESHOLD` — Cosine similarity threshold for fan-out gap analysis (default 0.72)
 
 ## DB migration
 

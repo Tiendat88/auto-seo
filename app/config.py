@@ -30,6 +30,9 @@ class Settings(BaseSettings):
     quality_threshold: float = 0.8
     max_revisions: int = 10
 
+    # AEO
+    aeo_similarity_threshold: float = 0.72
+
     # App
     debug: bool = False
     persist_events: bool = False
