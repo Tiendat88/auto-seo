@@ -1,0 +1,60 @@
+                                       Quality Score                                       
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ Dimension                ┃   Score ┃ Feedback                                           ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│ keyword_usage            │    0.30 │ Primary keyword missing from introduction; Keyword │
+│ heading_structure        │    1.00 │ Good heading structure                             │
+│ word_count_target        │    1.00 │ 1356 words (target: 1500, ratio: 90%)              │
+│ differentiation_delivery │    1.00 │ Strong differentiation from competitors            │
+│ readability_metrics      │    0.20 │ Flesch RE: 27.9; Grade level: 14.1                 │
+│ humanity                 │    1.00 │ Content reads naturally                            │
+│ keyword_distribution     │    0.00 │ Distribution score: 0.00; Uneven keyword placement │
+│ content_depth            │    0.85 │ The article demonstrates expert-level understandin │
+│ differentiation          │    0.95 │ This article effectively differentiates itself fro │
+│ accuracy                 │    0.95 │ The article is factually precise regarding the tec │
+│ consistency              │    0.90 │ The article maintains an authoritative, 'founder-g │
+│ readability              │    0.88 │ The article uses an authoritative and punchy tone  │
+│ actionability            │    0.92 │ The content is highly actionable due to the inclus │
+└──────────────────────────┴─────────┴────────────────────────────────────────────────────┘
+  Overall: 0.78 PASS
+
+  Review: FAIL
+  The article successfully targets the 'Founder-Grade' persona by integrating specific tools like Linear and HubSpot 
+into the narrative and emphasizing SOC2 compliance. However, it fails technically due to a mid-sentence cutoff in the 
+final section and the omission of several key sections from the planned outline.
+  Strengths:
+    + The 'Compatibility Matrix' provides immediate, high-value visual data that differentiates this from generic 
+listicles.
+    + Strong focus on SOC2 Type II and E2EE, which directly addresses the security-conscious persona requested in the 
+brief.
+    + Excellent use of specific startup-stack tools (Linear, Pitch, HubSpot) rather than just generic mentions of 
+'integrations'.
+                                              Review Issues                                               
+┏━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━┓
+┃ Severity   ┃ Category           ┃ Description                                   ┃ Section              ┃
+┡━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━┩
+│ critical   │ engagement_quality │ The article ends abruptly mid-sentence in the │ Top AI-Powered Apps  │
+│            │                    │                                               │ for Meeting          │
+│            │                    │                                               │ Synthesis            │
+│ major      │ actionability      │ While the brief specifically requested founda │ Tana: High-Velocity  │
+│            │                    │                                               │ Ontology and         │
+│            │                    │                                               │ Supertags            │
+│ minor      │ tone_and_voice     │ The text relies heavily on 'consultant jargon │ -                    │
+│ major      │ section_balance    │ The 'Selection Criteria' section is overly lo │ The Selection        │
+│            │                    │                                               │ Criteria: What Makes │
+│            │                    │                                               │ an App               │
+│            │                    │                                               │ Enterprise-Ready?    │
+│ minor      │ seo_completeness   │ The article focuses heavily on internal docum │ Advanced             │
+│            │                    │                                               │ Interoperability:    │
+│            │                    │                                               │ Beyond Slack and     │
+│            │                    │                                               │ Google Drive         │
+└────────────┴────────────────────┴───────────────────────────────────────────────┴──────────────────────┘
+
+Title: Best Note-Taking Apps for Founders: 2024 Startup Guide
+Slug: best-note-taking-apps-for-founders
+Keyword: best note-taking apps for founders
+Words: 1356
+Sections: 11
+FAQ: 0
+Revisions: 2
+Tokens: 33,203 in / 11,058 out (44,261 total) | ~$0.05

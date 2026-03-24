@@ -1,4 +1,0 @@
-Job ID: b9c6de65-60ce-4a3a-a0d6-2dd314c5f93f
-Topic: customer onboarding checklist for B2B SaaS
-Status: researching
-Step: researching

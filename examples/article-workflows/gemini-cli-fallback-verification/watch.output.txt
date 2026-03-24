@@ -1,0 +1,24 @@
+                                       Quality Score                                       
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ Dimension                ┃   Score ┃ Feedback                                           ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│ keyword_usage            │    0.30 │ Primary keyword missing from introduction; Keyword │
+│ heading_structure        │    1.00 │ Good heading structure                             │
+│ word_count_target        │    0.40 │ 1169 words (target: 1500, ratio: 78%)              │
+│ differentiation_delivery │    1.00 │ Strong differentiation from competitors            │
+│ readability_metrics      │    0.20 │ Flesch RE: 13.7; Grade level: 15.3                 │
+│ humanity                 │    1.00 │ Content reads naturally                            │
+│ keyword_distribution     │    0.00 │ Distribution score: 0.00; Uneven keyword placement │
+│ content_depth            │    0.85 │ The article demonstrates high technical proficienc │
+│ differentiation          │    0.95 │ This content is highly differentiated from standar │
+│ accuracy                 │    0.95 │ The technical content is highly accurate, correctl │
+│ consistency              │    0.60 │ The article maintains a consistent, professional,  │
+│ readability              │    0.92 │ The article uses clear, professional, and authorit │
+│ actionability            │    0.85 │ This is highly actionable, providing concrete Pyth │
+└──────────────────────────┴─────────┴────────────────────────────────────────────────────┘
+  Overall: 0.67 FAIL
+
+Completed: Gemini CLI Fallback: Verification and Reliability Guide | slug: gemini-cli-fallback-verification-guide | 1169
+words | 2 revision(s)
+Tokens: 35,657 in / 11,365 out (47,022 total) | ~$0.06
+View full article: autoseo result b3b30ae0-fb6a-4d40-ba5a-f01ab77c9a83

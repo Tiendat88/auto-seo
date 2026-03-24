@@ -225,6 +225,14 @@ Requirements for the OUTLINE:
 - Include keywords_to_include for each section
 - End with 4-6 FAQ questions drawn from search questions and content gaps
 - The outline should be structured to satisfy the search intent: {analysis.search_intent}
+- Headings should sound like natural article sections a real editor would publish,
+  not internal strategy-doc labels, hypey frameworks, or consultant slogans
+- Include at least 2 sections that add grounded specificity competitors often miss:
+  implementation detail, decision criteria, tradeoffs, failure modes, or realistic examples
+- Stay tightly anchored to the exact topic and searcher intent; do NOT import
+  unrelated tooling, workflows, or prior-task context unless directly relevant
+- Do NOT coin branded labels or Title Case frameworks unless they are established
+  industry terms and genuinely necessary
 
 Requirements for the BRIEF (return in the "brief" field):
 You must also generate an editorial brief that includes:
@@ -298,6 +306,23 @@ Output format:
 - Avoid overused AI words: leverage, utilize, delve, tapestry, paradigm, synergy, holistic, robust
 - Naturally include the specified keywords for each section
 - Maintain narrative flow between sections — each section should connect to the next
+- Keep the voice plainspoken and specific, not like a consultant memo or strategy deck
+- Every major section should contain at least one grounded detail: a concrete example,
+  scenario, tradeoff, decision rule, implementation detail, or failure mode
+- Do NOT invent studies, statistics, vendor pricing, compliance claims, customer stories,
+  or other precise facts. If you are not confident, write a cautious qualitative statement instead
+- Do NOT invent commands, CLI flags, config paths, environment variables, benchmark tables,
+  or product feature matrices unless they are grounded in the provided context
+- Do NOT coin new frameworks, branded labels, or Title Case concepts just to sound original
+- Use bold sparingly; do not turn every key phrase into emphasized jargon
+- Keep the article tightly on-topic. Do NOT bleed in terminology, examples, or context
+  from unrelated domains, developer tooling, or prior tasks unless directly relevant
+- Prefer natural section prose over repetitive bullets, tables, or "workflow snapshot"
+  formatting unless the structure genuinely helps the reader
+- If you use a list, format each bullet or numbered item on its own line. Do not
+  collapse multiple list items into one dense paragraph
+- If you include code or commands, keep them inside complete fenced code blocks and never
+  let code lines become headings
 - Write in {language}"""
 
 
@@ -404,11 +429,17 @@ def review_prompt(
 review of this article and identify issues across these categories:
 
 1. **Factual consistency**: Are claims internally consistent? Any contradictions?
+   Flag unsupported precision, invented studies/statistics, invented commands/flags,
+   fake config paths, or overly certain claims.
 2. **Tone and voice**: Is the tone consistent throughout? Does it match the topic?
+   Flag consultant jargon, over-formal "executive memo" phrasing, or excessive emphasis.
 3. **Section balance**: Are sections proportionally weighted? Any too thin or bloated?
 4. **Competitive differentiation**: Does the article add unique value beyond generic advice?
+   Distinguish true specificity from invented frameworks or decorative labels.
 5. **Engagement quality**: Are there concrete examples, data points, stories, or hooks?
+   Flag abstract paragraphs that stay at the level of slogans or vague generalities.
 6. **SEO completeness**: Beyond keywords, does it use related terms, answer search intent fully?
+   Flag topic drift or contamination from unrelated tasks/domains.
 7. **Actionability**: Can the reader do something with this information?
 
 {brief_block}
@@ -433,6 +464,15 @@ Also provide:
 - passed: true if no critical or major issues, false otherwise
 - summary: 2-3 sentence overall assessment
 - strengths: 2-4 specific things the article does well (preserve these in any revision)
+
+Be strict about these failure modes because they appeared in prior drafts:
+- unsupported or suspiciously precise facts
+- invented commands, CLI flags, config paths, or benchmark tables
+- invented labels/frameworks that sound AI-written
+- excessive bolding or jargon-heavy emphasis
+- generic consultant-style prose with too little grounded specificity
+- unrelated context bleeding into the article
+- malformed markdown structure, especially collapsed lists or broken code fences
 
 Return a JSON object matching the schema provided."""
 
@@ -584,6 +624,22 @@ Instructions:
 - Output the full revised article in markdown format (# H1, ## H2, ### H3)
 - Include the FAQ section at the end if present
 - Focus your edits on the weakest dimensions; don't over-edit strong sections
+- Replace consultant-speak, abstract slogans, and generic executive-summary language
+  with plain, specific prose
+- Remove invented labels, branded frameworks, and unnecessary Title Case concepts
+  unless they are standard industry terms
+- Cut unsupported precision. If a stat, pricing claim, compliance claim, or research
+  reference is not clearly supportable, rewrite it more cautiously or remove it
+- Remove invented commands, CLI flags, config paths, benchmark tables, or product
+  comparisons unless they are directly supported by the source context
+- Add grounded specifics where sections feel generic: examples, tradeoffs, failure modes,
+  decision criteria, or implementation details
+- Remove unrelated domain bleed or prior-task context that does not belong in this topic
+- Reduce decorative bolding so emphasis is used only where it materially helps clarity
+- Fix sloppy markdown structure: each list item should be on its own line, and tables
+  should only be kept if they are clean and genuinely useful
+- Preserve valid fenced code blocks, close any broken fences, and never turn code lines
+  into headings
 {wc_block}"""
 
 

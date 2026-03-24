@@ -1,0 +1,126 @@
+Watching job: ab5f8d40-f707-4d34-aa73-f8f04b830b0c (status: researching)
+⠧ Pipeline                                          Review...
+
+Edit 1: polishing article...
+
+⠇ Pipeline                                          Review...
+
+Edit 2: polishing article...
+
+⠴ Pipeline ━━━━━━━━                                 Research done
+
+Research
+                                  SERP Results                                  
+┏━━━━━━┳━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ #    ┃ Domain           ┃ Title                                              ┃
+┡━━━━━━╇━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│ 1    │ www.everafter.ai │ The customer onboarding checklist every B2B SaaS . │
+│ 2    │ www.bigin.com    │ Customer Onboarding Process for SaaS: Step-by- ... │
+│ 3    │ jimo.ai          │ SaaS Onboarding Checklist: Step-by-Step Guide (202 │
+│ 4    │ www.reddit.com   │ Best SaaS customer onboarding best practices to im │
+│ 5    │ www.moxo.com     │ B2B SaaS customer onboarding: Guide to a 7-step pr │
+│ 6    │ www.dock.us      │ SaaS Customer Onboarding Guide: Best Practices & . │
+│ 7    │ www.userflow.com │ SaaS Customer Onboarding Templates: The Ultimate . │
+│ 8    │ onramp.us        │ 2026 Customer Onboarding Checklist: Step-by-Step G │
+│ 9    │ www.docebo.com   │ SaaS onboarding: Definitive guide with free checkl │
+│ 10   │ www.mojenta.com  │ 9 Steps To Include in Your B2B Tech Client Onboard │
+└──────┴──────────────────┴────────────────────────────────────────────────────┘
+  People Also Ask: 0 questions
+
+⠴ Pipeline ━━━━━━━━━━━━━━━━                         Plan done
+
+Plan
+The Complete Customer Onboarding Checklist for B2B SaaS: A Strategic Guide to Retention
+├── Why B2B Customer Onboarding Requires a Specialized Framework (150w)
+├── Phase 1: The Internal Success Handoff (200w)
+│   └── The Kickoff Meeting Agenda (100w)
+├── Phase 2: Technical Implementation and Data Migration (300w)
+├── Phase 3: Security, Compliance, and Permissioning (200w)
+├── Phase 4: User Activation and Time to Value (TTV) (300w)
+├── Phase 5: Measuring Onboarding Performance and Scalability (200w)
+└── Summary and Next Steps (50w)
+  Estimated: 1500 words | 5 FAQ questions
+╭────────────────────────────────────────────────── Editorial Brief ───────────────────────────────────────────────────╮
+│ Audience: Mid-to-senior Customer Success Managers (CSMs), Implementation Leads, and Operations Directors at B2B SaaS │
+│ companies who are struggling with long implementation cycles and early-stage churn.                                  │
+│ Tone: Authoritative, technical, and highly actionable. The tone should avoid 'marketing fluff' and focus on          │
+│ operational realities.                                                                                               │
+│ Angle: Beyond the Welcome Email: A technical and operational deep-dive into the 'hidden' milestones of B2B           │
+│ onboarding that competitors ignore, specifically focusing on technical setup and the sales-to-success handoff.       │
+│ Differentiators: Explicit focus on technical implementation (API, SSO, DNS) which is usually glossed over., A        │
+│ dedicated section on compliance and security permissions for enterprise-grade SaaS., A structured framework for the  │
+│ internal handoff to prevent customer frustration.                                                                    │
+│ Gaps to fill: Technical Implementation & Data Migration Milestones, The Success Handoff Framework, Compliance and    │
+│ Security Steps                                                                                                       │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+⠴ Pipeline ━━━━━━━━━━━━━━━━━━━━━━━━                 Generate done
+
+Generate
+                         Article Sections                          
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━┳━━━━━━━━━┓
+┃ Heading                                       ┃ Level ┃   Words ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━╇━━━━━━━━━┩
+│ Beyond the Welcome Email: The Hidden Mileston │ h1    │     186 │
+│ Phase 1: The Internal Sales-to-Success Handof │ h2    │     315 │
+│ Phase 2: Technical Implementation and Infrast │ h2    │     292 │
+│ Phase 3: Data Migration and Schema Mapping    │ h2    │     263 │
+│ Phase 4: Compliance, Security, and Permission │ h2    │     235 │
+│ Phase 5: Workflow Validation and User Cutover │ h2    │     170 │
+└───────────────────────────────────────────────┴───────┴─────────┘
+  Total: 1461 words | 0 FAQ items
+
+⠦ Pipeline ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━         Score done
+
+Score
+                                       Quality Score                                       
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ Dimension                ┃   Score ┃ Feedback                                           ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│ keyword_usage            │    0.30 │ Primary keyword missing from introduction; Keyword │
+│ heading_structure        │    1.00 │ Good heading structure                             │
+│ word_count_target        │    1.00 │ 1461 words (target: 1500, ratio: 97%)              │
+│ differentiation_delivery │    1.00 │ Strong differentiation from competitors            │
+│ readability_metrics      │    0.20 │ Flesch RE: 25.3; Grade level: 14.3                 │
+│ humanity                 │    1.00 │ Content reads naturally                            │
+│ keyword_distribution     │    0.00 │ Distribution score: 0.00; Uneven keyword placement │
+│ content_depth            │    0.95 │ The article provides an exceptionally deep dive in │
+│ differentiation          │    1.00 │ This content successfully avoids common 'customer  │
+│ accuracy                 │    1.00 │ The article demonstrates high technical accuracy,  │
+│ consistency              │    0.80 │ The authoritative, technical, and professional ton │
+│ readability              │    0.90 │ The article uses a professional, authoritative ton │
+│ actionability            │    0.95 │ This is a highly actionable piece of content. It p │
+└──────────────────────────┴─────────┴────────────────────────────────────────────────────┘
+  Overall: 0.79 PASS
+
+  Pipeline ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Review done
+
+Review
+  Review: FAIL
+  The article provides exceptional technical depth and hits the 'authoritative' tone requested in the brief, 
+specifically regarding SSO and data migration. However, the draft is incomplete, ending mid-sentence in the final 
+section, and it deviates from the planned outline structure provided in the brief.
+  Strengths:
+    + High technical specificity regarding DNS (SPF, DKIM, DMARC) and SSO (SAML 2.0, ACS URLs) which differentiates it 
+from generic CSM content.
+    + Excellent grounding in data migration realities, specifically the mention of delta syncs and schema translation 
+(SQL to SaaS objects).
+    + Strong authoritative tone that avoids marketing fluff and focuses on operational bottlenecks like InfoSec reviews 
+and API rate limiting.
+                                             Review Issues                                              
+┏━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━┓
+┃ Severity   ┃ Category         ┃ Description                                   ┃ Section              ┃
+┡━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━┩
+│ critical   │ section_balance  │ The article is incomplete and cuts off mid-se │ Phase 5: Workflow    │
+│            │                  │                                               │ Validation and User  │
+│            │                  │                                               │ Cutover              │
+│ major      │ seo_completeness │ The article headings do not align with the pr │ -                    │
+│ minor      │ actionability    │ While the technical descriptions of SSO and D │ Phase 1: The         │
+│            │                  │                                               │ Internal             │
+│            │                  │                                               │ Sales-to-Success     │
+│            │                  │                                               │ Handoff              │
+└────────────┴──────────────────┴───────────────────────────────────────────────┴──────────────────────┘
+
+  Pipeline ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ done
+
+

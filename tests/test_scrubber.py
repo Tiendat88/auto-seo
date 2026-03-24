@@ -156,6 +156,66 @@ class TestFaqScrubbing:
         assert "\u200b" not in answer
 
 
+class TestStructuralRepair:
+    def test_normalizes_collapsed_numbered_lists(self):
+        article = ArticleContent(
+            sections=[
+                ArticleSection(
+                    heading="Checklist",
+                    heading_level=HeadingLevel.H2,
+                    content="1. Audit the current flow 2. Remove friction 3. Measure dropoff",
+                )
+            ]
+        )
+
+        result, stats = scrub_article(article)
+
+        assert result.sections[0].content == (
+            "1. Audit the current flow\n"
+            "2. Remove friction\n"
+            "3. Measure dropoff"
+        )
+        assert stats.ordered_lists_normalized == 1
+
+    def test_normalizes_collapsed_bullet_runs(self):
+        article = ArticleContent(
+            sections=[
+                ArticleSection(
+                    heading="Channels",
+                    heading_level=HeadingLevel.H2,
+                    content=(
+                        "- **Email:** Use this for non-urgent updates. "
+                        "- **Chat:** Use this for blockers."
+                    ),
+                )
+            ]
+        )
+
+        result, stats = scrub_article(article)
+
+        assert result.sections[0].content == (
+            "- **Email:** Use this for non-urgent updates.\n"
+            "- **Chat:** Use this for blockers."
+        )
+        assert stats.bullet_runs_normalized == 1
+
+    def test_closes_unmatched_code_fence(self):
+        article = ArticleContent(
+            sections=[
+                ArticleSection(
+                    heading="Commands",
+                    heading_level=HeadingLevel.H2,
+                    content="```bash\nuv run autoseo generate \"topic\"",
+                )
+            ]
+        )
+
+        result, stats = scrub_article(article)
+
+        assert result.sections[0].content.endswith("```")
+        assert stats.code_fences_closed == 1
+
+
 class TestCleanPassthrough:
     def test_clean_content_unchanged(self):
         content = "This is clean content with no AI artifacts. It reads naturally."

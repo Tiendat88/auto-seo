@@ -13,6 +13,7 @@ from app.article.models import (
     KeywordCluster,
     LinkSuggestions,
     OutlineHeading,
+    QualityScore,
     ReviewIssue,
     ReviewResult,
     ReviewSeverity,
@@ -26,6 +27,8 @@ from app.article.pipeline import (
     _merge_score_dimensions,
     _parse_article_markdown,
     _ScorePair,
+    edit_step,
+    generate_step,
     run_pipeline,
 )
 from app.job.models import Job, JobStatus
@@ -51,7 +54,24 @@ def _apply_test_settings(mock_settings: MagicMock) -> None:
     """Apply common test settings to mock pipeline settings."""
     mock_settings.firecrawl_api_key = ""
     mock_settings.content_fetch_top_n = 0
+    mock_settings.google_api_key = ""
+    mock_settings.gemini_model = "gemini-3-flash-preview"
+    mock_settings.gemini_writing_model = "gemini-3-pro-preview"
     mock_settings.persist_events = False
+
+
+def _make_mock_llm(
+    backend: str = "gemini",
+    model_name: str = "gemini-3-flash-preview",
+):
+    mock_llm = AsyncMock()
+    mock_llm.backend = backend
+    mock_llm.model_name = model_name
+    mock_llm.drain_usage = MagicMock(return_value=[])
+    mock_llm.drain_call_log = MagicMock(return_value=[])
+    mock_llm.generate_text = AsyncMock()
+    mock_llm.generate_structured = AsyncMock()
+    return mock_llm
 
 
 def _make_outline() -> ArticleOutline:
@@ -427,6 +447,157 @@ class TestMarkdownParser:
         assert len(sections) == 1
         assert len(faq) == 2
 
+    def test_ignores_headings_inside_fenced_code_blocks(self):
+        outline = _make_outline()
+        md = (
+            "# Test Article\n\nIntro.\n\n"
+            "## Section 1\n\n"
+            "```bash\n"
+            "## not a heading\n"
+            "uv run autoseo generate \"topic\"\n"
+            "```\n\n"
+            "### Sub detail\n\n"
+            "Body text."
+        )
+
+        sections, _ = _parse_article_markdown(md, outline)
+
+        assert [section.heading for section in sections] == [
+            "Test Article",
+            "Section 1",
+            "Sub detail",
+        ]
+        assert "## not a heading" in sections[1].content
+
+    def test_supports_tilde_code_fences(self):
+        outline = _make_outline()
+        md = (
+            "# Test Article\n\nIntro.\n\n"
+            "## Section 1\n\n"
+            "~~~python\n"
+            "### still code\n"
+            "print('hello')\n"
+            "~~~\n\n"
+            "## Section 2\n\n"
+            "Body text."
+        )
+
+        sections, _ = _parse_article_markdown(md, outline)
+
+        assert [section.heading for section in sections] == [
+            "Test Article",
+            "Section 1",
+            "Section 2",
+        ]
+        assert "### still code" in sections[1].content
+
+    def test_unmatched_fence_does_not_promote_code_lines_to_headings(self):
+        outline = _make_outline()
+        md = (
+            "# Test Article\n\nIntro.\n\n"
+            "## Section 1\n\n"
+            "```bash\n"
+            "### not a heading\n"
+            "uv run autoseo generate \"topic\"\n"
+            "## still code"
+        )
+
+        sections, _ = _parse_article_markdown(md, outline)
+
+        assert [section.heading for section in sections] == ["Test Article", "Section 1"]
+        assert "### not a heading" in sections[1].content
+        assert "## still code" in sections[1].content
+
+
+class TestWriterModelRouting:
+    async def test_generate_step_uses_dedicated_writer_for_article_only(
+        self,
+        session,
+        sample_job,
+        sample_serp_data,
+        sample_analysis,
+        sample_outline,
+    ):
+        sample_job.set_serp(sample_serp_data)
+        sample_job.set_analysis(sample_analysis)
+        sample_job.set_outline(sample_outline)
+        session.add(sample_job)
+        await session.commit()
+
+        base_llm = _make_mock_llm()
+        base_llm.generate_structured = AsyncMock(side_effect=_smart_generate_structured({
+            SeoMetadata: _make_seo_meta(),
+            LinkSuggestions: _make_links(),
+            SeoMetaOptions: _make_meta_options(),
+        }))
+
+        writer_llm = _make_mock_llm(
+            backend="gemini",
+            model_name="gemini-3-pro-preview",
+        )
+        writer_llm.generate_text = AsyncMock(return_value=ARTICLE_MARKDOWN)
+
+        with (
+            patch("app.article.pipeline.settings") as mock_settings,
+            patch("app.article.pipeline.LlmClient", return_value=writer_llm) as mock_ctor,
+        ):
+            _apply_test_settings(mock_settings)
+            mock_settings.google_api_key = "test-google-key"
+            mock_settings.gemini_writing_model = "gemini-3-pro-preview"
+            await generate_step(sample_job, session, base_llm, AsyncMock())
+
+        mock_ctor.assert_called_once_with(
+            provider="gemini",
+            model="gemini-3-pro-preview",
+        )
+        writer_llm.generate_text.assert_awaited_once()
+        base_llm.generate_text.assert_not_awaited()
+        assert base_llm.generate_structured.await_count == 3
+
+    async def test_edit_step_uses_dedicated_writer(
+        self,
+        session,
+        sample_job,
+        sample_outline,
+        sample_article,
+    ):
+        sample_job.set_outline(sample_outline)
+        sample_job.set_article(sample_article)
+        sample_job.set_quality(QualityScore(
+            overall=0.6,
+            dimensions=[
+                ScoreDimension(name="content_depth", score=0.6, feedback="Needs more depth"),
+                ScoreDimension(name="readability", score=0.7, feedback="Readable"),
+            ],
+            passes_threshold=True,
+        ))
+        session.add(sample_job)
+        await session.commit()
+
+        base_llm = _make_mock_llm()
+        writer_llm = _make_mock_llm(
+            backend="gemini",
+            model_name="gemini-3-pro-preview",
+        )
+        writer_llm.generate_text = AsyncMock(return_value=ARTICLE_MARKDOWN)
+
+        with (
+            patch("app.article.pipeline.settings") as mock_settings,
+            patch("app.article.pipeline.LlmClient", return_value=writer_llm) as mock_ctor,
+        ):
+            _apply_test_settings(mock_settings)
+            mock_settings.google_api_key = "test-google-key"
+            mock_settings.gemini_writing_model = "gemini-3-pro-preview"
+            await edit_step(sample_job, session, base_llm, AsyncMock())
+
+        mock_ctor.assert_called_once_with(
+            provider="gemini",
+            model="gemini-3-pro-preview",
+        )
+        writer_llm.generate_text.assert_awaited_once()
+        base_llm.generate_text.assert_not_awaited()
+        assert sample_job.revision_count == 1
+
 
 # --- TestEditLoop ---
 
@@ -576,6 +747,111 @@ class TestEditLoop:
         refreshed = await session.get(Job, sample_job.id)
         assert refreshed.status == JobStatus.COMPLETED
         assert refreshed.revision_count == 1
+
+    async def test_structural_validation_triggers_edit_loop(self, session, sample_job):
+        """Deterministic structure issues should fail review and force an edit pass."""
+        mock_llm = _make_mock_llm()
+        mock_serp = AsyncMock()
+        mock_serp.search = AsyncMock(return_value=_make_serp_data())
+
+        malformed_markdown = (
+            "# Test Article\n\n"
+            "Intro content about test keyword and productivity tools for remote teams.\n\n"
+            "# uv run autoseo generate \"topic\"\n\n"
+            "This should stay in body text, not become a second H1.\n\n"
+            "## Section 2\n\n"
+            "More content about test topics and collaboration. " * 8
+            + "\n\n## FAQ\n\n### What is test?\n\nTest answer here."
+        )
+        perfect_pair = _ScorePair(dimensions=[
+            ScoreDimension(name="content_depth", score=1.0, feedback="excellent"),
+            ScoreDimension(name="differentiation", score=1.0, feedback="excellent"),
+        ])
+
+        mock_llm.generate_text = AsyncMock(side_effect=[malformed_markdown, ARTICLE_MARKDOWN])
+        mock_llm.generate_structured = AsyncMock(side_effect=_smart_generate_structured({
+            CompetitiveAnalysis: _make_analysis(),
+            ArticleOutline: _make_outline(),
+            SeoMetadata: _make_seo_meta(),
+            LinkSuggestions: _make_links(),
+            SeoMetaOptions: _make_meta_options(),
+            _ScorePair: perfect_pair,
+            ReviewResult: _make_passing_review(),
+        }))
+
+        with (
+            patch("app.article.pipeline.settings") as mock_settings,
+            patch("app.article.pipeline.get_llm_council", return_value=[mock_llm]),
+        ):
+            mock_settings.quality_threshold = 0.0
+            mock_settings.max_revisions = 2
+            _apply_test_settings(mock_settings)
+            await run_pipeline(sample_job.id, session, mock_llm, mock_serp)
+
+        refreshed = await session.get(Job, sample_job.id)
+        review = refreshed.get_review()
+        assert refreshed.status == JobStatus.COMPLETED
+        assert refreshed.revision_count == 1
+        assert review is not None
+        assert review.passed is True
+
+    async def test_max_revisions_keeps_review_warning_visible(
+        self, session, sample_job
+    ):
+        """Completed jobs should keep review warnings visible after max revisions."""
+        mock_llm = _make_mock_llm()
+        mock_serp = AsyncMock()
+        mock_serp.search = AsyncMock(return_value=_make_serp_data())
+
+        malformed_markdown = (
+            "# Test Article\n\n"
+            "Intro content about test keyword and productivity tools for remote teams.\n\n"
+            "# uv run autoseo generate \"topic\"\n\n"
+            "This should stay in body text, not become a second H1.\n\n"
+            "## Section 2\n\n"
+            "More content about test topics and collaboration. " * 8
+            + "\n\n## FAQ\n\n### What is test?\n\nTest answer here."
+        )
+        perfect_pair = _ScorePair(dimensions=[
+            ScoreDimension(name="content_depth", score=1.0, feedback="excellent"),
+            ScoreDimension(name="differentiation", score=1.0, feedback="excellent"),
+        ])
+
+        mock_llm.generate_text = AsyncMock(return_value=malformed_markdown)
+        mock_llm.generate_structured = AsyncMock(side_effect=_smart_generate_structured({
+            CompetitiveAnalysis: _make_analysis(),
+            ArticleOutline: _make_outline(),
+            SeoMetadata: _make_seo_meta(),
+            LinkSuggestions: _make_links(),
+            SeoMetaOptions: _make_meta_options(),
+            _ScorePair: perfect_pair,
+            ReviewResult: _make_passing_review(),
+        }))
+
+        with (
+            patch("app.article.pipeline.settings") as mock_settings,
+            patch("app.article.pipeline.get_llm_council", return_value=[mock_llm]),
+        ):
+            mock_settings.quality_threshold = 0.0
+            mock_settings.max_revisions = 1
+            _apply_test_settings(mock_settings)
+            mock_settings.persist_events = True
+            await run_pipeline(sample_job.id, session, mock_llm, mock_serp)
+
+        refreshed = await session.get(Job, sample_job.id)
+        review = refreshed.get_review()
+        assert refreshed.status == JobStatus.COMPLETED
+        assert refreshed.revision_count == 1
+        assert review is not None
+        assert review.passed is False
+        assert any(issue.category == "markdown_structure" for issue in review.issues)
+        assert refreshed.events_data is not None
+        assert any(
+            event["step"] == "completed"
+            and event["event"] == "warning"
+            and "review issues remain" in event["detail"]
+            for event in refreshed.events_data
+        )
 
 
 # --- TestMergeScoreDimensions ---

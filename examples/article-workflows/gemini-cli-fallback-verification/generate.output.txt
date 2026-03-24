@@ -1,0 +1,2 @@
+Job created: b3b30ae0-fb6a-4d40-ba5a-f01ab77c9a83
+Topic: gemini cli fallback verification

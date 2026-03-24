@@ -1,0 +1,24 @@
+                                       Quality Score                                       
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ Dimension                ┃   Score ┃ Feedback                                           ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│ keyword_usage            │    0.30 │ Primary keyword missing from introduction; Keyword │
+│ heading_structure        │    0.70 │ No H1 heading found                                │
+│ word_count_target        │    1.00 │ 1480 words (target: 1500, ratio: 99%)              │
+│ differentiation_delivery │    1.00 │ Strong differentiation from competitors            │
+│ readability_metrics      │    0.20 │ Flesch RE: 16.0; Grade level: 15.4                 │
+│ humanity                 │    1.00 │ Content reads naturally                            │
+│ keyword_distribution     │    0.00 │ Distribution score: 0.00; Uneven keyword placement │
+│ content_depth            │    0.90 │ The article demonstrates expert-level depth by mov │
+│ differentiation          │    0.95 │ This piece effectively distinguishes itself throug │
+│ accuracy                 │    0.95 │ The article is internally consistent and the forwa │
+│ consistency              │    0.85 │ The authoritative and pragmatic tone requested in  │
+│ readability              │    0.88 │ The article maintains a highly professional and au │
+│ actionability            │    0.92 │ This is exceptionally practical for the target aud │
+└──────────────────────────┴─────────┴────────────────────────────────────────────────────┘
+  Overall: 0.76 PASS
+
+Completed: Best Productivity Tools for Remote Teams 2026: AI & ROI | slug: best-productivity-tools-for-remote-teams-2026
+| 1480 words | 2 revision(s)
+Tokens: 45,010 in / 13,256 out (58,266 total) | ~$0.07
+View full article: autoseo result 15708637-1219-4e56-8d19-a462f85f3d4e

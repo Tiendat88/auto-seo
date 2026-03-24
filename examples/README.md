@@ -1,71 +1,98 @@
 # Examples
 
-Real CLI artifacts and logs captured from live runs of `autoseo`.
+Live CLI artifacts and logs captured from fresh runs of `autoseo`.
 
-The examples use the CLI's split-output mode:
+These examples use the CLI's split-output mode:
 
 - `--output <file>` writes the primary artifact
 - `--log-file <file>` writes progress, status text, and errors
 
-Some commands naturally produce only an artifact or only a log:
+Short commands such as `status` and `list` often have empty log files because they do not emit progress output.
 
-- `export` writes its article artifact to the positional output file argument
-- short commands like `status` and `list` usually have empty log files because they do not emit progress text
+## Clean layout
 
-## Article workflow
+- `examples/articles/`
+  Final markdown article gallery only.
+- `examples/article-workflows/`
+  One folder per article topic with the full `generate`, `status`, `watch`, `result`, and `export` outputs.
+- `examples/article-workflows/manifest.tsv`
+  Canonical mapping of `slug`, `job_id`, and topic for the latest rerun set.
 
-Topic: `customer onboarding checklist for B2B SaaS`
+## Article gallery
 
-Job ID: `b9c6de65-60ce-4a3a-a0d6-2dd314c5f93f`
+`examples/articles/` contains the final exported markdown for the latest rerun set:
 
-- `article-workflow/generate.output.txt`: `generate --no-poll` artifact with the created job ID
-- `article-workflow/generate.log`: companion log file
-- `article-workflow/status.running.txt`: `status` output while the job was still running
-- `article-workflow/status.completed.txt`: `status` output after completion
-- `article-workflow/watch.output.txt`: final completion artifact from `watch`
-- `article-workflow/watch.log`: full progress log from `watch`, including rendered stage output and revision loop
-- `article-workflow/result.summary.txt`: `result --summary`
-- `article-workflow/result.article.md`: `result` full markdown render
-- `article-workflow/result.json`: `result --json`
-- `article-workflow/export.article.md`: `export` markdown artifact
-- `article-workflow/export.log`: `export` success log
+- `articles/customer-onboarding-checklist-for-b2b-saas.md`
+- `articles/best-note-taking-apps-for-founders.md`
+- `articles/gemini-cli-fallback-verification.md`
+- `articles/remote-teamwork-tools.md`
+- `articles/best-productivity-tools-for-remote-teams-2026.md`
 
-Commands used:
+## Article workflows
+
+Each topic folder under `examples/article-workflows/` contains the same artifact set:
+
+- `generate.output.txt`
+- `generate.log`
+- `status.running.txt`
+- `status.running.log`
+- `watch.output.txt`
+- `watch.log`
+- `status.completed.txt`
+- `status.completed.log`
+- `result.summary.txt`
+- `result.summary.log`
+- `result.article.md`
+- `result.article.log`
+- `result.json`
+- `result.json.log`
+- `export.article.md`
+- `export.log`
+
+Latest workflow set:
+
+- `customer-onboarding-checklist-for-b2b-saas` → job `ab5f8d40-f707-4d34-aa73-f8f04b830b0c`
+- `best-note-taking-apps-for-founders` → job `34f1a3f9-a8e2-411a-96e3-a7b378679ee3`
+- `gemini-cli-fallback-verification` → job `b3b30ae0-fb6a-4d40-ba5a-f01ab77c9a83`
+- `remote-teamwork-tools` → job `348cf194-059b-4265-8157-8a946c4671d9`
+- `best-productivity-tools-for-remote-teams-2026` → job `15708637-1219-4e56-8d19-a462f85f3d4e`
+
+Command shape used for each topic:
 
 ```bash
-uv run python -m app.cli --api-url http://127.0.0.1:8011 \
-  --output examples/article-workflow/generate.output.txt \
-  --log-file examples/article-workflow/generate.log \
-  generate "customer onboarding checklist for B2B SaaS" --words 1400 --no-poll
+uv run autoseo --api-url http://127.0.0.1:8015 \
+  --output examples/article-workflows/<slug>/generate.output.txt \
+  --log-file examples/article-workflows/<slug>/generate.log \
+  generate "<topic>" --no-poll
 
-uv run python -m app.cli --api-url http://127.0.0.1:8011 \
-  --output examples/article-workflow/status.running.txt \
-  --log-file examples/article-workflow/status.running.log \
-  status b9c6de65-60ce-4a3a-a0d6-2dd314c5f93f
+uv run autoseo --api-url http://127.0.0.1:8015 \
+  --output examples/article-workflows/<slug>/status.running.txt \
+  --log-file examples/article-workflows/<slug>/status.running.log \
+  status <job_id>
 
-uv run python -m app.cli --api-url http://127.0.0.1:8011 \
-  --output examples/article-workflow/watch.output.txt \
-  --log-file examples/article-workflow/watch.log \
-  watch b9c6de65-60ce-4a3a-a0d6-2dd314c5f93f
+uv run autoseo --api-url http://127.0.0.1:8015 \
+  --output examples/article-workflows/<slug>/watch.output.txt \
+  --log-file examples/article-workflows/<slug>/watch.log \
+  watch <job_id>
 
-uv run python -m app.cli --api-url http://127.0.0.1:8011 \
-  --output examples/article-workflow/result.summary.txt \
-  --log-file examples/article-workflow/result.summary.log \
-  result b9c6de65-60ce-4a3a-a0d6-2dd314c5f93f --summary
+uv run autoseo --api-url http://127.0.0.1:8015 \
+  --output examples/article-workflows/<slug>/result.summary.txt \
+  --log-file examples/article-workflows/<slug>/result.summary.log \
+  result <job_id> --summary
 
-uv run python -m app.cli --api-url http://127.0.0.1:8011 \
-  --output examples/article-workflow/result.article.md \
-  --log-file examples/article-workflow/result.article.log \
-  result b9c6de65-60ce-4a3a-a0d6-2dd314c5f93f
+uv run autoseo --api-url http://127.0.0.1:8015 \
+  --output examples/article-workflows/<slug>/result.article.md \
+  --log-file examples/article-workflows/<slug>/result.article.log \
+  result <job_id>
 
-uv run python -m app.cli --api-url http://127.0.0.1:8011 \
-  --output examples/article-workflow/result.json \
-  --log-file examples/article-workflow/result.json.log \
-  result b9c6de65-60ce-4a3a-a0d6-2dd314c5f93f --json
+uv run autoseo --api-url http://127.0.0.1:8015 \
+  --output examples/article-workflows/<slug>/result.json \
+  --log-file examples/article-workflows/<slug>/result.json.log \
+  result <job_id> --json
 
-uv run python -m app.cli --api-url http://127.0.0.1:8011 \
-  --log-file examples/article-workflow/export.log \
-  export b9c6de65-60ce-4a3a-a0d6-2dd314c5f93f examples/article-workflow/export.article.md
+uv run autoseo --api-url http://127.0.0.1:8015 \
+  --log-file examples/article-workflows/<slug>/export.log \
+  export <job_id> examples/article-workflows/<slug>/export.article.md
 ```
 
 ## Job-state examples
@@ -81,27 +108,18 @@ Resume target:
 - Job ID: `2a1e5aea-bbbe-4b49-83fd-cca33476542d`
 - Topic: `best productivity tools for remote teams 2026`
 
-Command used:
-
-```bash
-uv run python -m app.cli --api-url http://127.0.0.1:8011 \
-  --output examples/jobs/resume.output.txt \
-  --log-file examples/jobs/resume.log \
-  resume 2a1e5aea-bbbe-4b49-83fd-cca33476542d
-```
-
 ## AEO examples
 
-- `aeo/onboarding-article.json`: AEO analysis of the exported onboarding article
+- `aeo/onboarding-article.json`: AEO analysis of the latest exported onboarding article
 - `aeo/onboarding-article.log`: companion log file
 
 Command used:
 
 ```bash
-uv run python -m app.cli --api-url http://127.0.0.1:8011 \
+uv run autoseo --api-url http://127.0.0.1:8015 \
   --output examples/aeo/onboarding-article.json \
   --log-file examples/aeo/onboarding-article.log \
-  aeo examples/article-workflow/export.article.md --json
+  aeo examples/article-workflows/customer-onboarding-checklist-for-b2b-saas/export.article.md --json
 ```
 
 ## Fan-out examples
@@ -114,31 +132,22 @@ uv run python -m app.cli --api-url http://127.0.0.1:8011 \
 Commands used:
 
 ```bash
-uv run python -m app.cli --api-url http://127.0.0.1:8011 \
+uv run autoseo --api-url http://127.0.0.1:8015 \
   --output examples/fanout/crm-url-gap.json \
   --log-file examples/fanout/crm-url-gap.log \
   fanout "best CRM for startups" --content https://example.com --json
 
-uv run python -m app.cli --api-url http://127.0.0.1:8011 \
+uv run autoseo --api-url http://127.0.0.1:8015 \
   --output examples/fanout/onboarding-file-gap.json \
   --log-file examples/fanout/onboarding-file-gap.log \
   fanout "customer onboarding checklist for B2B SaaS" \
-  --content examples/article-workflow/export.article.md --json
+  --content examples/article-workflows/customer-onboarding-checklist-for-b2b-saas/export.article.md --json
 ```
 
-## Brand-monitor example
+## Brand example
 
 - `brand/notion-api.json`: API-mode brand analysis for Notion on the query `best note-taking app`
-- `brand/notion-api.log`: preamble log for the same run
-
-Command used:
-
-```bash
-uv run python -m app.cli --api-url http://127.0.0.1:8011 \
-  --output examples/brand/notion-api.json \
-  --log-file examples/brand/notion-api.log \
-  brand Notion "best note-taking app" --mode api --json
-```
+- `brand/notion-api.log`: companion log file
 
 ## Legacy sample
 

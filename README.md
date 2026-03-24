@@ -172,7 +172,8 @@ Environment variables (or `.env` file):
 | `OPENAI_API_KEY` | — | Enables OpenAI API fetches for brand monitoring (`chatgpt`) |
 | `PERPLEXITY_API_KEY` | — | Enables Perplexity API fetches for brand monitoring |
 | `LLM_MODEL` | `claude-sonnet-4-6` | Anthropic model to use |
-| `GEMINI_MODEL` | `gemini-3-flash-preview` | Gemini model to use |
+| `GEMINI_MODEL` | `gemini-3-flash-preview` | Default Gemini model for non-writing tasks |
+| `GEMINI_WRITING_MODEL` | `gemini-3-pro-preview` | Gemini model used only for article draft + edit generation |
 | `OPENAI_MODEL` | `o3-mini` | OpenAI model to use |
 | `OPENAI_CODEX` | `false` | Enable Codex SDK backend (ChatGPT subscription) |
 | `SERP_PROVIDER` | `mock` | `mock` or `serpapi` |
@@ -198,6 +199,7 @@ Environment variables (or `.env` file):
 - `app/db.py` serializes schema bootstrap with a Postgres advisory lock, so `uvicorn --workers 2` is safe on a fresh database.
 - `app/serp/fetcher.py` uses the Firecrawl Python SDK contract (`only_main_content=True`), not the raw REST API's camelCase request fields.
 - `app/aeo/fanout.py` uses VoyageAI `voyage-4-large` embeddings with `input_type="query"` and `input_type="document"` for semantic gap analysis.
+- Article drafting and edit-loop rewrites use `GEMINI_WRITING_MODEL`, while metadata, link suggestions, council review/scoring, and other default Gemini work stay on `GEMINI_MODEL`.
 
 ## Design Decisions
 

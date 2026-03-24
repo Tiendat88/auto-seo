@@ -1,0 +1,135 @@
+Watching job: 34f1a3f9-a8e2-411a-96e3-a7b378679ee3 (status: researching)
+⠧ Pipeline                                          Review...
+
+Edit 1: polishing article...
+
+⠸ Pipeline                                          Review...
+
+Edit 2: polishing article...
+
+⠋ Pipeline ━━━━━━━━                                 Research done
+
+Research
+                                        SERP Results                                        
+┏━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ #    ┃ Domain                       ┃ Title                                              ┃
+┡━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│ 1    │ www.reddit.com               │ Note-taking app recommendation for founders? Curre │
+│ 2    │ zapier.com                   │ The 7 best note taking apps in 2026                │
+│ 3    │ www.coolcatteacher.com       │ Unlock Your Second Brain: A Guide to Choosing the  │
+│ 4    │ www.10xing.ai                │ The Best AI Notetaking Apps for Startups - by Davi │
+│ 5    │ www.alanet.org               │ Note-Taking Apps: So Many Choices — Which Is Best  │
+│ 6    │ medium.com                   │ 5 Note-Taking Apps I'd Recommend Based on How You  │
+│ 7    │ thedigitalprojectmanager.com │ 19 Best Note Taking Apps for Boosting Productivity │
+│ 8    │ evernote.com                 │ Best Note Taking App - Organize Your Notes with Ev │
+└──────┴──────────────────────────────┴────────────────────────────────────────────────────┘
+  People Also Ask: 0 questions
+
+⠋ Pipeline ━━━━━━━━━━━━━━━━                         Plan done
+
+Plan
+The Best Note-Taking Apps for Founders in 2025
+├── The Selection Criteria: What Makes an App Founder-Grade? (150w)
+├── Top AI-Powered Apps for Automated Meeting Synthesis (300w)
+├── Building a Second Brain: Scaling Knowledge from Seed to Series A (300w)
+├── Security and IP Protection: Why Data Ownership Matters for Founders (200w)
+├── Connecting Your Notes to the Founder Tech Stack (200w)
+├── Comparing Industry Giants: Evernote vs. OneNote for Business Growth (200w)
+└── Final Verdict: Choosing the Right App Based on Your Founder Persona (150w)
+  Estimated: 1500 words | 5 FAQ questions
+╭────────────────────────────────────────────────── Editorial Brief ───────────────────────────────────────────────────╮
+│ Audience: Tech startup founders, CEOs, and early-stage operators who need to manage high-velocity information,       │
+│ prepare for investor meetings, and document product strategy.                                                        │
+│ Tone: Authoritative, efficiency-oriented, and security-conscious. The tone should reflect the high stakes of startup │
+│ management.                                                                                                          │
+│ Angle: Moving beyond basic features to focus on the 'Founder-Grade' requirements of security, IP protection, and     │
+│ integration with specific startup tools like HubSpot and Linear.                                                     │
+│ Differentiators: Deep focus on SOC2 and encryption for sensitive intellectual property, Workflow-specific guidance   │
+│ for VC meetings and board prep rather than generic 'study notes', A compatibility matrix for the founder-specific    │
+│ tech stack (HubSpot, Pitch, Linear)                                                                                  │
+│ Gaps to fill: Security and IP ownership for sensitive startup data, Foundational workflows for VC meetings and user  │
+│ interview synthesis, Integrations with specific startup tools beyond just Slack and Google Drive                     │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+⠋ Pipeline ━━━━━━━━━━━━━━━━━━━━━━━━                 Generate done
+
+Generate
+                         Article Sections                          
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━┳━━━━━━━━━┓
+┃ Heading                                       ┃ Level ┃   Words ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━╇━━━━━━━━━┩
+│ The Best Note Taking Apps for Startups: A Fou │ h1    │     197 │
+│ The Selection Criteria: What Makes an App Ent │ h2    │     129 │
+│ Security First: IP Protection and SOC2 Compli │ h3    │     114 │
+│ Advanced Interoperability: Beyond Slack and G │ h3    │     122 │
+│ Why Legacy Tools Like Evernote and OneNote Fa │ h2    │     133 │
+│ Comparing Knowledge Operating Systems: Notion │ h2    │      30 │
+│ Compatibility Matrix: The Startup Tech Stack  │ h3    │     110 │
+│ Notion: The API-First Relational Database     │ h3    │     135 │
+│ Obsidian: Uncompromised Local Privacy and Spe │ h3    │     151 │
+│ Tana: High-Velocity Ontology and Supertags    │ h3    │     142 │
+│ Top AI-Powered Apps for Meeting Synthesis     │ h2    │      93 │
+└───────────────────────────────────────────────┴───────┴─────────┘
+  Total: 1356 words | 0 FAQ items
+
+⠋ Pipeline ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━         Score done
+
+Score
+                                       Quality Score                                       
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ Dimension                ┃   Score ┃ Feedback                                           ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│ keyword_usage            │    0.30 │ Primary keyword missing from introduction; Keyword │
+│ heading_structure        │    1.00 │ Good heading structure                             │
+│ word_count_target        │    1.00 │ 1356 words (target: 1500, ratio: 90%)              │
+│ differentiation_delivery │    1.00 │ Strong differentiation from competitors            │
+│ readability_metrics      │    0.20 │ Flesch RE: 27.9; Grade level: 14.1                 │
+│ humanity                 │    1.00 │ Content reads naturally                            │
+│ keyword_distribution     │    0.00 │ Distribution score: 0.00; Uneven keyword placement │
+│ content_depth            │    0.85 │ The article demonstrates expert-level understandin │
+│ differentiation          │    0.95 │ This article effectively differentiates itself fro │
+│ accuracy                 │    0.95 │ The article is factually precise regarding the tec │
+│ consistency              │    0.90 │ The article maintains an authoritative, 'founder-g │
+│ readability              │    0.88 │ The article uses an authoritative and punchy tone  │
+│ actionability            │    0.92 │ The content is highly actionable due to the inclus │
+└──────────────────────────┴─────────┴────────────────────────────────────────────────────┘
+  Overall: 0.78 PASS
+
+  Pipeline ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Review done
+
+Review
+  Review: FAIL
+  The article successfully targets the 'Founder-Grade' persona by integrating specific tools like Linear and HubSpot 
+into the narrative and emphasizing SOC2 compliance. However, it fails technically due to a mid-sentence cutoff in the 
+final section and the omission of several key sections from the planned outline.
+  Strengths:
+    + The 'Compatibility Matrix' provides immediate, high-value visual data that differentiates this from generic 
+listicles.
+    + Strong focus on SOC2 Type II and E2EE, which directly addresses the security-conscious persona requested in the 
+brief.
+    + Excellent use of specific startup-stack tools (Linear, Pitch, HubSpot) rather than just generic mentions of 
+'integrations'.
+                                              Review Issues                                               
+┏━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━┓
+┃ Severity   ┃ Category           ┃ Description                                   ┃ Section              ┃
+┡━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━┩
+│ critical   │ engagement_quality │ The article ends abruptly mid-sentence in the │ Top AI-Powered Apps  │
+│            │                    │                                               │ for Meeting          │
+│            │                    │                                               │ Synthesis            │
+│ major      │ actionability      │ While the brief specifically requested founda │ Tana: High-Velocity  │
+│            │                    │                                               │ Ontology and         │
+│            │                    │                                               │ Supertags            │
+│ minor      │ tone_and_voice     │ The text relies heavily on 'consultant jargon │ -                    │
+│ major      │ section_balance    │ The 'Selection Criteria' section is overly lo │ The Selection        │
+│            │                    │                                               │ Criteria: What Makes │
+│            │                    │                                               │ an App               │
+│            │                    │                                               │ Enterprise-Ready?    │
+│ minor      │ seo_completeness   │ The article focuses heavily on internal docum │ Advanced             │
+│            │                    │                                               │ Interoperability:    │
+│            │                    │                                               │ Beyond Slack and     │
+│            │                    │                                               │ Google Drive         │
+└────────────┴────────────────────┴───────────────────────────────────────────────┴──────────────────────┘
+
+  Pipeline ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ done
+
+

@@ -125,7 +125,8 @@ uv run autoseo brand "Notion" "best note-taking app" --json
 - `OPENAI_API_KEY` — Enables OpenAI API fetches for brand monitoring
 - `PERPLEXITY_API_KEY` — Enables Perplexity API fetches for brand monitoring
 - `LLM_MODEL` — Anthropic model (default `claude-sonnet-4-6`)
-- `GEMINI_MODEL` — Gemini model (default `gemini-3-flash-preview`)
+- `GEMINI_MODEL` — Default Gemini model for non-writing tasks (default `gemini-3-flash-preview`)
+- `GEMINI_WRITING_MODEL` — Gemini model for article draft + edit generation (default `gemini-3-pro-preview`)
 - `OPENAI_MODEL` — OpenAI model (default `o3-mini`)
 - `OPENAI_CODEX` — Set `true` to use Codex SDK backend (ChatGPT subscription)
 - `SERP_PROVIDER` — `mock` (default) or `serpapi`

@@ -27,7 +27,9 @@ from app.article.models import (
     KeywordUsage,
     LinkSuggestions,
     QualityScore,
+    ReviewIssue,
     ReviewResult,
+    ReviewSeverity,
     ScoreDimension,
     SectionKeywordDensity,
     SeoMetadata,
@@ -234,18 +236,17 @@ async def generate_step(
         brand_voice=brand_voice, target_word_count=job.target_word_count,
         content_gaps=analysis.content_gaps,
     )
-    article_md = await llm.generate_text(prompt, max_tok)
+    writer_llm, dedicated_writer = _resolve_article_writer(job, llm, "generating")
+    article_md = await writer_llm.generate_text(prompt, max_tok)
+    if dedicated_writer:
+        _drain_telemetry(job, [writer_llm], "generating")
 
     # 2. Parse markdown → sections + FAQ, then scrub
     sections, faq_items = _parse_article_markdown(article_md, outline)
     article, scrub_stats = scrub_article(ArticleContent(sections=sections, faq=faq_items))
     job.append_event("generating", "result",
         f"Article: {article.total_word_count} words, {len(faq_items)} FAQ items")
-    job.append_event("generating", "scrub",
-        f"Scrubbed: {scrub_stats.filler_removed} fillers removed, "
-        f"{scrub_stats.paragraphs_split} para splits | "
-        f"Found: {scrub_stats.ai_words_found} AI words, "
-        f"{scrub_stats.em_dashes_found} em-dashes")
+    job.append_event("generating", "scrub", _format_scrub_stats(scrub_stats))
 
     # 3. Parallel: metadata + links + meta options
     job.current_step = "generating:metadata"
@@ -460,6 +461,14 @@ async def review_step(
         raise StepError("All review calls failed")
 
     review = _merge_reviews(reviews) if len(reviews) > 1 else reviews[0]
+    structural_issues = _validate_article_structure(article)
+    if structural_issues:
+        job.append_event(
+            "reviewing",
+            "validation",
+            f"Structural validation found {len(structural_issues)} issue(s)",
+        )
+        review = _merge_structural_review_issues(review, structural_issues)
     job.append_event(
         "reviewing", "merge",
         f"Merged {len(reviews)} reviews, passed={review.passed}",
@@ -497,14 +506,18 @@ async def edit_step(
     )
 
     max_tok = _max_tokens(job.target_word_count)
-    edited_md = await llm.generate_text(prompt, max_tok)
+    writer_llm, dedicated_writer = _resolve_article_writer(job, llm, "editing")
+    edited_md = await writer_llm.generate_text(prompt, max_tok)
+    if dedicated_writer:
+        _drain_telemetry(job, [writer_llm], "editing")
 
     sections, faq_items = _parse_article_markdown(edited_md, outline)
     # Prefer parsed FAQ, fall back to existing if edit didn't include FAQ, then scrub
-    edited, _scrub_stats = scrub_article(ArticleContent(
+    edited, scrub_stats = scrub_article(ArticleContent(
         sections=sections,
         faq=faq_items if faq_items else article.faq,
     ))
+    job.append_event("editing", "scrub", _format_scrub_stats(scrub_stats))
 
     # Re-compute keyword analysis
     analysis = job.get_analysis()
@@ -520,18 +533,22 @@ async def edit_step(
 # --- Markdown Parser ---
 
 
-_HEADING_RE = re.compile(r"^(#{1,3})\s+(.+)$", re.MULTILINE)
+_HEADING_LINE_RE = re.compile(r"^(#{1,3})\s+(.+?)\s*$")
+_FENCE_RE = re.compile(r"^\s*([`~]{3,})")
+_ORDERED_LIST_MARKER_RE = re.compile(r"(?<!\S)\d+\.\s+")
+_BOLD_BULLET_MARKER_RE = re.compile(r"(?<!\S)(?:[-*])\s+\*\*[^:\n]{1,80}:\*\*\s+")
+_COMMAND_HEADING_RE = re.compile(
+    r"^(?:[`$]|(?:uv|pip|npm|npx|brew|curl|export)\s+|python\s+-m\b)",
+    re.IGNORECASE,
+)
 
 
 def _parse_article_markdown(
     markdown: str, outline: ArticleOutline
 ) -> tuple[list[ArticleSection], list[FaqItem]]:
     """Parse LLM markdown output into ArticleSections and FaqItems."""
-    # Split into (level_str, heading_text, body) chunks
-    chunks: list[tuple[str, str, str]] = []
-    matches = list(_HEADING_RE.finditer(markdown))
-
-    if not matches:
+    chunks = _split_markdown_chunks(markdown)
+    if not chunks:
         # Fallback: no headings found — treat entire text as single H2 section
         return (
             [ArticleSection(
@@ -540,14 +557,6 @@ def _parse_article_markdown(
             )],
             [],
         )
-
-    for i, m in enumerate(matches):
-        level_str = m.group(1)  # "#", "##", or "###"
-        heading_text = m.group(2).strip()
-        start = m.end()
-        end = matches[i + 1].start() if i + 1 < len(matches) else len(markdown)
-        body = markdown[start:end].strip()
-        chunks.append((level_str, heading_text, body))
 
     # Separate FAQ section from article sections
     faq_items: list[FaqItem] = []
@@ -625,6 +634,67 @@ def _match_heading_level(
     return HeadingLevel.H2
 
 
+def _split_markdown_chunks(markdown: str) -> list[tuple[str, str, str]]:
+    """Split markdown into heading/body chunks while respecting fenced code blocks."""
+    chunks: list[tuple[str, str, str]] = []
+    preamble: list[str] = []
+    body_lines: list[str] = []
+    current_level = ""
+    current_heading = ""
+    in_fence = False
+    fence_char = ""
+    fence_len = 0
+
+    for line in markdown.splitlines():
+        heading_match = None
+        if not in_fence:
+            heading_match = _HEADING_LINE_RE.match(line)
+
+        if heading_match:
+            if current_heading:
+                chunks.append((current_level, current_heading, "\n".join(body_lines).strip()))
+            current_level = heading_match.group(1)
+            current_heading = heading_match.group(2).strip()
+            body_lines = preamble if preamble and not chunks else []
+            preamble = []
+            continue
+
+        if current_heading:
+            body_lines.append(line)
+        else:
+            preamble.append(line)
+
+        in_fence, fence_char, fence_len = _toggle_fence_state(
+            line, in_fence, fence_char, fence_len
+        )
+
+    if not current_heading:
+        return []
+
+    chunks.append((current_level, current_heading, "\n".join(body_lines).strip()))
+    return chunks
+
+
+def _toggle_fence_state(
+    line: str,
+    in_fence: bool,
+    fence_char: str,
+    fence_len: int,
+) -> tuple[bool, str, int]:
+    match = _FENCE_RE.match(line)
+    if not match:
+        return in_fence, fence_char, fence_len
+
+    marker = match.group(1)
+    char = marker[0]
+    length = len(marker)
+    if not in_fence:
+        return True, char, length
+    if char == fence_char and length >= fence_len:
+        return False, "", 0
+    return in_fence, fence_char, fence_len
+
+
 # --- Helpers ---
 
 
@@ -638,6 +708,42 @@ def _section_summaries(sections: list[ArticleSection]) -> list[tuple[str, str]]:
             summary += "."
         result.append((s.heading, summary))
     return result
+
+
+def _resolve_article_writer(
+    job: Job,
+    llm: LlmClient,
+    step_name: str,
+) -> tuple[LlmClient, bool]:
+    """Use Gemini Pro only for article drafting and rewriting."""
+    if not settings.google_api_key:
+        job.append_event(
+            step_name,
+            "warning",
+            "GOOGLE_API_KEY unavailable; "
+            f"using {llm.backend} ({llm.model_name}) for article writing",
+        )
+        return llm, False
+
+    writer = LlmClient(provider="gemini", model=settings.gemini_writing_model)
+    job.append_event(
+        step_name,
+        "writer_model",
+        f"Using gemini writer model {writer.model_name}",
+    )
+    return writer, True
+
+
+def _format_scrub_stats(stats: Any) -> str:
+    """Build a compact scrubber event summary."""
+    return (
+        f"Scrubbed: {stats.filler_removed} fillers removed, "
+        f"{stats.paragraphs_split} para splits, "
+        f"{stats.ordered_lists_normalized} ordered-list repairs, "
+        f"{stats.bullet_runs_normalized} bullet-run repairs, "
+        f"{stats.code_fences_closed} code fences closed | "
+        f"Found: {stats.ai_words_found} AI words, {stats.em_dashes_found} em-dashes"
+    )
 
 
 def _merge_competitive_analyses(
@@ -763,6 +869,208 @@ def _merge_reviews(reviews: list[ReviewResult]) -> ReviewResult:
         issues=all_issues,
         strengths=unique_strengths,
     )
+
+
+def _merge_structural_review_issues(
+    review: ReviewResult,
+    issues: list[ReviewIssue],
+) -> ReviewResult:
+    """Merge deterministic structure findings into the LLM review result."""
+    if not issues:
+        return review
+
+    combined_issues = list(review.issues)
+    seen = {
+        (
+            issue.category,
+            issue.severity,
+            issue.description,
+            issue.affected_section,
+            issue.suggestion,
+        )
+        for issue in combined_issues
+    }
+    for issue in issues:
+        key = (
+            issue.category,
+            issue.severity,
+            issue.description,
+            issue.affected_section,
+            issue.suggestion,
+        )
+        if key not in seen:
+            combined_issues.append(issue)
+            seen.add(key)
+
+    serious = any(i.severity in ("critical", "major") for i in combined_issues)
+    summary_suffix = f"Structural validation found {len(issues)} issue(s)."
+    summary = f"{review.summary} | {summary_suffix}" if review.summary else summary_suffix
+
+    return review.model_copy(
+        update={
+            "passed": not serious,
+            "summary": summary,
+            "issues": combined_issues,
+        }
+    )
+
+
+def _validate_article_structure(article: ArticleContent) -> list[ReviewIssue]:
+    """Detect unresolved markdown and heading problems after parse + scrub."""
+    issues: list[ReviewIssue] = []
+    seen: set[tuple[str, str, str | None]] = set()
+
+    def add_issue(issue: ReviewIssue) -> None:
+        key = (issue.category, issue.description, issue.affected_section)
+        if key in seen:
+            return
+        seen.add(key)
+        issues.append(issue)
+
+    h1_count = sum(1 for section in article.sections if section.heading_level == HeadingLevel.H1)
+    if h1_count > 1:
+        add_issue(ReviewIssue(
+            category="markdown_structure",
+            severity=ReviewSeverity.MAJOR,
+            description="Multiple H1 headings remain in the final article structure.",
+            affected_section=None,
+            suggestion="Keep a single H1 and demote stray headings to the correct level.",
+        ))
+
+    seen_h2 = False
+    for section in article.sections:
+        heading = section.heading.strip()
+        if section.heading_level == HeadingLevel.H2:
+            seen_h2 = True
+        elif section.heading_level == HeadingLevel.H3 and not seen_h2:
+            add_issue(ReviewIssue(
+                category="markdown_structure",
+                severity=ReviewSeverity.MAJOR,
+                description=(
+                    "An H3 appears before any H2 section, "
+                    "which suggests broken heading structure."
+                ),
+                affected_section=section.heading,
+                suggestion=(
+                    "Promote or move the heading so the article follows "
+                    "a valid H1/H2/H3 hierarchy."
+                ),
+            ))
+        if _COMMAND_HEADING_RE.match(heading):
+            add_issue(ReviewIssue(
+                category="markdown_structure",
+                severity=ReviewSeverity.MAJOR,
+                description=(
+                    "A heading looks like a code or shell line, which suggests "
+                    "code block text was parsed as a heading."
+                ),
+                affected_section=section.heading,
+                suggestion=(
+                    "Move command/code lines back into fenced blocks or body "
+                    "text and keep headings prose-only."
+                ),
+            ))
+        _validate_block_markdown(section.content, section.heading, add_issue)
+
+    for faq in article.faq:
+        _validate_block_markdown(faq.answer, faq.question, add_issue)
+
+    return issues
+
+
+def _validate_block_markdown(
+    text: str,
+    section_name: str,
+    add_issue: Callable[[ReviewIssue], None],
+) -> None:
+    """Validate a single section/FAQ body for unresolved structural defects."""
+    if _has_unmatched_code_fence(text):
+        add_issue(ReviewIssue(
+            category="markdown_structure",
+            severity=ReviewSeverity.MAJOR,
+            description="A fenced code block is still unclosed in the section body.",
+            affected_section=section_name,
+            suggestion="Close the code fence and keep all code lines inside the fenced block.",
+        ))
+    if _has_collapsed_ordered_list(text):
+        add_issue(ReviewIssue(
+            category="markdown_structure",
+            severity=ReviewSeverity.MAJOR,
+            description="A numbered list is still collapsed into a single paragraph.",
+            affected_section=section_name,
+            suggestion=(
+                "Put each numbered list item on its own line so the markdown "
+                "renders correctly."
+            ),
+        ))
+    if _has_collapsed_bullet_run(text):
+        add_issue(ReviewIssue(
+            category="markdown_structure",
+            severity=ReviewSeverity.MAJOR,
+            description="A bullet list is still collapsed into a single line.",
+            affected_section=section_name,
+            suggestion="Split the bullets so each item sits on its own markdown line.",
+        ))
+
+
+def _has_unmatched_code_fence(text: str) -> bool:
+    in_fence = False
+    fence_char = ""
+    fence_len = 0
+    for line in text.splitlines():
+        in_fence, fence_char, fence_len = _toggle_fence_state(
+            line, in_fence, fence_char, fence_len
+        )
+    return in_fence
+
+
+def _has_collapsed_ordered_list(text: str) -> bool:
+    in_fence = False
+    fence_char = ""
+    fence_len = 0
+    for line in text.splitlines():
+        if not in_fence:
+            matches = list(_ORDERED_LIST_MARKER_RE.finditer(line))
+            if len(matches) >= 2 and not line[:matches[0].start()].strip():
+                return True
+        in_fence, fence_char, fence_len = _toggle_fence_state(
+            line, in_fence, fence_char, fence_len
+        )
+    return False
+
+
+def _has_collapsed_bullet_run(text: str) -> bool:
+    in_fence = False
+    fence_char = ""
+    fence_len = 0
+    for line in text.splitlines():
+        if not in_fence:
+            matches = list(_BOLD_BULLET_MARKER_RE.finditer(line))
+            if len(matches) >= 2 and not line[:matches[0].start()].strip():
+                return True
+        in_fence, fence_char, fence_len = _toggle_fence_state(
+            line, in_fence, fence_char, fence_len
+        )
+    return False
+
+
+def _completion_warning_detail(
+    quality: QualityScore | None,
+    review: ReviewResult | None,
+) -> str | None:
+    parts: list[str] = []
+    if quality and not quality.passes_threshold:
+        parts.append(
+            "quality stayed below threshold "
+            f"({quality.overall:.3f} < {settings.quality_threshold:.3f})"
+        )
+    if review and not review.passed:
+        serious = sum(1 for issue in review.issues if issue.severity in ("critical", "major"))
+        if serious:
+            parts.append(f"{serious} major/critical review issues remain")
+    if not parts:
+        return None
+    return "Completed after max revisions with unresolved issues: " + "; ".join(parts)
 
 
 def _compute_keyword_analysis(
@@ -947,6 +1255,7 @@ async def run_pipeline(
 
     start_index = _determine_resume_index(job)
     log.info("Starting pipeline for job=%s from step=%d", job_id, start_index)
+    completion_warning: str | None = None
 
     for i in range(start_index, len(STEP_SEQUENCE)):
         next_status, step_fn = STEP_SEQUENCE[i]
@@ -972,6 +1281,7 @@ async def run_pipeline(
             break
         if job.revision_count >= settings.max_revisions:
             log.info("Max edits reached for job=%s, accepting current quality", job_id)
+            completion_warning = _completion_warning_detail(quality, review)
             break
 
         log.info(
@@ -995,6 +1305,8 @@ async def run_pipeline(
 
     job.status = JobStatus.COMPLETED
     job.current_step = None
+    if completion_warning:
+        job.append_event("completed", "warning", completion_warning)
     # Schema markup preview event
     result = job.build_result()
     if result and result.schema_markup:

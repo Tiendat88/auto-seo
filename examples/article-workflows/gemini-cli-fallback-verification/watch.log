@@ -1,0 +1,127 @@
+Watching job: b3b30ae0-fb6a-4d40-ba5a-f01ab77c9a83 (status: researching)
+⠦ Pipeline                                          Review...
+
+Edit 1: polishing article...
+
+⠇ Pipeline                                          Review...
+
+Edit 2: polishing article...
+
+⠴ Pipeline ━━━━━━━━                                 Research done
+
+Research
+                                         SERP Results                                         
+┏━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ #    ┃ Domain                         ┃ Title                                              ┃
+┡━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│ 1    │ github.com                     │ Option to Disable Automatic Model Fallback (Pro to │
+│ 2    │ www.reddit.com                 │ gemini-cli: falling back to gemini-flash is the be │
+│ 3    │ geminicli.com                  │ Gemini CLI configuration                           │
+│ 4    │ github.com                     │ Bug: Model fallback from `gemini-3-pro-preview` to │
+│ 5    │ www.answeroverflow.com         │ Google gemini cli key suddenly stopped working     │
+│ 6    │ www.npmjs.com                  │ rv192/gem-cli-core                                 │
+│ 7    │ dev.to                         │ Using Gemini CLI Through LiteLLM Proxy             │
+│ 8    │ github.com                     │ [Bug] v0.18.0 Regression: CLI hangs on login in he │
+│ 9    │ geminicli.com                  │ Gemini 3 Pro and Gemini 3 Flash on Gemini CLI      │
+│ 10   │ codelabs.developers.google.com │ Hands-on with Gemini CLI                           │
+└──────┴────────────────────────────────┴────────────────────────────────────────────────────┘
+  People Also Ask: 4 questions
+
+⠴ Pipeline ━━━━━━━━━━━━━━━━                         Plan done
+
+Plan
+Verifying and Configuring Gemini CLI Fallback Mechanisms
+├── Understanding the Gemini CLI Fallback Logic (200w)
+├── Managing Gemini CLI Configuration and Precedence (250w)
+│   └── Customizing Fallback Targets in settings.json (150w)
+├── Authentication Verification in Headless Environments (250w)
+├── Simulating Model Fallback for Testing and Verification (250w)
+├── Auditing Fallback Events Through Verbose Logging (200w)
+└── How to Disable Automatic Model Fallback (200w)
+  Estimated: 1500 words | 5 FAQ questions
+╭────────────────────────────────────────────────── Editorial Brief ───────────────────────────────────────────────────╮
+│ Audience: Developers and DevOps engineers implementing Gemini models into automated workflows or CLI-based           │
+│ environments who require high reliability and predictable model behavior.                                            │
+│ Tone: Technical, instructional, and authoritative with a focus on troubleshooting and observability.                 │
+│ Angle: A deep dive into the 'Verification' aspect of Gemini CLI, moving beyond basic setup to focus on how users can │
+│ prove, audit, and simulate fallback behaviors for production-ready reliability.                                      │
+│ Differentiators: Provides specific methods to simulate fallback without actually depleting paid API quotas., Details │
+│ how to perform headless authentication when the automated browser flow fails., Explains how to use logging and       │
+│ metadata to audit which model was actually used for a specific query.                                                │
+│ Gaps to fill: Testing/Simulating fallback logic without exhausting Pro tier limits., Manual verification code        │
+│ recovery guide for headless/remote server setups., Identifying log locations and verbose flags to confirm past       │
+│ fallback events.                                                                                                     │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+⠴ Pipeline ━━━━━━━━━━━━━━━━━━━━━━━━                 Generate done
+
+Generate
+                         Article Sections                          
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━┳━━━━━━━━━┓
+┃ Heading                                       ┃ Level ┃   Words ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━╇━━━━━━━━━┩
+│ Mastering Gemini CLI Verification and Fallbac │ h1    │     153 │
+│ Understanding Fallback Logic Under Load       │ h2    │     315 │
+│ Managing Configuration Precedence in the Gemi │ h2    │     241 │
+│ Simulating Fallback Logic Without Depleting Q │ h2    │      83 │
+│ Method 1: Environment-Level Interception (Pyt │ h3    │     111 │
+│ Method 2: Local Mock Server Redirection       │ h3    │     109 │
+│ Headless Authentication and Code Recovery     │ h2    │     157 │
+└───────────────────────────────────────────────┴───────┴─────────┘
+  Total: 1169 words | 0 FAQ items
+
+⠴ Pipeline ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━         Score done
+
+Score
+                                       Quality Score                                       
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ Dimension                ┃   Score ┃ Feedback                                           ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│ keyword_usage            │    0.30 │ Primary keyword missing from introduction; Keyword │
+│ heading_structure        │    1.00 │ Good heading structure                             │
+│ word_count_target        │    0.40 │ 1169 words (target: 1500, ratio: 78%)              │
+│ differentiation_delivery │    1.00 │ Strong differentiation from competitors            │
+│ readability_metrics      │    0.20 │ Flesch RE: 13.7; Grade level: 15.3                 │
+│ humanity                 │    1.00 │ Content reads naturally                            │
+│ keyword_distribution     │    0.00 │ Distribution score: 0.00; Uneven keyword placement │
+│ content_depth            │    0.85 │ The article demonstrates high technical proficienc │
+│ differentiation          │    0.95 │ This content is highly differentiated from standar │
+│ accuracy                 │    0.95 │ The technical content is highly accurate, correctl │
+│ consistency              │    0.60 │ The article maintains a consistent, professional,  │
+│ readability              │    0.92 │ The article uses clear, professional, and authorit │
+│ actionability            │    0.85 │ This is highly actionable, providing concrete Pyth │
+└──────────────────────────┴─────────┴────────────────────────────────────────────────────┘
+  Overall: 0.67 FAIL
+
+  Pipeline ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Review done
+
+Review
+  Review: FAIL
+  The article provides high-quality technical depth regarding fallback logic and headless authentication but is 
+fundamentally incomplete. It terminates mid-sentence and fails to address several key sections promised in the editorial
+brief and the planned outline.
+  Strengths:
+    + Accurately identifies HTTP 429 and 503 as the critical triggers for fallback logic in a Cloud context.
+    + Provides a practical, reusable Python implementation for catching ResourceExhausted exceptions.
+    + The 'Environment-Level Interception' method with the 'responses' library is a highly valuable, specific tip for 
+DevOps testing.
+    + Correctly identifies the '--no-browser' flag for gcloud, addressing a common pain point for CI/CD authentication.
+                                               Review Issues                                               
+┏━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━┓
+┃ Severity   ┃ Category            ┃ Description                                   ┃ Section              ┃
+┡━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━┩
+│ critical   │ section_balance     │ The article is severely truncated, ending mid │ Headless             │
+│            │                     │                                               │ Authentication and   │
+│            │                     │                                               │ Code Recovery        │
+│ major      │ factual_consistency │ The code example for 'Local Mock Server Redir │ Method 2: Local Mock │
+│            │                     │                                               │ Server Redirection   │
+│ major      │ seo_completeness    │ The article omits the 'Auditing' differentiat │ -                    │
+│ minor      │ engagement_quality  │ The section 'Managing Configuration Precedenc │ Managing             │
+│            │                     │                                               │ Configuration        │
+│            │                     │                                               │ Precedence in the    │
+│            │                     │                                               │ Gemini CLI           │
+└────────────┴─────────────────────┴───────────────────────────────────────────────┴──────────────────────┘
+
+  Pipeline ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ done
+
+

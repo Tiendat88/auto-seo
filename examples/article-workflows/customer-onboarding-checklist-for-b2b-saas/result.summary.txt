@@ -1,0 +1,53 @@
+                                       Quality Score                                       
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ Dimension                ┃   Score ┃ Feedback                                           ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│ keyword_usage            │    0.30 │ Primary keyword missing from introduction; Keyword │
+│ heading_structure        │    1.00 │ Good heading structure                             │
+│ word_count_target        │    1.00 │ 1461 words (target: 1500, ratio: 97%)              │
+│ differentiation_delivery │    1.00 │ Strong differentiation from competitors            │
+│ readability_metrics      │    0.20 │ Flesch RE: 25.3; Grade level: 14.3                 │
+│ humanity                 │    1.00 │ Content reads naturally                            │
+│ keyword_distribution     │    0.00 │ Distribution score: 0.00; Uneven keyword placement │
+│ content_depth            │    0.95 │ The article provides an exceptionally deep dive in │
+│ differentiation          │    1.00 │ This content successfully avoids common 'customer  │
+│ accuracy                 │    1.00 │ The article demonstrates high technical accuracy,  │
+│ consistency              │    0.80 │ The authoritative, technical, and professional ton │
+│ readability              │    0.90 │ The article uses a professional, authoritative ton │
+│ actionability            │    0.95 │ This is a highly actionable piece of content. It p │
+└──────────────────────────┴─────────┴────────────────────────────────────────────────────┘
+  Overall: 0.79 PASS
+
+  Review: FAIL
+  The article provides exceptional technical depth and hits the 'authoritative' tone requested in the brief, 
+specifically regarding SSO and data migration. However, the draft is incomplete, ending mid-sentence in the final 
+section, and it deviates from the planned outline structure provided in the brief.
+  Strengths:
+    + High technical specificity regarding DNS (SPF, DKIM, DMARC) and SSO (SAML 2.0, ACS URLs) which differentiates it 
+from generic CSM content.
+    + Excellent grounding in data migration realities, specifically the mention of delta syncs and schema translation 
+(SQL to SaaS objects).
+    + Strong authoritative tone that avoids marketing fluff and focuses on operational bottlenecks like InfoSec reviews 
+and API rate limiting.
+                                             Review Issues                                              
+┏━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━┓
+┃ Severity   ┃ Category         ┃ Description                                   ┃ Section              ┃
+┡━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━┩
+│ critical   │ section_balance  │ The article is incomplete and cuts off mid-se │ Phase 5: Workflow    │
+│            │                  │                                               │ Validation and User  │
+│            │                  │                                               │ Cutover              │
+│ major      │ seo_completeness │ The article headings do not align with the pr │ -                    │
+│ minor      │ actionability    │ While the technical descriptions of SSO and D │ Phase 1: The         │
+│            │                  │                                               │ Internal             │
+│            │                  │                                               │ Sales-to-Success     │
+│            │                  │                                               │ Handoff              │
+└────────────┴──────────────────┴───────────────────────────────────────────────┴──────────────────────┘
+
+Title: Customer Onboarding Checklist for B2B SaaS: 2024 Guide
+Slug: customer-onboarding-checklist-for-b2b-saas
+Keyword: customer onboarding checklist for B2B SaaS
+Words: 1461
+Sections: 6
+FAQ: 0
+Revisions: 2
+Tokens: 34,875 in / 11,140 out (46,015 total) | ~$0.06

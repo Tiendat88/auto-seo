@@ -1,0 +1,54 @@
+                                       Quality Score                                       
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ Dimension                ┃   Score ┃ Feedback                                           ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│ keyword_usage            │    0.30 │ Primary keyword missing from introduction; Keyword │
+│ heading_structure        │    1.00 │ Good heading structure                             │
+│ word_count_target        │    0.40 │ 1169 words (target: 1500, ratio: 78%)              │
+│ differentiation_delivery │    1.00 │ Strong differentiation from competitors            │
+│ readability_metrics      │    0.20 │ Flesch RE: 13.7; Grade level: 15.3                 │
+│ humanity                 │    1.00 │ Content reads naturally                            │
+│ keyword_distribution     │    0.00 │ Distribution score: 0.00; Uneven keyword placement │
+│ content_depth            │    0.85 │ The article demonstrates high technical proficienc │
+│ differentiation          │    0.95 │ This content is highly differentiated from standar │
+│ accuracy                 │    0.95 │ The technical content is highly accurate, correctl │
+│ consistency              │    0.60 │ The article maintains a consistent, professional,  │
+│ readability              │    0.92 │ The article uses clear, professional, and authorit │
+│ actionability            │    0.85 │ This is highly actionable, providing concrete Pyth │
+└──────────────────────────┴─────────┴────────────────────────────────────────────────────┘
+  Overall: 0.67 FAIL
+
+  Review: FAIL
+  The article provides high-quality technical depth regarding fallback logic and headless authentication but is 
+fundamentally incomplete. It terminates mid-sentence and fails to address several key sections promised in the editorial
+brief and the planned outline.
+  Strengths:
+    + Accurately identifies HTTP 429 and 503 as the critical triggers for fallback logic in a Cloud context.
+    + Provides a practical, reusable Python implementation for catching ResourceExhausted exceptions.
+    + The 'Environment-Level Interception' method with the 'responses' library is a highly valuable, specific tip for 
+DevOps testing.
+    + Correctly identifies the '--no-browser' flag for gcloud, addressing a common pain point for CI/CD authentication.
+                                               Review Issues                                               
+┏━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━┓
+┃ Severity   ┃ Category            ┃ Description                                   ┃ Section              ┃
+┡━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━┩
+│ critical   │ section_balance     │ The article is severely truncated, ending mid │ Headless             │
+│            │                     │                                               │ Authentication and   │
+│            │                     │                                               │ Code Recovery        │
+│ major      │ factual_consistency │ The code example for 'Local Mock Server Redir │ Method 2: Local Mock │
+│            │                     │                                               │ Server Redirection   │
+│ major      │ seo_completeness    │ The article omits the 'Auditing' differentiat │ -                    │
+│ minor      │ engagement_quality  │ The section 'Managing Configuration Precedenc │ Managing             │
+│            │                     │                                               │ Configuration        │
+│            │                     │                                               │ Precedence in the    │
+│            │                     │                                               │ Gemini CLI           │
+└────────────┴─────────────────────┴───────────────────────────────────────────────┴──────────────────────┘
+
+Title: Gemini CLI Fallback: Verification and Reliability Guide
+Slug: gemini-cli-fallback-verification-guide
+Keyword: gemini cli fallback
+Words: 1169
+Sections: 7
+FAQ: 0
+Revisions: 2
+Tokens: 35,657 in / 11,365 out (47,022 total) | ~$0.06
