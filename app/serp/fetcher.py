@@ -11,7 +11,7 @@ from app.config import settings
 log = logging.getLogger(__name__)
 
 _FETCH_TIMEOUT = 30
-_FETCH_SEMAPHORE = asyncio.Semaphore(3)
+_FETCH_SEMAPHORE = asyncio.Semaphore(2)
 
 
 @lru_cache(maxsize=1)

@@ -53,13 +53,12 @@ def score_keyword_usage(
     intro = article.sections[0].content.lower() if article.sections else ""
 
     word_count = len(full.split())
-    keyword_count = len(re.findall(r"\b" + re.escape(primary) + r"\b", full))
+    kw_re = re.compile(r"\b" + re.escape(primary) + r"\b")
+    keyword_count = len(kw_re.findall(full))
     density = (keyword_count / word_count * 100) if word_count else 0
 
     score = 0.0
     feedback_parts: list[str] = []
-
-    kw_re = re.compile(r"\b" + re.escape(primary) + r"\b")
 
     if kw_re.search(title):
         score += 0.3

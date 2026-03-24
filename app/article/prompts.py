@@ -138,6 +138,8 @@ def analysis_prompt(serp: SerpData) -> str:
         else ""
     )
 
+    trailing = "\n".join(filter(None, [tool_note, injection_guard]))
+
     query_str = serp.query
     return f"""You are an SEO analyst. Analyze these top search results \
 for the query "{query_str}".
@@ -162,8 +164,7 @@ Use actual page content to verify gaps, not guesses from titles alone.
 8. Search intent: informational | transactional | navigational | commercial — \
 justify based on the content structure you observed
 
-{tool_note}
-{injection_guard}"""
+{trailing}""".rstrip()
 
 
 def outline_prompt(
@@ -239,7 +240,6 @@ The brief should synthesize the competitive analysis into an actionable editoria
 def generate_article_prompt(
     outline: ArticleOutline,
     language: str,
-    revision_instructions: str | None = None,
     brand_voice: BrandVoice | None = None,
     target_word_count: int = 1500,
     content_gaps: list[ContentGap] | None = None,
@@ -271,14 +271,6 @@ def generate_article_prompt(
             f"Address each gap substantively, not just in passing.\n\n"
         )
 
-    revision_block = ""
-    if revision_instructions:
-        revision_block = (
-            "\n\nREVISION REQUIRED. Issues from previous draft:\n"
-            f"{revision_instructions}\n"
-            "Address these issues in your rewrite.\n"
-        )
-
     wc_lower = int(target_word_count * 0.8)
     wc_upper = int(target_word_count * 1.2)
 
@@ -289,7 +281,7 @@ def generate_article_prompt(
 Article outline:
 {headings_block}
 {faq_block}
-{revision_block}
+
 Output format:
 - Use markdown headings: # for H1, ## for H2, ### for H3
 - Write the full body text under each heading (do NOT repeat the heading in the text)

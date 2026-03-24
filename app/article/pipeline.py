@@ -230,7 +230,7 @@ async def generate_step(
 
     max_tok = _max_tokens(job.target_word_count)
     prompt = generate_article_prompt(
-        outline, job.language, None,
+        outline, job.language,
         brand_voice=brand_voice, target_word_count=job.target_word_count,
         content_gaps=analysis.content_gaps,
     )
