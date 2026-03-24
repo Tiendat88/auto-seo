@@ -221,8 +221,6 @@ async def generate_step(
     if not outline or not analysis or not serp_data:
         raise StepError("Cannot generate without outline, analysis, and SERP data")
 
-    quality = job.get_quality()
-    revision_instructions = quality.revision_instructions if quality else None
     brand_voice = job.get_brand_voice()
 
     # 1. Single-call article generation (includes FAQ)
@@ -232,7 +230,7 @@ async def generate_step(
 
     max_tok = _max_tokens(job.target_word_count)
     prompt = generate_article_prompt(
-        outline, job.language, revision_instructions,
+        outline, job.language, None,
         brand_voice=brand_voice, target_word_count=job.target_word_count,
         content_gaps=analysis.content_gaps,
     )
@@ -332,10 +330,12 @@ async def score_step(
         score_keyword_usage(article, analysis, seo_meta),
         score_heading_structure(article),
         score_word_count(article, job.target_word_count),
-        score_readability(article),
-        score_humanity(article),
         score_differentiation(article, outline.brief, serp_data),
     ]
+    # Readability and humanity scoring use English-only heuristics (Flesch RE, AI filler)
+    if job.language == "en":
+        algo_dims.append(score_readability(article))
+        algo_dims.append(score_humanity(article))
     if kw_analysis:
         algo_dims.append(score_keyword_distribution(kw_analysis))
 
@@ -383,12 +383,17 @@ async def score_step(
         f"Merged {len(all_dims)} dimensions from {len(council)} providers",
     )
 
-    succeeded = sum(1 for r in results if isinstance(r, _ScorePair))
-    # Need at least one full set of scoring prompts from any provider
-    if succeeded < n_prompts:
+    # Need at least one full set of scoring prompts from any single provider
+    provider_success = defaultdict(int)
+    for i, r in enumerate(results):
+        if isinstance(r, _ScorePair):
+            provider_success[i // n_prompts] += 1
+    best = max(provider_success.values()) if provider_success else 0
+    if best < n_prompts:
+        total_ok = sum(provider_success.values())
         raise StepError(
-            f"Only {succeeded}/{len(results)} scoring calls succeeded, "
-            f"need at least {n_prompts}"
+            f"No provider completed all {n_prompts} scoring calls "
+            f"({total_ok}/{len(results)} succeeded)"
         )
 
     dimensions = algo_dims + llm_dims
@@ -772,17 +777,18 @@ def _compute_keyword_analysis(
 
     def usage(keyword: str) -> KeywordUsage:
         kw = keyword.lower()
-        count = len(re.findall(r"\b" + re.escape(kw) + r"\b", text_lower))
+        kw_re = re.compile(r"\b" + re.escape(kw) + r"\b")
+        count = len(kw_re.findall(text_lower))
         density = round(count / word_count * 100, 2) if word_count else 0
         locations: list[str] = []
-        if kw in seo_meta.title_tag.lower():
+        if kw_re.search(seo_meta.title_tag.lower()):
             locations.append("title")
-        if kw in seo_meta.meta_description.lower():
+        if kw_re.search(seo_meta.meta_description.lower()):
             locations.append("meta_description")
-        if article.sections and kw in article.sections[0].content.lower():
+        if article.sections and kw_re.search(article.sections[0].content.lower()):
             locations.append("intro")
         for s in article.sections:
-            if kw in s.heading.lower():
+            if kw_re.search(s.heading.lower()):
                 locations.append(f"heading:{s.heading}")
         return KeywordUsage(keyword=keyword, count=count, density=density, locations=locations)
 

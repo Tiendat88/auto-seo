@@ -133,7 +133,13 @@ class TestIntermediateData:
             session.add(job)
             await session.commit()
 
+        # Default response omits intermediate artifacts for in-progress jobs
         resp = await client.get(f"/api/jobs/{job_id}")
+        data = resp.json()
+        assert data["serp_data"] is None
+
+        # With ?full=true, intermediate artifacts are included
+        resp = await client.get(f"/api/jobs/{job_id}?full=true")
         data = resp.json()
         assert data["serp_data"] is not None
         assert data["serp_data"]["query"] == "test"

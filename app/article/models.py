@@ -193,7 +193,6 @@ class QualityScore(BaseModel):
     overall: float = Field(..., ge=0.0, le=1.0)
     dimensions: list[ScoreDimension]
     passes_threshold: bool
-    revision_instructions: str | None = None
 
 
 # --- Review ---

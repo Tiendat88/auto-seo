@@ -59,12 +59,14 @@ def score_keyword_usage(
     score = 0.0
     feedback_parts: list[str] = []
 
-    if primary in title:
+    kw_re = re.compile(r"\b" + re.escape(primary) + r"\b")
+
+    if kw_re.search(title):
         score += 0.3
     else:
         feedback_parts.append("Primary keyword missing from title tag")
 
-    if primary in intro:
+    if kw_re.search(intro):
         score += 0.3
     else:
         feedback_parts.append("Primary keyword missing from introduction")

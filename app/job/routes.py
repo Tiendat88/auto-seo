@@ -47,8 +47,11 @@ def _job_to_summary(job: Job) -> JobSummaryResponse:
     )
 
 
-def _job_to_response(job: Job) -> JobResponse:
+def _job_to_response(job: Job, full: bool = False) -> JobResponse:
+    done = job.status in (JobStatus.COMPLETED, JobStatus.FAILED)
     result = job.build_result() if job.status == JobStatus.COMPLETED else None
+    # Skip heavy artifact deserialization for in-progress polls
+    include_artifacts = done or full
     return JobResponse(
         job_id=job.id,
         status=JobStatus(job.status),
@@ -59,13 +62,13 @@ def _job_to_response(job: Job) -> JobResponse:
         error=job.error,
         revision_count=job.revision_count,
         result=result,
-        serp_data=job.get_serp(),
-        analysis_data=job.get_analysis(),
-        outline_data=job.get_outline(),
-        article_data=job.get_article(),
-        quality_data=job.get_quality(),
-        review_data=job.get_review(),
-        usage_data=job.usage_data,
+        serp_data=job.get_serp() if include_artifacts else None,
+        analysis_data=job.get_analysis() if include_artifacts else None,
+        outline_data=job.get_outline() if include_artifacts else None,
+        article_data=job.get_article() if include_artifacts else None,
+        quality_data=job.get_quality() if include_artifacts else None,
+        review_data=job.get_review() if include_artifacts else None,
+        usage_data=job.usage_data if include_artifacts else None,
         events_data=job.events_data,
         created_at=job.created_at,
         updated_at=job.updated_at,
@@ -121,12 +124,13 @@ async def list_jobs_endpoint(
 @router.get("/{job_id}", response_model=JobResponse)
 async def get_job_endpoint(
     job_id: str,
+    full: bool = Query(default=False),
     session: AsyncSession = Depends(get_session),
 ) -> JobResponse:
     job = await get_job(session, job_id)
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
-    return _job_to_response(job)
+    return _job_to_response(job, full=full)
 
 
 @router.post("/{job_id}/resume", response_model=JobResponse)

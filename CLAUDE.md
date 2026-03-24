@@ -11,7 +11,7 @@ SEO article generator — agent-based pipeline that researches topics, analyzes 
 - **CLI**: Typer + Rich (`autoseo` entrypoint, bare command shows help via `invoke_without_command`)
 - **Cache**: Redis (`app/cache.py`)
 - **Deps**: `textstat` (readability metrics), `google-genai` (Gemini), `openai-codex-sdk` (OpenAI Codex), `firecrawl-py` (SERP content fetching)
-- **Lint**: `ruff` (line-length=100, rules: E/F/I/N/W)
+- **Lint**: `ruff` (line-length=100, rules: E/F/I/N/W), `pyright` strict (`pyrightconfig.json`)
 - **Tests**: pytest + pytest-asyncio (asyncio_mode="auto"), **145 tests** across 8 files
 
 ## Architecture
@@ -24,10 +24,10 @@ State machine: `RESEARCHING → PLANNING → GENERATING → SCORING → REVIEWIN
 - **Planning step**: Two-phase `planning_step` — multi-provider analysis (council fans out competitor analysis in parallel), then single-provider outline with embedded `ArticleBrief`
 - **Brand voice**: Optional `BrandVoice` injected into outline/generate/edit prompts via `format_brand_voice()`
 - **Hybrid scoring**: 7 algorithmic + 6 LLM = 13 dimensions, weighted average (`word_count_target` at 2x via `DIMENSION_WEIGHTS`)
-- **Token tracking**: `LlmClient._usage` accumulates `TokenUsage` per call; Anthropic API and Agent SDK provide real token counts + cost, Gemini provides token counts, Codex SDK provides token counts; cost estimated via `MODEL_PRICING` (Agent SDK overrides with `total_cost_usd`); pipeline drains per step into `job.usage_data` JSON column
+- **Token tracking**: `LlmClient._usage` accumulates `TokenUsage` per call; usage extraction via `_record_sdk_usage`, `_record_gemini_usage`, `_record_codex_usage` helpers; cost estimated via `MODEL_PRICING` (Agent SDK overrides with `total_cost_usd`); pipeline drains per step via `_drain_telemetry()` into `job.usage_data` JSON column
 - **Multi-provider council**: `get_llm_council()` returns ALL configured providers as equal peers; analysis, scoring + review fan out to every provider in parallel, results averaged/merged. Scorer/reviewer feedback grouped by number ("Scorer 1", "Reviewer 2") — no model names in edit prompts
 - **Event system**: `job.events_data` JSON column — pipeline appends structured events (LLM calls, results, scrub stats, timing, cache hits). Cleared on completion unless `PERSIST_EVENTS=true`
-- **Edit loop**: If score/review fails → edit in place (with word count constraint) → re-score → re-review (capped at `max_revisions`)
+- **Edit loop**: Data-driven via `_EDIT_CYCLE` table + `_run_step_safely()` helper; edit → re-score → re-review (capped at `max_revisions`)
 - **Sub-step visibility**: Generate and score steps update `current_step` with sub-steps (`generating:article`, `generating:metadata`, `scoring:algorithmic`, `scoring:llm`) for CLI progress tracking
 - **Word count enforcement**: Prompt constraint (±20% target), steeper scoring curve (>200% = 0.0), `word_count_target` at 2x weight, edit prompt includes trim instructions on overshoot
 
@@ -58,12 +58,13 @@ Post-processes articles after generation and editing. Returns `(ArticleContent, 
 | `app/article/pipeline.py` | Pipeline runner, step functions (incl. two-phase planning_step), markdown parser, merge logic |
 | `app/article/prompts.py` | All LLM prompt templates + `format_brand_voice`, `meta_options_prompt` |
 | `app/article/models.py` | Pydantic models (BrandVoice, SeoMetaOptions, KeywordDistribution, etc.) |
-| `app/article/scorer.py` | 7 algorithmic scoring functions + AI_FILLER_PHRASES/VAGUE_WORDS constants |
+| `app/article/constants.py` | Shared constants: `ZERO_WIDTH_RE`, `AI_FILLER_OPENERS`, `AI_FILLER_PHRASES`, `VAGUE_WORDS`, `SENTENCE_END_RE`, `AI_WORDS_RE` |
+| `app/article/scorer.py` | 7 algorithmic scoring functions + `full_text()` helper (shared with pipeline) |
 | `app/article/scrubber.py` | Content post-processor (filler removal, paragraph splitting, AI word/em-dash counting) |
 | `app/article/tools.py` | LLM tool definitions for Anthropic + Gemini tool use (research, content fetching) |
 | `app/serp/fetcher.py` | Firecrawl integration for SERP content fetching |
 | `app/article/schema.py` | JSON-LD generation, snippet opportunity detection |
-| `app/llm.py` | LlmClient (quad backend), `get_llm_council()`, `MODEL_PRICING`, call logging |
+| `app/llm.py` | LlmClient (quad backend, cached clients), `get_llm_council()`, `MODEL_PRICING`, call logging |
 | `app/job/models.py` | Job ORM model (includes `brand_voice_data`, `meta_options_data`), API schemas |
 | `app/job/service.py` | Job CRUD, `claim_job_for_resume` (requires `session.refresh` after commit) |
 | `app/cli.py` | Typer CLI: generate, watch, resume (409→watch, 400→message), status, result, list, export |
@@ -73,6 +74,7 @@ Post-processes articles after generation and editing. Returns `(ArticleContent, 
 
 ```bash
 ruff check app/ tests/                    # Lint
+python -m pyright                         # Type check (strict)
 python -m pytest tests/ -x -q             # Test (145 tests)
 uvicorn app.main:app --workers 2          # Run server (2 workers: Agent SDK blocks event loop)
 autoseo generate "topic" --brand-voice brand.json  # CLI with brand voice
@@ -85,7 +87,6 @@ autoseo export <id> article.md            # Export with JSON-LD
 ## Config (env vars / .env)
 
 - `ANTHROPIC_API_KEY` — Anthropic API (if set, uses API backend)
-- `OPENAI_API_KEY` — Optional OpenAI API key
 - `OPENAI_MODEL` — OpenAI model (default `o3-mini`)
 - `OPENAI_CODEX` — Set `true` to use Codex SDK backend (ChatGPT subscription)
 - `GOOGLE_API_KEY` — Enables Gemini in the provider council for scoring/review
@@ -124,7 +125,8 @@ New databases auto-create via `Base.metadata.create_all` on startup.
 ## Known issues
 
 - **Agent SDK blocks event loop**: `generate_text` via Agent SDK spawns a subprocess that blocks the async loop for 2-5 min per call. Use `--workers 2` so one worker handles HTTP while the other runs the pipeline. PostgreSQL connections can also stall if the pipeline holds a session open during a blocked call.
-- **Stale job recovery**: Jobs interrupted mid-pipeline (e.g., server restart) get stuck in active states like `generating`. Must manually `UPDATE jobs SET status='failed'` before resume works (`claim_job_for_resume` only accepts `failed`/`pending`).
+- **Stale job recovery**: Jobs interrupted mid-pipeline (e.g., server restart) get stuck in active states like `generating`. Must manually `UPDATE jobs SET status='failed'` before resume works (`claim_job_for_resume` only accepts `failed`).
+- **Task GC protection**: Pipeline tasks tracked in `_running_tasks` set (`app/job/routes.py`) to prevent garbage collection of fire-and-forget `asyncio.create_task` calls.
 - **`claim_job_for_resume` requires `session.refresh()`**: After the atomic UPDATE + COMMIT, SQLAlchemy expires attributes. Without `refresh()`, accessing `job.updated_at` in `_job_to_response` triggers `MissingGreenlet` (sync lazy load in async context).
 
 ## Testing patterns
