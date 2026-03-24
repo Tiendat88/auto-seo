@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 import re
@@ -111,6 +112,11 @@ class LlmClient:
         self._usage: list[TokenUsage] = []
         self._call_log: list[dict] = []
 
+    @property
+    def model_name(self) -> str:
+        """Public read-only access to the model identifier."""
+        return self._model
+
     # --- Usage tracking ---
 
     def drain_usage(self) -> list[TokenUsage]:
@@ -193,6 +199,63 @@ class LlmClient:
         defaults.update(overrides)
         return ClaudeAgentOptions(**defaults)  # type: ignore[arg-type]
 
+    # --- SDK sync runners (called via asyncio.to_thread) ---
+
+    @staticmethod
+    def _run_sdk_sync(prompt: str, options: Any) -> dict[str, Any]:
+        """Run Agent SDK query synchronously — designed to run in a thread."""
+        import asyncio as _aio
+
+        from claude_agent_sdk import AssistantMessage, ResultMessage, TextBlock, query
+
+        async def _inner() -> dict[str, Any]:
+            result_text = ""
+            assistant_text = ""
+            usage_msg = None
+            error = ""
+            async for message in query(prompt=prompt, options=options):
+                if isinstance(message, AssistantMessage):
+                    for block in message.content:
+                        if isinstance(block, TextBlock):
+                            assistant_text += block.text
+                elif isinstance(message, ResultMessage):
+                    if message.is_error:
+                        error = message.result or "Unknown SDK error"
+                    else:
+                        result_text = message.result or ""
+                    usage_msg = message
+            return {
+                "text": result_text or assistant_text,
+                "usage": usage_msg,
+                "error": error,
+            }
+
+        return _aio.run(_inner())
+
+    @staticmethod
+    def _run_sdk_structured_sync(prompt: str, options: Any) -> dict[str, Any]:
+        """Run Agent SDK structured query synchronously — designed to run in a thread."""
+        import asyncio as _aio
+
+        from claude_agent_sdk import AssistantMessage, ResultMessage, ToolUseBlock, query
+
+        async def _inner() -> dict[str, Any]:
+            structured_data = None
+            usage_msg = None
+            error = ""
+            async for message in query(prompt=prompt, options=options):
+                if isinstance(message, AssistantMessage):
+                    for block in message.content:
+                        if isinstance(block, ToolUseBlock) and block.name == "StructuredOutput":
+                            structured_data = block.input
+                elif isinstance(message, ResultMessage):
+                    if message.is_error:
+                        error = message.result or "Unknown SDK error"
+                    usage_msg = message
+            return {"data": structured_data, "usage": usage_msg, "error": error}
+
+        return _aio.run(_inner())
+
     # --- Text generation ---
 
     async def generate_text(self, prompt: str, max_tokens: int = 4096) -> str:
@@ -234,33 +297,24 @@ class LlmClient:
         return await _call()
 
     async def _generate_via_sdk(self, prompt: str) -> str:
-        from claude_agent_sdk import AssistantMessage, ResultMessage, TextBlock, query
-
         @_LLM_RETRY
         async def _call() -> str:
             self._log_call("llm_start", f"Calling {self.backend} ({self._model})")
             options = self._sdk_options()
-            result_text = ""
-            assistant_text = ""
-            async for message in query(prompt=prompt, options=options):
-                if isinstance(message, AssistantMessage):
-                    for block in message.content:
-                        if isinstance(block, TextBlock):
-                            assistant_text += block.text
-                elif isinstance(message, ResultMessage):
-                    result_text = message.result or ""
-                    if message.is_error:
-                        raise LlmError(f"Agent SDK error: {result_text}")
-                    self._record_sdk_usage(message)
-                    log.info(
-                        "Agent SDK: subtype=%s, len=%d, turns=%s, cost=$%.4f",
-                        message.subtype, len(result_text), message.num_turns,
-                        message.total_cost_usd or 0,
-                    )
-            final = result_text or assistant_text
-            if not final:
+            result = await asyncio.to_thread(self._run_sdk_sync, prompt, options)
+            if result["error"]:
+                raise LlmError(f"Agent SDK error: {result['error']}")
+            if result["usage"]:
+                self._record_sdk_usage(result["usage"])
+                msg = result["usage"]
+                log.info(
+                    "Agent SDK: subtype=%s, len=%d, turns=%s, cost=$%.4f",
+                    msg.subtype, len(result["text"]), msg.num_turns,
+                    msg.total_cost_usd or 0,
+                )
+            if not result["text"]:
                 raise LlmError("No response from Agent SDK")
-            return final
+            return result["text"]
 
         return await _call()
 
@@ -304,30 +358,22 @@ class LlmClient:
     # --- Structured output (native per backend) ---
 
     async def _generate_structured_via_sdk(self, prompt: str, schema: type[T]) -> T:
-        from claude_agent_sdk import AssistantMessage, ResultMessage, ToolUseBlock, query
-
         @_LLM_RETRY
         async def _call() -> T:
             self._log_call("llm_start", f"Calling {self.backend} ({self._model})")
             options = self._sdk_options(
                 output_format={"type": "json_schema", "schema": schema.model_json_schema()},
             )
-            structured_data = None
-            async for message in query(prompt=prompt, options=options):
-                if isinstance(message, AssistantMessage):
-                    for block in message.content:
-                        if (
-                            isinstance(block, ToolUseBlock)
-                            and block.name == "StructuredOutput"
-                        ):
-                            structured_data = block.input
-                elif isinstance(message, ResultMessage):
-                    self._record_sdk_usage(message)
-                    if message.is_error:
-                        raise LlmError(f"Agent SDK error: {message.result}")
-            if structured_data is None:
+            result = await asyncio.to_thread(
+                self._run_sdk_structured_sync, prompt, options,
+            )
+            if result["error"]:
+                raise LlmError(f"Agent SDK error: {result['error']}")
+            if result["usage"]:
+                self._record_sdk_usage(result["usage"])
+            if result["data"] is None:
                 raise LlmError("No structured output from Agent SDK")
-            return schema.model_validate(structured_data)
+            return schema.model_validate(result["data"])
 
         return await _call()
 

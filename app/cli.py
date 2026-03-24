@@ -612,7 +612,9 @@ def _build_markdown(result: dict) -> str:
 
     for section in content.get("sections", []):
         level = section.get("heading_level", "h2")
-        prefix = "#" * {"h1": 1, "h2": 2, "h3": 3}.get(level, 2)
+        if level == "h1":
+            continue  # Title already emitted as H1 above
+        prefix = "#" * {"h2": 2, "h3": 3}.get(level, 2)
         lines.append(f"{prefix} {section['heading']}")
         lines.append("")
         lines.append(section["content"])
@@ -666,6 +668,164 @@ def _print_status(data: dict) -> None:
         console.print(f"[red]Error: {data['error']}[/red]")
     if data.get("revision_count", 0) > 0:
         console.print(f"Revisions: {data['revision_count']}")
+
+
+@app.command()
+def brand(
+    ctx: typer.Context,
+    brand_name: str = typer.Argument(..., help="Brand name to monitor"),
+    query: str = typer.Argument(..., help="Query to search across AI platforms"),
+    keywords: list[str] = typer.Option([], "--keyword", "-k", help="Seed keywords to look for"),
+    fetch_mode: str = typer.Option("api", "--mode", "-m", help="Fetch mode: 'api' or 'browser'"),
+    json_out: bool = typer.Option(False, "--json", "-j", help="Output raw JSON"),
+) -> None:
+    """Monitor brand mentions across AI platforms."""
+    url = _api_url(ctx)
+    payload: dict[str, Any] = {
+        "brand_name": brand_name,
+        "query": query,
+        "fetch_mode": fetch_mode,
+    }
+    if keywords:
+        payload["keywords"] = keywords
+
+    console.print(f"Analyzing [bold]{brand_name}[/bold] for: [italic]{query}[/italic]")
+    console.print(f"Fetch mode: {fetch_mode}")
+    console.print()
+
+    with console.status("Fetching and analyzing platform responses..."):
+        with httpx.Client(timeout=180) as client:
+            resp = client.post(f"{url}/api/brand-monitor/analyze", json=payload)
+
+    if resp.status_code != 200:
+        detail = resp.json().get("detail", resp.text)
+        if isinstance(detail, dict):
+            detail = detail.get("message", str(detail))
+        console.print(f"[red]Error ({resp.status_code}): {detail}[/red]")
+        raise typer.Exit(1)
+
+    data = resp.json()
+
+    if json_out:
+        console.print_json(json.dumps(data, indent=2))
+        return
+
+    _render_brand_report(data)
+
+
+def _render_brand_report(data: dict) -> None:
+    """Render brand monitor results with Rich."""
+    agg = data["aggregate"]
+
+    # Header
+    sentiment_style = {
+        "positive": "green",
+        "neutral": "yellow",
+        "negative": "red",
+    }.get(agg["overall_sentiment"], "white")
+
+    header = (
+        f"[bold]{data['brand_name']}[/bold] — "
+        f"[{sentiment_style}]{agg['overall_sentiment'].upper()}[/{sentiment_style}] "
+        f"({agg['platforms_mentioning_brand']}/{agg['total_platforms']} platforms)"
+    )
+    if agg.get("avg_brand_position"):
+        header += f" | avg position: #{agg['avg_brand_position']}"
+
+    console.print(Panel(header, title="Brand Monitor Report"))
+    console.print()
+
+    # Per-platform breakdown
+    for pa in data["platform_analyses"]:
+        sentiment = pa["sentiment"]
+        s_style = {"positive": "green", "neutral": "yellow", "negative": "red"}.get(
+            sentiment["overall"], "white",
+        )
+
+        # Platform header
+        ctx_icon = {
+            "recommended": "[green]+[/green]",
+            "compared": "[yellow]~[/yellow]",
+            "referenced": "[dim].[/dim]",
+            "not_mentioned": "[red]-[/red]",
+        }.get(pa["mention_context"], "?")
+
+        pos_str = f"#{pa['brand_position']}" if pa.get("brand_position") else "-"
+
+        console.print(
+            f"  {ctx_icon} [bold]{pa['platform'].upper()}[/bold] "
+            f"[{s_style}]{sentiment['overall']}[/{s_style}] "
+            f"| position: {pos_str} | {pa['mention_context']}"
+        )
+
+        # Reasoning
+        console.print(f"    [dim]{sentiment['reasoning']}[/dim]")
+
+        # Feature aspects
+        aspects = sentiment.get("aspects", [])
+        if aspects:
+            for asp in aspects:
+                asp_style = {"positive": "green", "negative": "red"}.get(
+                    asp["sentiment"], "dim",
+                )
+                console.print(
+                    f"    [{asp_style}]{asp['sentiment'][0].upper()}[/{asp_style}] "
+                    f"{asp['feature']}: {asp['detail']}"
+                )
+
+        # Competitors
+        competitors = pa.get("competitors", [])
+        if competitors:
+            comp_strs = []
+            for c in competitors:
+                pos = f"#{c['position']}" if c.get("position") else ""
+                rec = " *" if c["recommended"] else ""
+                comp_strs.append(f"{c['name']}{pos}{rec}")
+            console.print(f"    Competitors: [dim]{', '.join(comp_strs)}[/dim]")
+
+        # Quotes
+        quotes = pa.get("relevant_quotes", [])
+        if quotes:
+            console.print(f"    Quotes: [dim]{quotes[0][:80]}...[/dim]")
+
+        console.print()
+
+    # Aggregate summary
+    summary_table = Table(show_header=False, padding=(0, 2), box=None)
+    summary_table.add_column("Label", style="bold")
+    summary_table.add_column("Value")
+
+    if agg.get("brand_recommended_on"):
+        summary_table.add_row(
+            "Recommended on",
+            ", ".join(agg["brand_recommended_on"]),
+        )
+
+    summary_table.add_row(
+        "Top competitors",
+        ", ".join(agg["top_competitors"][:5]),
+    )
+
+    if agg.get("common_strengths"):
+        summary_table.add_row(
+            "Strengths",
+            "[green]" + ", ".join(agg["common_strengths"]) + "[/green]",
+        )
+
+    if agg.get("common_weaknesses"):
+        summary_table.add_row(
+            "Weaknesses",
+            "[red]" + ", ".join(agg["common_weaknesses"]) + "[/red]",
+        )
+
+    summary_table.add_row(
+        "Keywords",
+        ", ".join(agg["all_keywords_found"][:8]),
+    )
+
+    summary_table.add_row("Model", data["model_used"])
+
+    console.print(summary_table)
 
 
 if __name__ == "__main__":

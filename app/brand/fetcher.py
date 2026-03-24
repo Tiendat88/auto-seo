@@ -1,0 +1,121 @@
+"""Fetch AI platform responses for a query via their APIs.
+
+Uses raw SDK clients (not LlmClient) intentionally — the fetcher sends bare
+queries with no system prompt, no caching, and no formatting so responses
+reflect what a real user would see on each platform.
+"""
+
+import asyncio
+import logging
+
+from tenacity import retry, stop_after_attempt, wait_exponential
+
+from app.brand.models import PlatformResponse
+from app.config import settings
+from app.errors import LlmError
+
+log = logging.getLogger(__name__)
+
+_FETCH_RETRY = retry(
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(multiplier=1, min=2, max=15),
+    reraise=True,
+)
+
+
+@_FETCH_RETRY
+async def _fetch_perplexity(query: str) -> PlatformResponse:
+    """Query Perplexity sonar model (search-grounded)."""
+    from openai import AsyncOpenAI
+
+    client = AsyncOpenAI(
+        api_key=settings.perplexity_api_key,
+        base_url="https://api.perplexity.ai",
+    )
+    response = await client.chat.completions.create(
+        model="sonar-pro",
+        messages=[{"role": "user", "content": query}],
+    )
+    text = response.choices[0].message.content or ""
+    if not text:
+        raise LlmError("Empty response from Perplexity")
+    log.info("Perplexity response: %d chars", len(text))
+    return PlatformResponse(platform="perplexity", response_text=text)
+
+
+@_FETCH_RETRY
+async def _fetch_openai(query: str) -> PlatformResponse:
+    """Query OpenAI ChatGPT with web search grounding."""
+    from openai import AsyncOpenAI
+
+    client = AsyncOpenAI(api_key=settings.openai_api_key)
+    response = await client.chat.completions.create(
+        model="gpt-4o-mini-search-preview",
+        web_search_options={},
+        messages=[{"role": "user", "content": query}],
+    )
+    text = response.choices[0].message.content or ""
+    if not text:
+        raise LlmError("Empty response from OpenAI")
+    log.info("OpenAI response: %d chars", len(text))
+    return PlatformResponse(platform="chatgpt", response_text=text)
+
+
+@_FETCH_RETRY
+async def _fetch_gemini(query: str) -> PlatformResponse:
+    """Query Google Gemini."""
+    from google import genai
+    from google.genai import types
+
+    client = genai.Client(api_key=settings.google_api_key)
+    response = await client.aio.models.generate_content(
+        model=settings.gemini_model,
+        contents=query,
+        config=types.GenerateContentConfig(
+            tools=[types.Tool(google_search=types.GoogleSearch())],
+        ),
+    )
+    text = response.text or ""
+    if not text:
+        raise LlmError("Empty response from Gemini")
+    log.info("Gemini response: %d chars", len(text))
+    return PlatformResponse(platform="gemini", response_text=text)
+
+
+async def fetch_platform_responses(
+    query: str, skip: set[str] | None = None,
+) -> list[PlatformResponse]:
+    """Query configured AI platforms in parallel, skipping any in `skip`."""
+    skip = skip or set()
+    tasks: dict[str, asyncio.Task[PlatformResponse]] = {}
+
+    if settings.perplexity_api_key and "perplexity" not in skip:
+        tasks["perplexity"] = asyncio.create_task(_fetch_perplexity(query))
+    if settings.openai_api_key and "chatgpt" not in skip:
+        tasks["chatgpt"] = asyncio.create_task(_fetch_openai(query))
+    if settings.google_api_key and "gemini" not in skip:
+        tasks["gemini"] = asyncio.create_task(_fetch_gemini(query))
+
+    if not tasks:
+        raise ValueError(
+            "No AI platform API keys configured. "
+            "Set PERPLEXITY_API_KEY, OPENAI_API_KEY, or GOOGLE_API_KEY."
+        )
+
+    results: list[PlatformResponse] = []
+    errors: list[str] = []
+
+    for name, task in tasks.items():
+        try:
+            results.append(await task)
+        except Exception as exc:
+            log.warning("Failed to fetch from %s: %s", name, exc)
+            errors.append(f"{name}: {exc}")
+
+    if not results:
+        raise LlmError(f"All platform fetches failed: {'; '.join(errors)}")
+
+    if errors:
+        log.warning("Some platforms failed: %s", "; ".join(errors))
+
+    return results

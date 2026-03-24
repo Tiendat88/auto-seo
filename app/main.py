@@ -4,24 +4,48 @@ import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from sqlalchemy import update
 
+from app.brand.routes import router as brand_router
 from app.cache import cache
-from app.db import init_db
+from app.db import async_session, init_db
+from app.job.models import Job, JobStatus
 from app.job.routes import router as jobs_router
+
+log = logging.getLogger(__name__)
 
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s %(levelname)s %(name)s: %(message)s",
 )
 
+_ACTIVE_STATUSES = (
+    JobStatus.RESEARCHING, JobStatus.PLANNING, JobStatus.GENERATING,
+    JobStatus.SCORING, JobStatus.REVIEWING, JobStatus.EDITING,
+)
+
+
+async def _recover_orphaned_jobs() -> None:
+    """Mark jobs left in active states as FAILED so they can be resumed."""
+    async with async_session() as session:
+        result = await session.execute(
+            update(Job)
+            .where(Job.status.in_(_ACTIVE_STATUSES))
+            .values(status=JobStatus.FAILED, error="Recovered: server restarted mid-pipeline")
+            .returning(Job.id)
+        )
+        recovered = result.scalars().all()
+        await session.commit()
+        if recovered:
+            log.info("Recovered %d orphaned job(s): %s", len(recovered), recovered)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await init_db()
     await cache.connect()
+    await _recover_orphaned_jobs()
     yield
-    # Running pipeline tasks are not cancelled on shutdown.
-    # Jobs left in intermediate state can be resumed via POST /jobs/{id}/resume.
     await cache.close()
 
 
@@ -33,6 +57,7 @@ app = FastAPI(
 )
 
 app.include_router(jobs_router, prefix="/api")
+app.include_router(brand_router, prefix="/api")
 
 
 @app.get("/health")
