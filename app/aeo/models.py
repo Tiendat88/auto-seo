@@ -44,6 +44,7 @@ class SubQueryType(str, Enum):
 class FanOutRequest(BaseModel):
     target_query: str = Field(..., min_length=1)
     existing_content: str | None = None
+    content_url: str | None = None
 
 
 class SubQuery(BaseModel):

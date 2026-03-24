@@ -1,11 +1,11 @@
 """Brand Monitor API endpoints."""
 
 import logging
+from typing import Any
 
 from fastapi import APIRouter, HTTPException
 
 from app.brand.analyzer import analyze_brand
-from app.brand.browser_fetcher import fetch_browser_responses
 from app.brand.fetcher import fetch_platform_responses
 from app.brand.models import BrandMonitorRequest, BrandMonitorResponse, FetchMode
 from app.errors import LlmError
@@ -17,12 +17,14 @@ router = APIRouter(prefix="/brand-monitor", tags=["brand-monitor"])
 
 async def _auto_fetch(
     request: BrandMonitorRequest,
-) -> list:
+) -> list[Any]:
     """Fetch responses from AI platforms, skipping any already pasted."""
     pasted = {pr.platform for pr in request.platform_responses}
 
     try:
         if request.fetch_mode == FetchMode.BROWSER:
+            from app.brand.browser_fetcher import fetch_browser_responses
+
             return await fetch_browser_responses(
                 request.query, skip=pasted,
             )

@@ -4,13 +4,17 @@ Uses real web UIs — no API keys needed, responses match what a real user sees.
 Slower than API calls but gives the most authentic platform responses.
 """
 
+from __future__ import annotations
+
 import asyncio
 import logging
-
-from playwright.async_api import BrowserContext, async_playwright
+from typing import TYPE_CHECKING, Any
 
 from app.brand.models import PlatformResponse
 from app.errors import LlmError
+
+if TYPE_CHECKING:
+    from playwright.async_api import BrowserContext
 
 log = logging.getLogger(__name__)
 
@@ -22,16 +26,36 @@ _USER_AGENT = (
 
 
 async def _new_context(
-    playwright_instance,  # type: ignore[no-untyped-def]
+    playwright_instance: Any,
     headless: bool = False,
 ) -> BrowserContext:
-    browser = await playwright_instance.chromium.launch(
-        headless=headless, args=_BROWSER_ARGS,
-    )
+    try:
+        browser = await playwright_instance.chromium.launch(
+            headless=headless, args=_BROWSER_ARGS,
+        )
+    except Exception as exc:
+        message = str(exc)
+        if "Executable doesn't exist" in message:
+            raise LlmError(
+                "Playwright browser binaries are missing. Run "
+                "`playwright install chromium`."
+            ) from exc
+        raise
     return await browser.new_context(user_agent=_USER_AGENT)
 
 
-async def _extract_text(page, selectors: list[str]) -> str:  # type: ignore[no-untyped-def]
+def _get_async_playwright() -> Any:
+    try:
+        from playwright.async_api import async_playwright
+    except ModuleNotFoundError as exc:
+        raise LlmError(
+            "Playwright is not installed. Install project dependencies and run "
+            "`playwright install chromium`."
+        ) from exc
+    return async_playwright
+
+
+async def _extract_text(page: Any, selectors: list[str]) -> str:
     """Try selectors in order, return text from the first match with content."""
     for sel in selectors:
         el = await page.query_selector(sel)
@@ -40,6 +64,28 @@ async def _extract_text(page, selectors: list[str]) -> str:  # type: ignore[no-u
             if len(text) > 50:
                 return text
     return ""
+
+
+async def _wait_for_enabled_input(
+    page: Any,
+    selectors: str = "textarea, [contenteditable=true], [role='textbox']",
+    timeout: int = 15000,
+) -> None:
+    await page.wait_for_function(
+        """
+        ({ selectors }) => {
+            const el = document.querySelector(selectors);
+            if (!el) return false;
+            const disabled =
+                el.disabled === true ||
+                el.getAttribute("disabled") !== null ||
+                el.getAttribute("aria-disabled") === "true";
+            return !disabled;
+        }
+        """,
+        {"selectors": selectors},
+        timeout=timeout,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -169,6 +215,50 @@ async def _fetch_gemini(ctx: BrowserContext, query: str) -> PlatformResponse:
         await page.close()
 
 
+async def _fetch_grok(ctx: BrowserContext, query: str) -> PlatformResponse:
+    page = await ctx.new_page()
+    try:
+        await page.goto("https://grok.com/", timeout=30000)
+        await page.wait_for_timeout(5000)
+        await _wait_for_enabled_input(page)
+
+        inputs = await page.query_selector_all(
+            "textarea, [contenteditable=true], [role='textbox']"
+        )
+        if not inputs:
+            raise LlmError("Grok: no input field found")
+
+        await inputs[0].click()
+        await inputs[0].fill(query)
+        await page.wait_for_timeout(300)
+
+        submit = page.get_by_role("button", name="Submit")
+        if await submit.count() == 0:
+            raise LlmError("Grok: no submit button found")
+        await submit.first.click()
+
+        await page.wait_for_timeout(15000)
+
+        main_text = ((await page.text_content("main")) or "").strip()
+        if "High Demand" in main_text or "higher priority access" in main_text:
+            raise LlmError("Grok: high demand or sign-in gate")
+
+        text = await _extract_text(page, [
+            "[data-testid*='assistant']",
+            "[class*='assistant'] .prose",
+            "article .prose",
+            "article",
+            "main",
+        ])
+        if not text or text == query:
+            raise LlmError("Grok: empty response")
+
+        log.info("Grok browser: %d chars", len(text))
+        return PlatformResponse(platform="grok", response_text=text)
+    finally:
+        await page.close()
+
+
 # ---------------------------------------------------------------------------
 # Public entry point
 # ---------------------------------------------------------------------------
@@ -177,6 +267,7 @@ _FETCHERS = {
     "perplexity": _fetch_perplexity,
     "chatgpt": _fetch_chatgpt,
     "gemini": _fetch_gemini,
+    "grok": _fetch_grok,
 }
 
 
@@ -199,6 +290,7 @@ async def fetch_browser_responses(
     if not targets:
         raise ValueError("No platforms to fetch from")
 
+    async_playwright = _get_async_playwright()
     async with async_playwright() as pw:
         ctx = await _new_context(pw)
         try:

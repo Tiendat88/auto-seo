@@ -22,7 +22,7 @@ class Sentiment(StrEnum):
 
 
 class PlatformResponse(BaseModel):
-    platform: str = Field(..., examples=["chatgpt", "perplexity", "gemini"])
+    platform: str = Field(..., examples=["chatgpt", "perplexity", "gemini", "grok"])
     response_text: str = Field(..., min_length=1, max_length=50_000)
 
 
@@ -36,10 +36,10 @@ class BrandMonitorRequest(BaseModel):
     query: str = Field(..., min_length=1, examples=["best note-taking app"])
     keywords: list[str] = Field(default=[], examples=[["Obsidian", "Evernote"]])
     fetch_mode: FetchMode = Field(
-        default=FetchMode.API,
+        default=FetchMode.BROWSER,
         description=(
-            "'api' uses provider APIs (needs keys), "
-            "'browser' uses Playwright (no keys needed)."
+            "'browser' uses Playwright (default; no keys needed), "
+            "'api' uses provider APIs."
         ),
     )
     platform_responses: list[PlatformResponse] = Field(

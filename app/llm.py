@@ -25,6 +25,7 @@ MODEL_PRICING: dict[str, tuple[float, float]] = {
     "o3-mini": (1.10, 4.40),
     "gpt-4o": (2.50, 10.0),
     "gemini-3-pro-preview": (1.25, 10.0),
+    "gemini-3-flash-preview": (0.15, 0.60),
 }
 
 _LLM_RETRY = retry(
@@ -105,6 +106,13 @@ class LlmClient:
             from anthropic import AsyncAnthropic
 
             self._client = AsyncAnthropic(api_key=self._api_key)
+        elif settings.google_api_key:
+            self.backend = "gemini"
+            self._google_key = settings.google_api_key
+            self._model = model or settings.gemini_model
+            from google import genai
+
+            self._gemini_client = genai.Client(api_key=self._google_key)
         else:
             self.backend = "claude-sdk"
             self._model = model or settings.llm_model

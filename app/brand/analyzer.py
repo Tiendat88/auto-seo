@@ -104,7 +104,7 @@ async def analyze_platform(
     """Analyze a single platform response in isolation via generate_structured."""
     prompt = build_prompt(brand_name, query, response_text, keywords)
     result = await llm.generate_structured(
-        prompt, LLMBrandAnalysis, use_cache=False,
+        prompt, LLMBrandAnalysis,
     )
 
     return PlatformAnalysis(platform=platform, **result.model_dump())

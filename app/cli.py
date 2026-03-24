@@ -676,7 +676,9 @@ def brand(
     brand_name: str = typer.Argument(..., help="Brand name to monitor"),
     query: str = typer.Argument(..., help="Query to search across AI platforms"),
     keywords: list[str] = typer.Option([], "--keyword", "-k", help="Seed keywords to look for"),
-    fetch_mode: str = typer.Option("api", "--mode", "-m", help="Fetch mode: 'api' or 'browser'"),
+    fetch_mode: str = typer.Option(
+        "browser", "--mode", "-m", help="Fetch mode: 'browser' or 'api'",
+    ),
     json_out: bool = typer.Option(False, "--json", "-j", help="Output raw JSON"),
 ) -> None:
     """Monitor brand mentions across AI platforms."""
@@ -871,22 +873,26 @@ def aeo_analyze(
 def fanout_generate(
     ctx: typer.Context,
     query: str = typer.Argument(..., help="Target query to decompose"),
-    content_file: Path | None = typer.Option(
-        None, "--content", "-c", help="File with existing content for gap analysis"
+    content: str | None = typer.Option(
+        None, "--content", "-c", help="URL or file path with existing content for gap analysis"
     ),
     provider: str | None = typer.Option(
         None, "--provider", "-p", help="LLM provider: anthropic, gemini, openai-codex"
     ),
     model: str | None = typer.Option(
-        None, "--model", "-m", help="Model override (e.g. gemini-2.0-flash)"
+        None, "--model", "-m", help="Model override (e.g. gemini-3-flash-preview)"
     ),
     json_out: bool = typer.Option(False, "--json", "-j", help="Output raw JSON"),
 ) -> None:
     """Generate sub-queries via LLM and analyze content gaps."""
     url = _api_url(ctx)
     payload: dict[str, Any] = {"target_query": query}
-    if content_file:
-        payload["existing_content"] = content_file.read_text(encoding="utf-8")
+    if content:
+        if content.startswith(("http://", "https://")):
+            console.print(f"Fetching [bold]{content}[/bold]...")
+            payload["content_url"] = content
+        else:
+            payload["existing_content"] = Path(content).read_text(encoding="utf-8")
 
     params: dict[str, str] = {}
     if provider:

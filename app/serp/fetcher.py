@@ -1,10 +1,10 @@
-"""Web content fetching via Firecrawl API."""
+"""Web content fetching via the Firecrawl Python SDK."""
 
 import asyncio
 import logging
 from functools import lru_cache
 
-from firecrawl import FirecrawlApp
+from firecrawl import Firecrawl
 
 from app.config import settings
 
@@ -15,8 +15,8 @@ _FETCH_SEMAPHORE = asyncio.Semaphore(2)
 
 
 @lru_cache(maxsize=1)
-def _get_app() -> FirecrawlApp:
-    return FirecrawlApp(api_key=settings.firecrawl_api_key)
+def _get_app() -> Firecrawl:
+    return Firecrawl(api_key=settings.firecrawl_api_key)
 
 
 async def fetch_page_content(url: str, max_chars: int = 10000) -> tuple[str, int]:
@@ -24,13 +24,48 @@ async def fetch_page_content(url: str, max_chars: int = 10000) -> tuple[str, int
     async with _FETCH_SEMAPHORE:
         app = _get_app()
         result = await asyncio.wait_for(
-            asyncio.to_thread(app.scrape, url, formats=["markdown"]),
+            asyncio.to_thread(
+                app.scrape, url, formats=["markdown"], only_main_content=True,
+            ),
             timeout=_FETCH_TIMEOUT,
         )
     md = result.markdown or ""
     truncated = md[:max_chars]
     word_count = len(truncated.split())
     return truncated, word_count
+
+
+async def fetch_page_full(url: str, max_chars: int = 50000) -> dict:
+    """Fetch a URL as both HTML and markdown via Firecrawl.
+
+    Returns dict with keys: html, markdown, metadata.
+    HTML for structural checks (headings, paragraphs),
+    markdown for clean text (readability, gap analysis).
+    only_main_content strips nav/footer/boilerplate on the Firecrawl side.
+    """
+    async with _FETCH_SEMAPHORE:
+        app = _get_app()
+        result = await asyncio.wait_for(
+            asyncio.to_thread(
+                app.scrape, url,
+                formats=["markdown", "html"], only_main_content=True,
+            ),
+            timeout=_FETCH_TIMEOUT,
+        )
+    metadata = {}
+    if hasattr(result, "metadata") and result.metadata:
+        m = result.metadata
+        metadata = {
+            "title": getattr(m, "title", None) or "",
+            "description": getattr(m, "description", None) or "",
+            "language": getattr(m, "language", None) or "",
+            "status_code": getattr(m, "statusCode", None) or 200,
+        }
+    return {
+        "html": (result.html or "")[:max_chars],
+        "markdown": (result.markdown or "")[:max_chars],
+        "metadata": metadata,
+    }
 
 
 async def search_web(query: str, num_results: int = 5) -> list[dict]:

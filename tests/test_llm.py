@@ -25,11 +25,25 @@ class TestProviderSelection:
         assert client.backend == "anthropic"
 
     @patch("app.llm.settings", MagicMock(
-        anthropic_api_key="", llm_model="claude-sonnet-4-6", openai_codex=False,
+        anthropic_api_key="", llm_model="claude-sonnet-4-6", openai_codex=False, google_api_key="",
     ))
     def test_sdk_fallback(self):
         client = LlmClient()
         assert client.backend == "claude-sdk"
+
+    @patch("app.llm.settings", MagicMock(
+        anthropic_api_key="",
+        llm_model="claude-sonnet-4-6",
+        openai_codex=False,
+        google_api_key="gk-test",
+        gemini_model="gemini-3-flash-preview",
+    ))
+    @patch("google.genai.Client")
+    def test_default_prefers_gemini_when_google_key_available(self, mock_genai_client_cls):
+        client = LlmClient()
+        assert client.backend == "gemini"
+        assert client._model == "gemini-3-flash-preview"
+        mock_genai_client_cls.assert_called_once_with(api_key="gk-test")
 
     def test_codex_provider(self):
         client = LlmClient(provider="openai-codex")

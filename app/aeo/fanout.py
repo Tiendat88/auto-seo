@@ -90,8 +90,18 @@ text outside the JSON object."""
 
 async def generate_sub_queries(query: str, llm: LlmClient) -> tuple[list[SubQuery], str]:
     """Generate sub-queries via LLM. Returns (sub_queries, model_used)."""
-    prompt = _build_fanout_prompt(query)
-    result = await llm.generate_structured(prompt, LlmFanOutResult)
+    from app.aeo.store import get_cached_fanout, set_cached_fanout
+
+    # Check Redis cache
+    cached = await get_cached_fanout(query, llm.model_name)
+    if cached:
+        log.info("Cache hit for fanout: %s (model=%s)", query, llm.model_name)
+        result = LlmFanOutResult.model_validate(cached)
+    else:
+        prompt = _build_fanout_prompt(query)
+        result = await llm.generate_structured(prompt, LlmFanOutResult)
+        await set_cached_fanout(query, llm.model_name, result.model_dump(mode="json"))
+
     sub_queries = [SubQuery(type=sq.type, query=sq.query) for sq in result.sub_queries]
 
     # Log coverage of types

@@ -1,15 +1,22 @@
 """Tests for Brand Monitor: prompt, aggregation, end-to-end (mocked LLM)."""
 
+import builtins
+import importlib
+import importlib.util
+import sys
+from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from httpx import ASGITransport, AsyncClient
 
 from app.brand.analyzer import analyze_brand, build_prompt, compute_aggregate
+from app.brand.browser_fetcher import fetch_browser_responses
 from app.brand.models import (
     BrandMonitorRequest,
     CompetitorMention,
     FeatureAttribution,
+    FetchMode,
     LLMBrandAnalysis,
     MentionContext,
     PlatformAnalysis,
@@ -17,6 +24,7 @@ from app.brand.models import (
     Sentiment,
     SentimentBreakdown,
 )
+from app.errors import LlmError
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -133,6 +141,13 @@ def _mock_llm(structured_results: list[LLMBrandAnalysis]) -> MagicMock:
 
 
 class TestBuildPrompt:
+    def test_request_defaults_to_browser_fetch_mode(self):
+        request = BrandMonitorRequest(
+            brand_name="Notion",
+            query="best note-taking app",
+        )
+        assert request.fetch_mode == FetchMode.BROWSER
+
     def test_includes_brand_name(self):
         prompt = build_prompt("Notion", "best app", "some text", [])
         assert "Notion" in prompt
@@ -319,6 +334,7 @@ class TestAnalyzeBrand:
         assert pa.sentiment.overall == Sentiment.POSITIVE
         assert len(pa.sentiment.aspects) == 2
 
+
     async def test_multiple_platforms_isolated_calls(self):
         request = BrandMonitorRequest(
             brand_name="Notion",
@@ -413,6 +429,38 @@ class TestAnalyzeBrand:
         llm.drain_usage.assert_called_once()
 
 
+class TestBrowserDependencyHandling:
+    def test_grok_is_registered_browser_fetcher(self):
+        browser_fetcher = importlib.import_module("app.brand.browser_fetcher")
+        assert "grok" in browser_fetcher._FETCHERS
+
+    def test_brand_routes_import_without_browser_fetcher(self):
+        routes_path = Path(__file__).resolve().parents[1] / "app" / "brand" / "routes.py"
+        spec = importlib.util.spec_from_file_location("brand_routes_no_browser", routes_path)
+        assert spec is not None
+        assert spec.loader is not None
+        module = importlib.util.module_from_spec(spec)
+        with patch.dict(sys.modules, {"app.brand.browser_fetcher": None}):
+            spec.loader.exec_module(module)
+        assert module.router.prefix == "/brand-monitor"
+
+    @pytest.mark.asyncio
+    async def test_browser_fetcher_missing_playwright_raises_llm_error(
+        self, monkeypatch: pytest.MonkeyPatch,
+    ):
+        real_import = builtins.__import__
+
+        def fake_import(name, globals=None, locals=None, fromlist=(), level=0):
+            if name == "playwright.async_api":
+                raise ModuleNotFoundError("No module named 'playwright'")
+            return real_import(name, globals, locals, fromlist, level)
+
+        monkeypatch.setattr(builtins, "__import__", fake_import)
+
+        with pytest.raises(LlmError, match="Playwright is not installed"):
+            await fetch_browser_responses("best note-taking app")
+
+
 # ---------------------------------------------------------------------------
 # HTTP route tests
 # ---------------------------------------------------------------------------
@@ -448,6 +496,7 @@ class TestBrandMonitorRoute:
                     json={
                         "brand_name": "Notion",
                         "query": "best note-taking app",
+                        "fetch_mode": "api",
                         "platform_responses": [
                             {
                                 "platform": "chatgpt",
@@ -492,6 +541,7 @@ class TestBrandMonitorRoute:
                     json={
                         "brand_name": "Notion",
                         "query": "best app",
+                        "fetch_mode": "api",
                         "platform_responses": [
                             {
                                 "platform": "gemini",
@@ -519,7 +569,11 @@ class TestBrandMonitorRoute:
             ) as client:
                 resp = await client.post(
                     "/api/brand-monitor/analyze",
-                    json={"brand_name": "Notion", "query": "best app"},
+                    json={
+                        "brand_name": "Notion",
+                        "query": "best app",
+                        "fetch_mode": "api",
+                    },
                 )
 
         assert resp.status_code == 400
@@ -552,6 +606,7 @@ class TestBrandMonitorRoute:
                     json={
                         "brand_name": "Notion",
                         "query": "best app",
+                        "fetch_mode": "api",
                         "platform_responses": [
                             {
                                 "platform": "chatgpt",
@@ -563,3 +618,41 @@ class TestBrandMonitorRoute:
 
         assert resp.status_code == 503
         assert resp.json()["detail"]["error"] == "llm_unavailable"
+
+    async def test_default_fetch_mode_uses_browser_fetch(self):
+        from app.main import app
+
+        browser_results = [
+            PlatformResponse(platform="grok", response_text="Notion is competitive."),
+        ]
+
+        with (
+            patch("app.brand.routes.fetch_platform_responses", new_callable=AsyncMock) as mock_api,
+            patch(
+                "app.brand.browser_fetcher.fetch_browser_responses",
+                new_callable=AsyncMock,
+                return_value=browser_results,
+            ) as mock_browser,
+            patch("app.brand.routes.LlmClient") as mock_cls,
+        ):
+            instance = MagicMock()
+            instance.model_name = "test-model"
+            instance.generate_structured = AsyncMock(return_value=MENTIONED_ANALYSIS)
+            instance.drain_usage = MagicMock(return_value=[])
+            mock_cls.return_value = instance
+
+            transport = ASGITransport(app=app)
+            async with AsyncClient(
+                transport=transport, base_url="http://test",
+            ) as client:
+                resp = await client.post(
+                    "/api/brand-monitor/analyze",
+                    json={
+                        "brand_name": "Notion",
+                        "query": "best note-taking app",
+                    },
+                )
+
+        assert resp.status_code == 200
+        mock_browser.assert_awaited_once()
+        mock_api.assert_not_called()

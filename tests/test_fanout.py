@@ -180,6 +180,7 @@ class TestFanOutGeneration:
         from app.errors import LlmError
 
         mock_llm = MagicMock()
+        mock_llm.model_name = "test-model"
         mock_llm.generate_structured = AsyncMock(side_effect=LlmError("API down"))
 
         with pytest.raises(LlmError):
