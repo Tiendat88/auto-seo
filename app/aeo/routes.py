@@ -102,9 +102,20 @@ async def fanout(
 
     gap_summary = None
     if content_text:
-        sub_queries, gap_summary = await asyncio.to_thread(
-            analyze_gaps, sub_queries, content_text,
-        )
+        try:
+            sub_queries, gap_summary = await asyncio.to_thread(
+                analyze_gaps, sub_queries, content_text,
+            )
+        except LlmError as exc:
+            log.error("Fan-out gap analysis failure: %s", exc)
+            raise HTTPException(
+                status_code=503,
+                detail={
+                    "error": "embedding_unavailable",
+                    "message": "Fan-out gap analysis failed.",
+                    "detail": str(exc),
+                },
+            )
 
     response = FanOutResponse(
         target_query=request.target_query,

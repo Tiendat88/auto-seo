@@ -1,0 +1,277 @@
+{
+  "brand_name": "Notion",
+  "query": "best note-taking app",
+  "model_used": "gemini-3-flash-preview",
+  "platform_analyses": [
+    {
+      "brand_mentioned": true,
+      "mention_context": "recommended",
+      "brand_position": 3,
+      "sentiment": {
+        "overall": "positive",
+        "reasoning": "Notion is recommended as a top choice for collaboration and databases with a robust free tier, although it is noted that its complexity can overwhelm simple users.",
+        "aspects": [
+          {
+            "feature": "collaboration",
+            "sentiment": "positive",
+            "detail": "Described as leading with team workspaces and strong team features."
+          },
+          {
+            "feature": "databases",
+            "sentiment": "positive",
+            "detail": "Highlighted as a key strength for organizing information."
+          },
+          {
+            "feature": "customization",
+            "sentiment": "positive",
+            "detail": "Identified as being highly customizable."
+          },
+          {
+            "feature": "free tier",
+            "sentiment": "positive",
+            "detail": "Offers a robust free plan for personal use without device limits."
+          },
+          {
+            "feature": "simplicity",
+            "sentiment": "negative",
+            "detail": "The interface can overwhelm simple users due to its complexity."
+          }
+        ]
+      },
+      "keywords_found": [
+        "Microsoft OneNote",
+        "Obsidian",
+        "Notion",
+        "Apple Notes",
+        "Google Keep",
+        "Notability",
+        "NotePlan",
+        "Joplin",
+        "Evernote",
+        "Hive Notes",
+        "Zotero",
+        "Readwise"
+      ],
+      "competitors": [
+        {
+          "name": "Microsoft OneNote",
+          "recommended": true,
+          "position": 1
+        },
+        {
+          "name": "Obsidian",
+          "recommended": true,
+          "position": 2
+        },
+        {
+          "name": "Apple Notes",
+          "recommended": true,
+          "position": 4
+        },
+        {
+          "name": "Google Keep",
+          "recommended": true,
+          "position": 5
+        },
+        {
+          "name": "Notability",
+          "recommended": true,
+          "position": 6
+        },
+        {
+          "name": "NotePlan",
+          "recommended": true,
+          "position": 7
+        },
+        {
+          "name": "Joplin",
+          "recommended": true,
+          "position": null
+        },
+        {
+          "name": "Evernote",
+          "recommended": false,
+          "position": null
+        },
+        {
+          "name": "Hive Notes",
+          "recommended": true,
+          "position": null
+        }
+      ],
+      "relevant_quotes": [
+        "Notion for collaboration and databases",
+        "Team features, task management, highly customizable",
+        "Notion (personal) ... offer robust free tiers without device limits.",
+        "Notion leads with team workspaces",
+        "Apps like Notion can overwhelm simple users"
+      ],
+      "platform": "perplexity"
+    },
+    {
+      "brand_mentioned": true,
+      "mention_context": "recommended",
+      "brand_position": 5,
+      "sentiment": {
+        "overall": "positive",
+        "reasoning": "Notion is recommended as a top-tier tool for collaboration and life organization, with specific praise for its 'mature' AI features and aesthetics.",
+        "aspects": [
+          {
+            "feature": "collaboration",
+            "sentiment": "positive",
+            "detail": "Identified as the best tool for collaboration, startups, and project managers."
+          },
+          {
+            "feature": "Notion AI",
+            "sentiment": "positive",
+            "detail": "Described as one of the most mature AI integrations capable of managing databases and answering questions."
+          },
+          {
+            "feature": "aesthetics",
+            "sentiment": "positive",
+            "detail": "The interface is described as extremely powerful and aesthetic."
+          },
+          {
+            "feature": "ease of use",
+            "sentiment": "negative",
+            "detail": "Noted that the app can be overwhelming to set up."
+          },
+          {
+            "feature": "connectivity",
+            "sentiment": "negative",
+            "detail": "Requires an internet connection for most features."
+          }
+        ]
+      },
+      "keywords_found": [
+        "Notion",
+        "Microsoft OneNote",
+        "Apple Notes",
+        "GoodNotes 6",
+        "Notability",
+        "Obsidian",
+        "Evernote",
+        "NotebookLM",
+        "Lindy",
+        "Bluedot",
+        "Google Keep"
+      ],
+      "competitors": [
+        {
+          "name": "Microsoft OneNote",
+          "recommended": true,
+          "position": 1
+        },
+        {
+          "name": "Apple Notes",
+          "recommended": true,
+          "position": 2
+        },
+        {
+          "name": "Obsidian",
+          "recommended": true,
+          "position": 3
+        },
+        {
+          "name": "Evernote",
+          "recommended": false,
+          "position": 4
+        },
+        {
+          "name": "GoodNotes 6",
+          "recommended": true,
+          "position": 5
+        },
+        {
+          "name": "Notability",
+          "recommended": true,
+          "position": 6
+        },
+        {
+          "name": "Google NotebookLM",
+          "recommended": true,
+          "position": 7
+        },
+        {
+          "name": "Lindy",
+          "recommended": true,
+          "position": 8
+        },
+        {
+          "name": "Bluedot",
+          "recommended": true,
+          "position": 9
+        },
+        {
+          "name": "Google Keep",
+          "recommended": true,
+          "position": 10
+        }
+      ],
+      "relevant_quotes": [
+        "5. Best for Collaboration & Teams: Notion",
+        "Notion is less of a note app and more of an all-in-one workspace.",
+        "Notion AI is one of the most mature AI integrations",
+        "Extremely powerful and aesthetic; great for shared wikis.",
+        "If you want to organize a messy life: Use Notion."
+      ],
+      "platform": "gemini"
+    }
+  ],
+  "aggregate": {
+    "platforms_mentioning_brand": 2,
+    "total_platforms": 2,
+    "overall_sentiment": "positive",
+    "avg_brand_position": 4.0,
+    "top_competitors": [
+      "Microsoft OneNote",
+      "Obsidian",
+      "Apple Notes",
+      "Google Keep",
+      "Notability",
+      "Evernote",
+      "NotePlan",
+      "Joplin",
+      "Hive Notes",
+      "GoodNotes 6",
+      "Google NotebookLM",
+      "Lindy",
+      "Bluedot"
+    ],
+    "brand_recommended_on": [
+      "perplexity",
+      "gemini"
+    ],
+    "all_keywords_found": [
+      "Microsoft OneNote",
+      "Obsidian",
+      "Notion",
+      "Apple Notes",
+      "Google Keep",
+      "Notability",
+      "NotePlan",
+      "Joplin",
+      "Evernote",
+      "Hive Notes",
+      "Zotero",
+      "Readwise",
+      "GoodNotes 6",
+      "NotebookLM",
+      "Lindy",
+      "Bluedot"
+    ],
+    "common_strengths": [
+      "collaboration",
+      "databases",
+      "customization",
+      "free tier",
+      "notion ai",
+      "aesthetics"
+    ],
+    "common_weaknesses": [
+      "simplicity",
+      "ease of use",
+      "connectivity"
+    ]
+  }
+}

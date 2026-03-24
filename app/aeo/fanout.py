@@ -1,8 +1,9 @@
 """Query fan-out engine: LLM sub-query generation + semantic gap analysis."""
 
+import importlib
 import logging
-
-from sentence_transformers import SentenceTransformer, util
+import math
+from typing import Any, Literal
 
 from app.aeo.models import (
     GapSummary,
@@ -12,20 +13,66 @@ from app.aeo.models import (
 )
 from app.article.constants import SENTENCE_END_RE
 from app.config import settings
+from app.errors import LlmError
 from app.llm import LlmClient
 
 log = logging.getLogger(__name__)
 
-_model: SentenceTransformer | None = None
+_voyage_client: Any | None = None
+_EMBED_BATCH_SIZE = 128
 
 _REQUIRED_TYPES = {t.value for t in SubQueryType}
 
 
-def _get_embedding_model() -> SentenceTransformer:
-    global _model
-    if _model is None:
-        _model = SentenceTransformer("all-MiniLM-L6-v2")
-    return _model
+def _get_embedding_client() -> Any:
+    global _voyage_client
+    if _voyage_client is not None:
+        return _voyage_client
+    if not settings.voyage_api_key:
+        raise LlmError("VOYAGE_API_KEY is not configured for fan-out gap analysis.")
+    try:
+        voyageai = importlib.import_module("voyageai")
+    except ImportError as exc:
+        raise LlmError("Voyage embeddings require the `voyageai` package.") from exc
+
+    _voyage_client = voyageai.Client(api_key=settings.voyage_api_key)
+    return _voyage_client
+
+
+def _batched(texts: list[str], size: int) -> list[list[str]]:
+    return [texts[i:i + size] for i in range(0, len(texts), size)]
+
+
+def _embed_texts(
+    texts: list[str], *, input_type: Literal["query", "document"],
+) -> list[list[float]]:
+    if not texts:
+        return []
+
+    client = _get_embedding_client()
+    embeddings: list[list[float]] = []
+    try:
+        for batch in _batched(texts, _EMBED_BATCH_SIZE):
+            result = client.embed(
+                batch,
+                model=settings.voyage_embedding_model,
+                input_type=input_type,
+                truncation=True,
+            )
+            embeddings.extend([list(map(float, embedding)) for embedding in result.embeddings])
+    except Exception as exc:
+        raise LlmError(f"Voyage embedding failed: {exc}") from exc
+
+    return embeddings
+
+
+def _cosine_similarity(vec_a: list[float], vec_b: list[float]) -> float:
+    dot = sum(a * b for a, b in zip(vec_a, vec_b, strict=False))
+    norm_a = math.sqrt(sum(a * a for a in vec_a))
+    norm_b = math.sqrt(sum(b * b for b in vec_b))
+    if norm_a == 0.0 or norm_b == 0.0:
+        return 0.0
+    return dot / (norm_a * norm_b)
 
 
 # --- Prompt ---
@@ -127,7 +174,6 @@ def analyze_gaps(
 ) -> tuple[list[SubQuery], GapSummary]:
     """Check content coverage for each sub-query using sentence embeddings."""
     threshold = settings.aeo_similarity_threshold
-    model = _get_embedding_model()
 
     sentences = _chunk_sentences(content)
     if not sentences:
@@ -139,14 +185,18 @@ def analyze_gaps(
         return updated, _build_gap_summary(updated)
 
     query_texts = [sq.query for sq in sub_queries]
-    content_embeddings = model.encode(sentences, convert_to_tensor=True)
-    query_embeddings = model.encode(query_texts, convert_to_tensor=True)
-
-    similarities = util.cos_sim(query_embeddings, content_embeddings)
+    content_embeddings = _embed_texts(sentences, input_type="document")
+    query_embeddings = _embed_texts(query_texts, input_type="query")
 
     updated: list[SubQuery] = []
-    for i, sq in enumerate(sub_queries):
-        max_sim = float(similarities[i].max().item())
+    for sq, query_embedding in zip(sub_queries, query_embeddings, strict=False):
+        max_sim = max(
+            (
+                _cosine_similarity(query_embedding, content_embedding)
+                for content_embedding in content_embeddings
+            ),
+            default=0.0,
+        )
         updated.append(SubQuery(
             type=sq.type,
             query=sq.query,

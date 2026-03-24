@@ -6,7 +6,9 @@ import pytest
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
+from app.aeo.models import SubQuery, SubQueryType
 from app.db import Base, get_session
+from app.errors import LlmError
 from app.job.models import Job, JobStatus
 from app.main import app
 
@@ -178,3 +180,29 @@ class TestResumeJob:
 
         resp = await client.post(f"/api/jobs/{job_id}/resume")
         assert resp.status_code == 409
+
+
+class TestAeoFanout:
+    async def test_gap_analysis_failure_returns_503(self, client):
+        sub_queries = [SubQuery(type=SubQueryType.HOW_TO, query="how to use a CRM")]
+
+        with (
+            patch(
+                "app.aeo.routes.generate_sub_queries",
+                new=AsyncMock(return_value=(sub_queries, "test-model")),
+            ),
+            patch("app.aeo.routes.analyze_gaps", side_effect=LlmError("Voyage down")),
+            patch("app.aeo.routes.save_aeo_analysis", new=AsyncMock()),
+        ):
+            resp = await client.post(
+                "/api/aeo/fanout",
+                json={
+                    "target_query": "best crm for startups",
+                    "existing_content": "This is existing content with enough words to analyze.",
+                },
+            )
+
+        assert resp.status_code == 503
+        detail = resp.json()["detail"]
+        assert detail["error"] == "embedding_unavailable"
+        assert "Voyage down" in detail["detail"]

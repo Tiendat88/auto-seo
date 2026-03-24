@@ -1,16 +1,24 @@
 """Tests for query fan-out: prompt, parsing, gap analysis."""
 
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from app.aeo.fanout import _build_fanout_prompt, _build_gap_summary, _chunk_sentences, analyze_gaps
+from app.aeo.fanout import (
+    _build_fanout_prompt,
+    _build_gap_summary,
+    _chunk_sentences,
+    _embed_texts,
+    analyze_gaps,
+)
 from app.aeo.models import (
     LlmFanOutResult,
     LlmSubQuery,
     SubQuery,
     SubQueryType,
 )
+from app.config import settings
+from app.errors import LlmError
 
 # --- Prompt ---
 
@@ -98,7 +106,14 @@ class TestGapAnalysis:
             "model with an external knowledge base. The model retrieves relevant documents "
             "at inference time and uses them to produce grounded factual answers."
         )
-        updated, summary = analyze_gaps(sub_queries, content)
+        with patch(
+            "app.aeo.fanout._embed_texts",
+            side_effect=[
+                [[0.99, 0.01], [0.98, 0.02]],
+                [[1.0, 0.0]],
+            ],
+        ):
+            updated, summary = analyze_gaps(sub_queries, content)
         assert updated[0].similarity_score is not None
         assert updated[0].similarity_score > 0.5
 
@@ -114,7 +129,14 @@ class TestGapAnalysis:
             "Chocolate cake is a popular dessert. Mix flour, sugar, cocoa powder, "
             "and eggs together. Bake at 350 degrees for 30 minutes."
         )
-        updated, summary = analyze_gaps(sub_queries, content)
+        with patch(
+            "app.aeo.fanout._embed_texts",
+            side_effect=[
+                [[0.0, 1.0], [0.1, 0.9]],
+                [[1.0, 0.0]],
+            ],
+        ):
+            updated, summary = analyze_gaps(sub_queries, content)
         assert updated[0].similarity_score is not None
         assert updated[0].similarity_score < 0.72
         assert not updated[0].covered
@@ -139,6 +161,35 @@ class TestGapAnalysis:
         assert summary.coverage_percent == 67
         assert "comparative" in summary.covered_types
         assert "how_to" in summary.missing_types
+
+    def test_embed_texts_uses_voyage_model_and_batches(self):
+        mock_client = MagicMock()
+        mock_client.embed.side_effect = [
+            MagicMock(embeddings=[[1.0, 0.0]] * 128),
+            MagicMock(embeddings=[[0.0, 1.0], [0.5, 0.5]]),
+        ]
+
+        texts = [f"sentence {i}" for i in range(130)]
+        with (
+            patch("app.aeo.fanout._get_embedding_client", return_value=mock_client),
+            patch.object(settings, "voyage_embedding_model", "voyage-4-large"),
+        ):
+            embeddings = _embed_texts(texts, input_type="document")
+
+        assert len(embeddings) == 130
+        assert mock_client.embed.call_count == 2
+        first_call = mock_client.embed.call_args_list[0].kwargs
+        assert first_call["model"] == "voyage-4-large"
+        assert first_call["input_type"] == "document"
+        assert first_call["truncation"] is True
+
+    def test_embed_texts_requires_configured_api_key(self):
+        with (
+            patch("app.aeo.fanout._voyage_client", None),
+            patch.object(settings, "voyage_api_key", ""),
+        ):
+            with pytest.raises(LlmError, match="VOYAGE_API_KEY"):
+                _embed_texts(["hello"], input_type="query")
 
 
 # --- Fan-Out Integration (mocked LLM) ---

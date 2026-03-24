@@ -1,0 +1,93 @@
+{
+  "target_query": "customer onboarding checklist for B2B SaaS",
+  "model_used": "gemini-3-flash-preview",
+  "total_sub_queries": 12,
+  "sub_queries": [
+    {
+      "type": "definitional",
+      "query": "what is B2B SaaS customer onboarding and why is it critical for retention",
+      "covered": false,
+      "similarity_score": 0.35
+    },
+    {
+      "type": "definitional",
+      "query": "key differences between high-touch and low-touch onboarding for SaaS",
+      "covered": false,
+      "similarity_score": 0.25
+    },
+    {
+      "type": "how_to",
+      "query": "how to build an effective B2B SaaS onboarding checklist from scratch",
+      "covered": false,
+      "similarity_score": 0.4
+    },
+    {
+      "type": "how_to",
+      "query": "how to measure time-to-value during SaaS customer onboarding",
+      "covered": false,
+      "similarity_score": 0.34
+    },
+    {
+      "type": "comparative",
+      "query": "onboarding checklists vs interactive product tours for B2B users",
+      "covered": false,
+      "similarity_score": 0.3
+    },
+    {
+      "type": "comparative",
+      "query": "internal onboarding checklist vs customer-facing onboarding plan",
+      "covered": false,
+      "similarity_score": 0.29
+    },
+    {
+      "type": "feature_specific",
+      "query": "essential milestones for a B2B SaaS implementation roadmap",
+      "covered": false,
+      "similarity_score": 0.3
+    },
+    {
+      "type": "feature_specific",
+      "query": "best tools for creating interactive in-app onboarding checklists",
+      "covered": false,
+      "similarity_score": 0.36
+    },
+    {
+      "type": "use_case",
+      "query": "onboarding checklist for complex enterprise SaaS with multi-department users",
+      "covered": false,
+      "similarity_score": 0.36
+    },
+    {
+      "type": "use_case",
+      "query": "SaaS onboarding flow for technical products requiring API integrations",
+      "covered": false,
+      "similarity_score": 0.31
+    },
+    {
+      "type": "trust_signals",
+      "query": "B2B SaaS onboarding benchmarks and industry standard success rates",
+      "covered": false,
+      "similarity_score": 0.32
+    },
+    {
+      "type": "trust_signals",
+      "query": "case studies on how optimized onboarding reduced churn for B2B software companies",
+      "covered": false,
+      "similarity_score": 0.4
+    }
+  ],
+  "gap_summary": {
+    "covered": 0,
+    "total": 12,
+    "coverage_percent": 0,
+    "covered_types": [],
+    "missing_types": [
+      "comparative",
+      "definitional",
+      "feature_specific",
+      "how_to",
+      "trust_signals",
+      "use_case"
+    ]
+  }
+}

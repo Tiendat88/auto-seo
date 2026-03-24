@@ -13,7 +13,8 @@ uv sync --extra dev --python 3.12
 
 # 3. Configure environment
 cp .env.example .env
-# Edit .env with your ANTHROPIC_API_KEY (and optionally GOOGLE_API_KEY, FIRECRAWL_API_KEY)
+# Edit .env with your ANTHROPIC_API_KEY and any optional provider keys you plan to use.
+# `VOYAGE_API_KEY` is required for fan-out gap analysis when you pass `--content`.
 
 # 4. Optional runtime assets
 uv run playwright install chromium              # Needed for `brand --mode browser`
@@ -67,7 +68,7 @@ Scorer and reviewer feedback is numbered (`Scorer 1`, `Reviewer 2`) so model nam
 | Browser automation | Playwright (lazy-loaded for brand monitor browser mode; includes Grok) |
 | Cache | Redis |
 | CLI | Typer + Rich |
-| NLP | textstat, spaCy, sentence-transformers, BeautifulSoup |
+| NLP | textstat, spaCy, VoyageAI embeddings, BeautifulSoup |
 
 ## API Endpoints
 
@@ -176,7 +177,9 @@ Environment variables (or `.env` file):
 | `OPENAI_CODEX` | `false` | Enable Codex SDK backend (ChatGPT subscription) |
 | `SERP_PROVIDER` | `mock` | `mock` or `serpapi` |
 | `SERPAPI_KEY` | — | Required if `SERP_PROVIDER=serpapi` |
-| `FIRECRAWL_API_KEY` | — | Firecrawl API key for SERP content fetching and URL-backed fan-out gap analysis |
+| `FIRECRAWL_API_KEY` | — | Firecrawl API key for SERP content fetching and URL-backed fan-out content fetches |
+| `VOYAGE_API_KEY` | — | VoyageAI API key for AEO fan-out gap analysis embeddings |
+| `VOYAGE_EMBEDDING_MODEL` | `voyage-4-large` | VoyageAI embedding model for AEO fan-out gap analysis |
 | `CONTENT_FETCH_TOP_N` | `10` | Number of top SERP results to fetch content for |
 | `DATABASE_URL` | `postgresql+asyncpg://seo:seo@localhost:5432/seo_agent` | PostgreSQL connection |
 | `REDIS_URL` | `redis://localhost:6379/0` | Redis connection for caching |
@@ -194,6 +197,7 @@ Environment variables (or `.env` file):
 - `brand` fetch and `brand` analysis are separate stages. A `503 Brand analysis failed` response can come from the analyzer LLM after fetch succeeds.
 - `app/db.py` serializes schema bootstrap with a Postgres advisory lock, so `uvicorn --workers 2` is safe on a fresh database.
 - `app/serp/fetcher.py` uses the Firecrawl Python SDK contract (`only_main_content=True`), not the raw REST API's camelCase request fields.
+- `app/aeo/fanout.py` uses VoyageAI `voyage-4-large` embeddings with `input_type="query"` and `input_type="document"` for semantic gap analysis.
 
 ## Design Decisions
 

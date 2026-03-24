@@ -1,0 +1,10 @@
+                                        Jobs (20 total)                                         
+┏━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━┓
+┃ ID              ┃ Topic                                    ┃ Status    ┃ Created             ┃
+┡━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━┩
+│ 912f7087-26a... │ best note-taking apps for founders       │ completed │ 2026-03-24T16:46:56 │
+│ 475c1a4d-02f... │ best note-taking apps for founders       │ completed │ 2026-03-24T16:46:40 │
+│ 96f76a66-b4e... │ cli e2e gemini fallback verification     │ completed │ 2026-03-24T15:04:40 │
+│ 6bda02a3-1b4... │ cli e2e remote teamwork tools            │ completed │ 2026-03-24T14:11:02 │
+│ fe3cc600-78c... │ best productivity tools for remote teams │ completed │ 2026-03-23T15:09:52 │
+└─────────────────┴──────────────────────────────────────────┴───────────┴─────────────────────┘

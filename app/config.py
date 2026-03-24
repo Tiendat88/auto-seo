@@ -32,6 +32,8 @@ class Settings(BaseSettings):
 
     # AEO
     aeo_similarity_threshold: float = 0.72
+    voyage_api_key: str = ""
+    voyage_embedding_model: str = "voyage-4-large"
 
     # App
     debug: bool = False

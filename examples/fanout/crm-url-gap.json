@@ -1,0 +1,93 @@
+{
+  "target_query": "best CRM for startups",
+  "model_used": "gemini-3-flash-preview",
+  "total_sub_queries": 12,
+  "sub_queries": [
+    {
+      "type": "comparative",
+      "query": "HubSpot vs Salesforce vs Pipedrive for early stage startups",
+      "covered": false,
+      "similarity_score": 0.11
+    },
+    {
+      "type": "comparative",
+      "query": "best affordable CRM vs premium enterprise CRM for small businesses",
+      "covered": false,
+      "similarity_score": -0.01
+    },
+    {
+      "type": "feature_specific",
+      "query": "lightweight CRM with Gmail and Slack integration features",
+      "covered": false,
+      "similarity_score": 0.09
+    },
+    {
+      "type": "feature_specific",
+      "query": "CRM for startups with lead scoring and automated sales sequencing",
+      "covered": false,
+      "similarity_score": 0.01
+    },
+    {
+      "type": "use_case",
+      "query": "using a CRM for tracking venture capital investor outreach and fundraising",
+      "covered": false,
+      "similarity_score": 0.07
+    },
+    {
+      "type": "use_case",
+      "query": "CRM solution for managing B2B SaaS sales cycles and customer success",
+      "covered": false,
+      "similarity_score": 0.03
+    },
+    {
+      "type": "trust_signals",
+      "query": "highest rated CRMs for startups on G2 and TrustRadius 2024",
+      "covered": false,
+      "similarity_score": 0.12
+    },
+    {
+      "type": "trust_signals",
+      "query": "Reddit recommendations for CRM tools for first-time founders",
+      "covered": false,
+      "similarity_score": 0.08
+    },
+    {
+      "type": "how_to",
+      "query": "how to choose the right CRM for a seed-stage startup team",
+      "covered": false,
+      "similarity_score": 0.01
+    },
+    {
+      "type": "how_to",
+      "query": "how to integrate a CRM with existing marketing tech stacks for startups",
+      "covered": false,
+      "similarity_score": 0.0
+    },
+    {
+      "type": "definitional",
+      "query": "essential CRM capabilities and benefits for rapidly scaling businesses",
+      "covered": false,
+      "similarity_score": -0.03
+    },
+    {
+      "type": "definitional",
+      "query": "difference between CRM and lead management software for startups",
+      "covered": false,
+      "similarity_score": 0.01
+    }
+  ],
+  "gap_summary": {
+    "covered": 0,
+    "total": 12,
+    "coverage_percent": 0,
+    "covered_types": [],
+    "missing_types": [
+      "comparative",
+      "definitional",
+      "feature_specific",
+      "how_to",
+      "trust_signals",
+      "use_case"
+    ]
+  }
+}

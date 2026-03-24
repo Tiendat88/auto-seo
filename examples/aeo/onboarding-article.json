@@ -1,0 +1,61 @@
+{
+  "aeo_score": 67,
+  "band": "Needs Improvement",
+  "checks": [
+    {
+      "check_id": "direct_answer",
+      "name": "Direct Answer Detection",
+      "passed": true,
+      "score": 20,
+      "max_score": 20,
+      "details": {
+        "word_count": 25,
+        "threshold": 60,
+        "is_declarative": true,
+        "has_hedge_phrase": false
+      },
+      "recommendation": null
+    },
+    {
+      "check_id": "htag_hierarchy",
+      "name": "H-tag Hierarchy",
+      "passed": true,
+      "score": 20,
+      "max_score": 20,
+      "details": {
+        "violations": [],
+        "h_tags_found": [
+          "h1",
+          "h2",
+          "h2",
+          "h3",
+          "h2",
+          "h2",
+          "h2",
+          "h2",
+          "h2",
+          "h2",
+          "h2"
+        ]
+      },
+      "recommendation": null
+    },
+    {
+      "check_id": "readability",
+      "name": "Snippet Readability",
+      "passed": false,
+      "score": 0,
+      "max_score": 20,
+      "details": {
+        "fk_grade_level": 11.8,
+        "target_range": "7-9",
+        "complex_sentences": [
+          "For those prioritizing privacy over collaboration, the free version of Obsidian provides a powerful, local-first environment for strategic thinking.",
+          "Q: Can Obsidian be used for collaborative startup documentation?",
+          "Data security for founders should be a top priority, especially when handling proprietary intellectual property (IP)."
+        ]
+      },
+      "recommendation": "Content reads at Grade 11.8. Simplify sentences to reach Grade 7-9."
+    }
+  ]
+}

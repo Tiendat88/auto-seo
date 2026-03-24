@@ -10,7 +10,7 @@ SEO article generator plus AEO and brand-monitor utilities. FastAPI backend + Ty
 - **LLM**: Quad backend via `app/llm.py` — Anthropic API (with tool use), Claude Agent SDK (`max_turns=50`), OpenAI Codex SDK, Google Gemini (with tool use)
 - **CLI**: Typer + Rich (`autoseo` project script; use `uv run autoseo ...` in a synced checkout)
 - **Cache**: Redis (`app/cache.py`)
-- **Deps**: `textstat`, `google-genai`, `openai`, `openai-codex-sdk`, `firecrawl-py`, `playwright`, `spacy`, `sentence-transformers`, `beautifulsoup4`
+- **Deps**: `textstat`, `google-genai`, `openai`, `openai-codex-sdk`, `firecrawl-py`, `playwright`, `spacy`, `voyageai`, `beautifulsoup4`
 - **Lint**: `ruff` (line-length=100, rules: E/F/I/N/W), `pyright` strict (`pyrightconfig.json`)
 - **Tests**: pytest + pytest-asyncio (`asyncio_mode="auto"`), **226 tests** across 13 files
 
@@ -54,10 +54,10 @@ Post-processes articles after generation and editing. Returns `(ArticleContent, 
 ### AEO content scorer & fan-out (`app/aeo/`)
 
 - **AEO scorer**: `POST /api/aeo/analyze` — 3 checks (direct answer, h-tag hierarchy, readability), each max 20 points, aggregated to 0-100 with band labels
-- **Query fan-out**: `POST /api/aeo/fanout` — LLM decomposes a query into 10-15 sub-queries across 6 types, optional gap analysis via sentence-transformer embeddings
+- **Query fan-out**: `POST /api/aeo/fanout` — LLM decomposes a query into 10-15 sub-queries across 6 types, optional gap analysis via VoyageAI embeddings
 - **Content parser** (`parser.py`): URL fetch via httpx or Firecrawl-backed full-page extraction path, HTML parsing, boilerplate stripping
 - **Checks** (`checks.py`): spaCy `en_core_web_sm`, textstat, BeautifulSoup
-- **Fan-out** (`fanout.py`): `LlmClient.generate_structured()` for sub-query generation, `all-MiniLM-L6-v2` for gap analysis
+- **Fan-out** (`fanout.py`): `LlmClient.generate_structured()` for sub-query generation, Voyage `voyage-4-large` embeddings for gap analysis
 - **Tests**: 47 tests across `test_aeo.py` and `test_fanout.py`
 
 ### Brand monitor (`app/brand/`)
@@ -131,6 +131,8 @@ uv run autoseo brand "Notion" "best note-taking app" --json
 - `SERP_PROVIDER` — `mock` (default) or `serpapi`
 - `SERPAPI_KEY` — Required if `SERP_PROVIDER=serpapi`
 - `FIRECRAWL_API_KEY` — Firecrawl API key for SERP content fetching and URL-backed fan-out analysis
+- `VOYAGE_API_KEY` — VoyageAI API key for fan-out gap-analysis embeddings
+- `VOYAGE_EMBEDDING_MODEL` — Voyage embedding model (default `voyage-4-large`)
 - `CONTENT_FETCH_TOP_N` — Number of top SERP results to fetch content for (default `10`)
 - `DATABASE_URL` — PostgreSQL connection string
 - `REDIS_URL` — Redis connection string

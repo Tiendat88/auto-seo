@@ -1,0 +1,10 @@
+                                       Jobs (17 total)                                       
+┏━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━┓
+┃ ID              ┃ Topic                                    ┃ Status ┃ Created             ┃
+┡━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━┩
+│ 2ce0b7de-9a6... │ smoke test topic                         │ failed │ 2026-03-24T13:38:23 │
+│ 2a1e5aea-bbb... │ best productivity tools for remote teams │ failed │ 2026-03-23T14:51:07 │
+│ a855e013-e0c... │ best productivity tools for remote teams │ failed │ 2026-03-23T14:18:11 │
+│ 6c99a244-fb3... │ best vpn services for privacy 2026       │ failed │ 2026-03-17T07:07:57 │
+│ bc3085a1-363... │ how to learn python programming in 2026  │ failed │ 2026-03-17T07:02:16 │
+└─────────────────┴──────────────────────────────────────────┴────────┴─────────────────────┘

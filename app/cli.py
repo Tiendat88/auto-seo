@@ -1,9 +1,9 @@
-"""CLI client for the SEO Article Generator API."""
-
 import json
+import sys
 import time
+from contextlib import contextmanager
 from pathlib import Path
-from typing import Any
+from typing import IO, Any
 
 import httpx
 import typer
@@ -15,6 +15,7 @@ from rich.tree import Tree
 
 app = typer.Typer(name="autoseo", help="SEO Article Generator CLI")
 console = Console()
+log_console = Console(stderr=True)
 
 DEFAULT_API_URL = "http://localhost:8000"
 
@@ -25,6 +26,70 @@ STAGES: list[tuple[str, str, str]] = [
     ("scoring", "Score", "quality_data"),
     ("reviewing", "Review", "review_data"),
 ]
+
+
+class TeeStream:
+    """Write logs to multiple text streams."""
+
+    def __init__(self, *streams: IO[str]) -> None:
+        self._streams = streams
+
+    def write(self, text: str) -> int:
+        for stream in self._streams:
+            stream.write(text)
+        return len(text)
+
+    def flush(self) -> None:
+        for stream in self._streams:
+            stream.flush()
+
+    def isatty(self) -> bool:
+        return False
+
+
+@contextmanager
+def _use_console(temp_console: Console):
+    global console
+    prev_console = console
+    console = temp_console
+    try:
+        yield
+    finally:
+        console = prev_console
+
+
+def _configure_consoles(
+    ctx: typer.Context, output: Path | None, log_file: Path | None,
+) -> None:
+    global console, log_console
+
+    if output:
+        output.parent.mkdir(parents=True, exist_ok=True)
+        artifact_stream = output.open("w", encoding="utf-8")
+        ctx.call_on_close(artifact_stream.close)
+        console = Console(
+            file=artifact_stream,
+            force_terminal=False,
+            color_system=None,
+            no_color=True,
+            width=120,
+        )
+    else:
+        console = Console()
+
+    if log_file:
+        log_file.parent.mkdir(parents=True, exist_ok=True)
+        log_stream = log_file.open("w", encoding="utf-8")
+        ctx.call_on_close(log_stream.close)
+        log_console = Console(
+            file=TeeStream(sys.stderr, log_stream),
+            force_terminal=False,
+            color_system=None,
+            no_color=True,
+            width=120,
+        )
+    else:
+        log_console = Console(stderr=True)
 
 
 def _api_url(ctx: typer.Context) -> str:
@@ -46,7 +111,14 @@ def main(
     ctx: typer.Context,
     api_url: str = typer.Option(DEFAULT_API_URL, "--api-url", help="API server URL"),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Show detailed pipeline events"),
+    output: Path | None = typer.Option(
+        None, "--output", "-o", help="Write primary output to a file"
+    ),
+    log_file: Path | None = typer.Option(
+        None, "--log-file", help="Write CLI logs and progress to a file"
+    ),
 ) -> None:
+    _configure_consoles(ctx, output, log_file)
     ctx.obj = {"url": api_url.rstrip("/"), "verbose": verbose}
     if ctx.invoked_subcommand is None:
         console.print(ctx.get_help())
@@ -114,11 +186,11 @@ def result(
         data = resp.json()
 
     if data["status"] != "completed":
-        console.print(f"[yellow]Job is not completed (status: {data['status']})[/yellow]")
+        log_console.print(f"[yellow]Job is not completed (status: {data['status']})[/yellow]")
         return
 
     if not data.get("result"):
-        console.print("[red]No result available[/red]")
+        log_console.print("[red]No result available[/red]")
         return
 
     if json_out:
@@ -182,16 +254,16 @@ def watch(
         data = resp.json()
 
     if data["status"] == "completed":
-        console.print("[green]Job already completed.[/green]")
+        log_console.print("[green]Job already completed.[/green]")
         _render_completion_summary(data)
         return
 
     if data["status"] == "failed":
-        console.print(f"[red]Job failed: {data.get('error', 'Unknown')}[/red]")
-        console.print(f"Resume with: [bold]autoseo resume {job_id}[/bold]")
+        log_console.print(f"[red]Job failed: {data.get('error', 'Unknown')}[/red]")
+        log_console.print(f"Resume with: [bold]autoseo resume {job_id}[/bold]")
         return
 
-    console.print(f"Watching job: [bold]{job_id}[/bold] (status: {data['status']})")
+    log_console.print(f"Watching job: [bold]{job_id}[/bold] (status: {data['status']})")
     _poll_job(url, job_id, verbose=_is_verbose(ctx))
 
 
@@ -206,15 +278,15 @@ def resume(
     with httpx.Client(timeout=30) as client:
         resp = client.post(f"{url}/api/jobs/{job_id}/resume")
         if resp.status_code == 409:
-            console.print("[yellow]Job is already running — watching progress...[/yellow]")
+            log_console.print("[yellow]Job is already running — watching progress...[/yellow]")
             _poll_job(url, job_id, verbose=verbose)
             return
         if resp.status_code == 400:
-            console.print(f"[red]{resp.json().get('detail', 'Bad request')}[/red]")
+            log_console.print(f"[red]{resp.json().get('detail', 'Bad request')}[/red]")
             return
         resp.raise_for_status()
 
-    console.print(f"Resumed job: [bold]{job_id}[/bold]")
+    log_console.print(f"Resumed job: [bold]{job_id}[/bold]")
     _poll_job(url, job_id, verbose=verbose)
 
 
@@ -232,17 +304,17 @@ def export_article(
         data = resp.json()
 
     if data["status"] != "completed":
-        console.print(f"[red]Job is not completed (status: {data['status']})[/red]")
+        log_console.print(f"[red]Job is not completed (status: {data['status']})[/red]")
         raise typer.Exit(1)
 
     if not data.get("result"):
-        console.print("[red]No result available[/red]")
+        log_console.print("[red]No result available[/red]")
         raise typer.Exit(1)
 
     md = _build_markdown(data["result"])
     file.write_text(md, encoding="utf-8")
     word_count = len(md.split())
-    console.print(f"[green]Exported to {file}[/green] ({word_count} words)")
+    log_console.print(f"[green]Exported to {file}[/green] ({word_count} words)")
 
 
 # --- Renderers for intermediate pipeline data ---
@@ -434,7 +506,7 @@ def _poll_job(api_url: str, job_id: str, verbose: bool = False) -> None:
         TextColumn("[progress.description]{task.description}"),
         BarColumn(),
         TextColumn("{task.fields[stage]}"),
-        console=console,
+        console=log_console,
     )
     task_id = progress.add_task("Pipeline", total=len(STAGES), stage="starting...")
 
@@ -458,7 +530,7 @@ def _poll_job(api_url: str, job_id: str, verbose: bool = False) -> None:
                     rendered_stages.discard("quality_data")
                     rendered_stages.discard("review_data")
                     progress.stop()
-                    console.print(
+                    log_console.print(
                         f"\n[yellow]Edit {revision_count}: "
                         "polishing article...[/yellow]\n"
                     )
@@ -475,11 +547,12 @@ def _poll_job(api_url: str, job_id: str, verbose: bool = False) -> None:
 
                         # Pause progress, render, resume
                         progress.stop()
-                        console.print(f"\n[bold cyan]{label}[/bold cyan]")
+                        log_console.print(f"\n[bold cyan]{label}[/bold cyan]")
                         renderer = STAGE_RENDERERS.get(data_key)
                         if renderer:
-                            renderer(data[data_key])
-                        console.print()
+                            with _use_console(log_console):
+                                renderer(data[data_key])
+                        log_console.print()
                         progress.start()
 
                 # Update progress description with current status
@@ -504,20 +577,20 @@ def _poll_job(api_url: str, job_id: str, verbose: bool = False) -> None:
                         progress.stop()
                         for ev in events[last_event_count:]:
                             ts = ev.get("timestamp", "")[11:19]
-                            console.print(f"  [dim]{ts}[/dim] {ev.get('detail', '')}")
+                            log_console.print(f"  [dim]{ts}[/dim] {ev.get('detail', '')}")
                         last_event_count = len(events)
                         progress.start()
 
                 if data["status"] == "completed":
                     progress.update(task_id, completed=len(STAGES), stage="done")
                     progress.stop()
-                    console.print()
+                    log_console.print()
                     _render_completion_summary(data)
                     return
 
                 if data["status"] == "failed":
                     progress.stop()
-                    console.print(
+                    log_console.print(
                         f"\n[red]Failed: {data.get('error', 'Unknown error')}[/red]"
                     )
                     return
@@ -691,11 +764,11 @@ def brand(
     if keywords:
         payload["keywords"] = keywords
 
-    console.print(f"Analyzing [bold]{brand_name}[/bold] for: [italic]{query}[/italic]")
-    console.print(f"Fetch mode: {fetch_mode}")
-    console.print()
+    log_console.print(f"Analyzing [bold]{brand_name}[/bold] for: [italic]{query}[/italic]")
+    log_console.print(f"Fetch mode: {fetch_mode}")
+    log_console.print()
 
-    with console.status("Fetching and analyzing platform responses..."):
+    with log_console.status("Fetching and analyzing platform responses..."):
         with httpx.Client(timeout=180) as client:
             resp = client.post(f"{url}/api/brand-monitor/analyze", json=payload)
 
@@ -703,7 +776,7 @@ def brand(
         detail = resp.json().get("detail", resp.text)
         if isinstance(detail, dict):
             detail = detail.get("message", str(detail))
-        console.print(f"[red]Error ({resp.status_code}): {detail}[/red]")
+        log_console.print(f"[red]Error ({resp.status_code}): {detail}[/red]")
         raise typer.Exit(1)
 
     data = resp.json()
@@ -849,7 +922,7 @@ def aeo_analyze(
     else:
         payload = {"input_type": "text", "input_value": input_value}
 
-    with console.status("Running AEO checks..."):
+    with log_console.status("Running AEO checks..."):
         with httpx.Client(timeout=30) as client:
             resp = client.post(f"{url}/api/aeo/analyze", json=payload)
 
@@ -857,7 +930,7 @@ def aeo_analyze(
         detail = resp.json().get("detail", resp.text)
         if isinstance(detail, dict):
             detail = detail.get("message", str(detail))
-        console.print(f"[red]Error ({resp.status_code}): {detail}[/red]")
+        log_console.print(f"[red]Error ({resp.status_code}): {detail}[/red]")
         raise typer.Exit(1)
 
     data = resp.json()
@@ -889,7 +962,7 @@ def fanout_generate(
     payload: dict[str, Any] = {"target_query": query}
     if content:
         if content.startswith(("http://", "https://")):
-            console.print(f"Fetching [bold]{content}[/bold]...")
+            log_console.print(f"Fetching [bold]{content}[/bold]...")
             payload["content_url"] = content
         else:
             payload["existing_content"] = Path(content).read_text(encoding="utf-8")
@@ -900,7 +973,7 @@ def fanout_generate(
     if model:
         params["model"] = model
 
-    with console.status("Generating sub-queries..."):
+    with log_console.status("Generating sub-queries..."):
         with httpx.Client(timeout=120) as client:
             resp = client.post(f"{url}/api/aeo/fanout", json=payload, params=params)
 
@@ -908,7 +981,7 @@ def fanout_generate(
         detail = resp.json().get("detail", resp.text)
         if isinstance(detail, dict):
             detail = detail.get("message", str(detail))
-        console.print(f"[red]Error ({resp.status_code}): {detail}[/red]")
+        log_console.print(f"[red]Error ({resp.status_code}): {detail}[/red]")
         raise typer.Exit(1)
 
     data = resp.json()
