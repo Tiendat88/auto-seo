@@ -4,7 +4,7 @@ import asyncio
 import hashlib
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.aeo.checks import (
@@ -18,7 +18,7 @@ from app.aeo.models import AeoRequest, AeoResponse, FanOutRequest, FanOutRespons
 from app.aeo.parser import get_content
 from app.aeo.store import save_aeo_analysis
 from app.db import get_session
-from app.errors import ContentFetchError, LlmError
+from app.errors import ContentFetchError, LlmError, raise_fetch_failed, raise_llm_unavailable
 from app.llm import LlmClient
 
 log = logging.getLogger(__name__)
@@ -38,10 +38,7 @@ async def analyze(
     try:
         content = await get_content(request.input_type, request.input_value)
     except ContentFetchError as exc:
-        raise HTTPException(
-            status_code=422,
-            detail={"error": "url_fetch_failed", "message": str(exc)},
-        )
+        raise_fetch_failed(exc)
 
     checks = [
         check_direct_answer(content),
@@ -78,14 +75,7 @@ async def fanout(
         sub_queries, model_used = await generate_sub_queries(request.target_query, llm)
     except LlmError as exc:
         log.error("Fan-out LLM failure: %s", exc)
-        raise HTTPException(
-            status_code=503,
-            detail={
-                "error": "llm_unavailable",
-                "message": "Fan-out generation failed.",
-                "detail": str(exc),
-            },
-        )
+        raise_llm_unavailable("Fan-out generation", exc)
 
     # Resolve content for gap analysis: existing_content takes priority, then content_url
     content_text = request.existing_content
@@ -95,10 +85,7 @@ async def fanout(
             parsed = await get_content("url", content_url)
             content_text = parsed.text
         except ContentFetchError as exc:
-            raise HTTPException(
-                status_code=422,
-                detail={"error": "url_fetch_failed", "message": str(exc)},
-            )
+            raise_fetch_failed(exc)
 
     gap_summary = None
     if content_text:
@@ -108,14 +95,7 @@ async def fanout(
             )
         except LlmError as exc:
             log.error("Fan-out gap analysis failure: %s", exc)
-            raise HTTPException(
-                status_code=503,
-                detail={
-                    "error": "embedding_unavailable",
-                    "message": "Fan-out gap analysis failed.",
-                    "detail": str(exc),
-                },
-            )
+            raise_llm_unavailable("Fan-out gap analysis", exc)
 
     response = FanOutResponse(
         target_query=request.target_query,

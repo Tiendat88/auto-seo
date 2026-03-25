@@ -4,12 +4,11 @@ Uses real web UIs — no API keys needed, responses match what a real user sees.
 Slower than API calls but gives the most authentic platform responses.
 """
 
-from __future__ import annotations
-
 import asyncio
 import logging
 from typing import TYPE_CHECKING, Any
 
+from app.brand.gather import gather_partial
 from app.brand.models import PlatformResponse
 from app.errors import LlmError
 
@@ -19,6 +18,7 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 
 _BROWSER_ARGS = ["--disable-blink-features=AutomationControlled"]
+_INPUT_SETTLE_MS = 300
 _USER_AGENT = (
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
     "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
@@ -28,7 +28,7 @@ _USER_AGENT = (
 async def _new_context(
     playwright_instance: Any,
     headless: bool = False,
-) -> BrowserContext:
+) -> "BrowserContext":
     try:
         browser = await playwright_instance.chromium.launch(
             headless=headless, args=_BROWSER_ARGS,
@@ -93,7 +93,7 @@ async def _wait_for_enabled_input(
 # ---------------------------------------------------------------------------
 
 
-async def _fetch_perplexity(ctx: BrowserContext, query: str) -> PlatformResponse:
+async def _fetch_perplexity(ctx: "BrowserContext", query: str) -> PlatformResponse:
     page = await ctx.new_page()
     try:
         await page.goto("https://www.perplexity.ai/", timeout=30000)
@@ -107,7 +107,7 @@ async def _fetch_perplexity(ctx: BrowserContext, query: str) -> PlatformResponse
 
         await inputs[0].click()
         await inputs[0].fill(query)
-        await page.wait_for_timeout(300)
+        await page.wait_for_timeout(_INPUT_SETTLE_MS)
         await page.keyboard.press("Enter")
 
         # Wait for navigation to search results page
@@ -126,7 +126,7 @@ async def _fetch_perplexity(ctx: BrowserContext, query: str) -> PlatformResponse
         await page.close()
 
 
-async def _fetch_chatgpt(ctx: BrowserContext, query: str) -> PlatformResponse:
+async def _fetch_chatgpt(ctx: "BrowserContext", query: str) -> PlatformResponse:
     page = await ctx.new_page()
     try:
         await page.goto("https://chatgpt.com/", timeout=30000)
@@ -138,7 +138,7 @@ async def _fetch_chatgpt(ctx: BrowserContext, query: str) -> PlatformResponse:
 
         await textarea.click()
         await textarea.fill(query)
-        await page.wait_for_timeout(300)
+        await page.wait_for_timeout(_INPUT_SETTLE_MS)
 
         send = await page.query_selector(
             'button[data-testid="send-button"]'
@@ -174,7 +174,7 @@ async def _fetch_chatgpt(ctx: BrowserContext, query: str) -> PlatformResponse:
         await page.close()
 
 
-async def _fetch_gemini(ctx: BrowserContext, query: str) -> PlatformResponse:
+async def _fetch_gemini(ctx: "BrowserContext", query: str) -> PlatformResponse:
     page = await ctx.new_page()
     try:
         await page.goto("https://gemini.google.com/", timeout=30000)
@@ -186,7 +186,7 @@ async def _fetch_gemini(ctx: BrowserContext, query: str) -> PlatformResponse:
 
         await editors[0].click()
         await page.keyboard.type(query, delay=20)
-        await page.wait_for_timeout(300)
+        await page.wait_for_timeout(_INPUT_SETTLE_MS)
 
         send = await page.query_selector(
             'button[aria-label*="Send"], button[aria-label*="send"]'
@@ -215,7 +215,7 @@ async def _fetch_gemini(ctx: BrowserContext, query: str) -> PlatformResponse:
         await page.close()
 
 
-async def _fetch_grok(ctx: BrowserContext, query: str) -> PlatformResponse:
+async def _fetch_grok(ctx: "BrowserContext", query: str) -> PlatformResponse:
     page = await ctx.new_page()
     try:
         await page.goto("https://grok.com/", timeout=30000)
@@ -230,7 +230,7 @@ async def _fetch_grok(ctx: BrowserContext, query: str) -> PlatformResponse:
 
         await inputs[0].click()
         await inputs[0].fill(query)
-        await page.wait_for_timeout(300)
+        await page.wait_for_timeout(_INPUT_SETTLE_MS)
 
         submit = page.get_by_role("button", name="Submit")
         if await submit.count() == 0:
@@ -300,25 +300,6 @@ async def fetch_browser_responses(
                 if name in _FETCHERS
             }
 
-            results: list[PlatformResponse] = []
-            errors: list[str] = []
-
-            for name, task in tasks.items():
-                try:
-                    results.append(await task)
-                except Exception as exc:
-                    log.warning("Browser fetch from %s failed: %s", name, exc)
-                    errors.append(f"{name}: {exc}")
-
-            if not results:
-                raise LlmError(
-                    f"All browser fetches failed: {'; '.join(errors)}"
-                )
-            if errors:
-                log.warning(
-                    "Some browser fetches failed: %s", "; ".join(errors),
-                )
-
-            return results
+            return await gather_partial(tasks, "browser")
         finally:
             await ctx.browser.close()  # type: ignore[union-attr]

@@ -204,5 +204,5 @@ class TestAeoFanout:
 
         assert resp.status_code == 503
         detail = resp.json()["detail"]
-        assert detail["error"] == "embedding_unavailable"
+        assert detail["error"] == "llm_unavailable"
         assert "Voyage down" in detail["detail"]

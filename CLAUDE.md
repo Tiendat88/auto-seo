@@ -11,8 +11,8 @@ SEO article generator plus AEO and brand-monitor utilities. FastAPI backend + Ty
 - **CLI**: Typer + Rich (`autoseo` project script; use `uv run autoseo ...` in a synced checkout)
 - **Cache**: Redis (`app/cache.py`)
 - **Deps**: `textstat`, `google-genai`, `openai`, `openai-codex-sdk`, `firecrawl-py`, `playwright`, `spacy`, `voyageai`, `beautifulsoup4`
-- **Lint**: `ruff` (line-length=100, rules: E/F/I/N/W), `pyright` strict (`pyrightconfig.json`)
-- **Tests**: pytest + pytest-asyncio (`asyncio_mode="auto"`), **226 tests** across 13 files
+- **Lint**: `ruff` (line-length=100, rules: E/F/I/N/W), `pyright` strict (`pyrightconfig.json`; third-party noise rules disabled — see config)
+- **Tests**: pytest + pytest-asyncio (`asyncio_mode="auto"`), **249 tests** across 13 files
 
 ## Architecture
 
@@ -104,7 +104,7 @@ Post-processes articles after generation and editing. Returns `(ArticleContent, 
 uv sync --extra dev --python 3.12
 uv run ruff check app/ tests/
 uvx pyright
-uv run pytest tests/ -x -q                      # Full suite (226 tests; requires en_core_web_sm)
+uv run pytest tests/ -x -q                      # Full suite (249 tests; requires en_core_web_sm)
 uv run python -m spacy download en_core_web_sm  # Required for AEO checks/full suite
 uv run playwright install chromium              # Required for brand browser mode
 uv run uvicorn app.main:app --workers 2         # Agent SDK blocks the event loop
@@ -177,6 +177,8 @@ Fresh databases auto-create on startup, and Postgres startup is serialized with 
 - **Brand browser mode needs Chromium binaries**: The Playwright Python package is in project deps, but `playwright install chromium` is still required
 - **Brand API fetches use provider SDKs directly**: `app/brand/fetcher.py` uses `openai.AsyncOpenAI` for both OpenAI and Perplexity-compatible APIs
 - **`claim_job_for_resume` requires `session.refresh()`**: Without it, `_job_to_response` can trigger `MissingGreenlet`
+- **`from google import genai` needs `# type: ignore[reportAttributeAccessIssue]`**: The `google` namespace package doesn't expose `genai` in stubs; all `google.genai` imports require inline suppression
+- **pyright runs outside venv via `uvx`**: Third-party type noise is disabled in `pyrightconfig.json` (`reportMissingImports`, `reportMissingTypeStubs`, `reportUntypedBaseClass`, `reportUntypedFunctionDecorator`, `reportMissingParameterType`, `reportPrivateUsage`)
 
 ## Testing patterns
 

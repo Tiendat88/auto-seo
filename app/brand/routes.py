@@ -1,14 +1,18 @@
 """Brand Monitor API endpoints."""
 
 import logging
-from typing import Any
 
 from fastapi import APIRouter, HTTPException
 
 from app.brand.analyzer import analyze_brand
 from app.brand.fetcher import fetch_platform_responses
-from app.brand.models import BrandMonitorRequest, BrandMonitorResponse, FetchMode
-from app.errors import LlmError
+from app.brand.models import (
+    BrandMonitorRequest,
+    BrandMonitorResponse,
+    FetchMode,
+    PlatformResponse,
+)
+from app.errors import LlmError, raise_llm_unavailable
 from app.llm import LlmClient
 
 log = logging.getLogger(__name__)
@@ -17,7 +21,7 @@ router = APIRouter(prefix="/brand-monitor", tags=["brand-monitor"])
 
 async def _auto_fetch(
     request: BrandMonitorRequest,
-) -> list[Any]:
+) -> list[PlatformResponse]:
     """Fetch responses from AI platforms, skipping any already pasted."""
     pasted = {pr.platform for pr in request.platform_responses}
 
@@ -55,18 +59,9 @@ async def analyze(request: BrandMonitorRequest) -> BrandMonitorResponse:
             ),
         )
 
-    request.platform_responses = all_responses
-
     llm = LlmClient()
     try:
-        return await analyze_brand(request, llm=llm)
+        return await analyze_brand(request, llm=llm, responses=all_responses)
     except LlmError as exc:
         log.error("Brand analysis LLM failure: %s", exc)
-        raise HTTPException(
-            status_code=503,
-            detail={
-                "error": "llm_unavailable",
-                "message": "Brand analysis failed.",
-                "detail": str(exc),
-            },
-        )
+        raise_llm_unavailable("Brand analysis", exc)

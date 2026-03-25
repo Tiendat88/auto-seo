@@ -5,13 +5,20 @@ import logging
 import re
 import statistics
 import time
-from collections import defaultdict
+from collections import Counter, defaultdict
 from collections.abc import Callable, Coroutine
+from functools import partial
 from typing import Any
 
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.article.constants import (
+    BOLD_BULLET_MARKER_RE,
+    ORDERED_LIST_MARKER_RE,
+    SENTENCE_END_RE,
+    toggle_fence_state,
+)
 from app.article.models import (
     ArticleContent,
     ArticleOutline,
@@ -40,6 +47,7 @@ from app.article.prompts import (
     analysis_prompt,
     depth_differentiation_score_prompt,
     edit_prompt,
+    extract_competitor_headings,
     format_brief,
     generate_article_prompt,
     links_prompt,
@@ -60,7 +68,7 @@ from app.article.scorer import (
     score_readability,
     score_word_count,
 )
-from app.article.scrubber import scrub_article
+from app.article.scrubber import ScrubStats, scrub_article
 from app.config import settings
 from app.errors import StepError
 from app.job.models import Job, JobStatus
@@ -69,6 +77,9 @@ from app.serp.client import SerpProvider
 from app.serp.models import SerpResult
 
 log = logging.getLogger(__name__)
+
+_SERIOUS_SEVERITIES = frozenset({ReviewSeverity.CRITICAL, ReviewSeverity.MAJOR})
+_STRUCTURED_TEXT_CHAR_LIMIT = 20_000
 
 StepFn = Callable[
     [Job, AsyncSession, LlmClient, SerpProvider],
@@ -142,8 +153,6 @@ async def planning_step(
         tasks = []
         for provider in council:
             if settings.firecrawl_api_key:
-                from functools import partial
-
                 from app.article.tools import RESEARCH_TOOLS, handle_tool_call
 
                 allowed_domains = {r.domain for r in serp_data.results}
@@ -197,8 +206,6 @@ async def planning_step(
     job.current_step = "planning:outline"
     session.add(job)
     await session.commit()
-
-    from app.article.prompts import extract_competitor_headings
 
     competitor_headings = extract_competitor_headings(serp_data)
     brand_voice = job.get_brand_voice()
@@ -345,8 +352,8 @@ async def score_step(
     session.add(job)
     await session.commit()
     brief = outline.brief
-    structured_text = structured_article_text(article, 20000)
-    brief_text = format_brief(brief) if brief else ""
+    structured_text = structured_article_text(article, _STRUCTURED_TEXT_CHAR_LIMIT)
+    brief_text = format_brief(brief)
 
     score_prompts = [
         depth_differentiation_score_prompt(structured_text, brief_text),
@@ -425,7 +432,7 @@ async def review_step(
         raise StepError("Cannot review without article and outline")
 
     brief = outline.brief
-    structured_text = structured_article_text(article, 20000)
+    structured_text = structured_article_text(article, _STRUCTURED_TEXT_CHAR_LIMIT)
     headings = [h.text for h in outline.headings]
     prompt = review_prompt(structured_text, headings, brief, job.target_word_count)
 
@@ -446,7 +453,7 @@ async def review_step(
             provider_name = council[i].backend
             n_issues = len(r.issues)
             critical = sum(
-                1 for x in r.issues if x.severity in ("critical", "major")
+                1 for x in r.issues if x.severity in _SERIOUS_SEVERITIES
             )
             job.append_event(
                 "reviewing", "result",
@@ -476,7 +483,7 @@ async def review_step(
 
     # Build revision instructions from merged issues
     if not review.passed:
-        actionable = [i for i in review.issues if i.severity in ("critical", "major")]
+        actionable = [i for i in review.issues if i.severity in _SERIOUS_SEVERITIES]
         if actionable:
             review.revision_instructions = "; ".join(
                 f"[{i.category}] {i.description} -> {i.suggestion}" for i in actionable
@@ -497,7 +504,7 @@ async def edit_step(
     if not article or not outline or not quality:
         raise StepError("Cannot edit without article, outline, and quality data")
 
-    structured_text = structured_article_text(article, 20000)
+    structured_text = structured_article_text(article, _STRUCTURED_TEXT_CHAR_LIMIT)
     brief = outline.brief
     prompt = edit_prompt(
         structured_text, brief, quality.dimensions, review,
@@ -534,9 +541,6 @@ async def edit_step(
 
 
 _HEADING_LINE_RE = re.compile(r"^(#{1,3})\s+(.+?)\s*$")
-_FENCE_RE = re.compile(r"^\s*([`~]{3,})")
-_ORDERED_LIST_MARKER_RE = re.compile(r"(?<!\S)\d+\.\s+")
-_BOLD_BULLET_MARKER_RE = re.compile(r"(?<!\S)(?:[-*])\s+\*\*[^:\n]{1,80}:\*\*\s+")
 _COMMAND_HEADING_RE = re.compile(
     r"^(?:[`$]|(?:uv|pip|npm|npx|brew|curl|export)\s+|python\s+-m\b)",
     re.IGNORECASE,
@@ -664,7 +668,7 @@ def _split_markdown_chunks(markdown: str) -> list[tuple[str, str, str]]:
         else:
             preamble.append(line)
 
-        in_fence, fence_char, fence_len = _toggle_fence_state(
+        in_fence, fence_char, fence_len = toggle_fence_state(
             line, in_fence, fence_char, fence_len
         )
 
@@ -675,26 +679,6 @@ def _split_markdown_chunks(markdown: str) -> list[tuple[str, str, str]]:
     return chunks
 
 
-def _toggle_fence_state(
-    line: str,
-    in_fence: bool,
-    fence_char: str,
-    fence_len: int,
-) -> tuple[bool, str, int]:
-    match = _FENCE_RE.match(line)
-    if not match:
-        return in_fence, fence_char, fence_len
-
-    marker = match.group(1)
-    char = marker[0]
-    length = len(marker)
-    if not in_fence:
-        return True, char, length
-    if char == fence_char and length >= fence_len:
-        return False, "", 0
-    return in_fence, fence_char, fence_len
-
-
 # --- Helpers ---
 
 
@@ -702,7 +686,7 @@ def _section_summaries(sections: list[ArticleSection]) -> list[tuple[str, str]]:
     """Extract (heading, first_sentences) pairs for prompt context."""
     result = []
     for s in sections:
-        sentences = s.content.split(".")
+        sentences = SENTENCE_END_RE.split(s.content)
         summary = ". ".join(sentences[:2]).strip()
         if summary and not summary.endswith("."):
             summary += "."
@@ -734,7 +718,7 @@ def _resolve_article_writer(
     return writer, True
 
 
-def _format_scrub_stats(stats: Any) -> str:
+def _format_scrub_stats(stats: ScrubStats) -> str:
     """Build a compact scrubber event summary."""
     return (
         f"Scrubbed: {stats.filler_removed} fillers removed, "
@@ -750,8 +734,6 @@ def _merge_competitive_analyses(
     analyses: list[CompetitiveAnalysis],
 ) -> CompetitiveAnalysis:
     """Merge multiple competitive analyses by consensus."""
-    from collections import Counter
-
     # Primary keyword: majority vote
     primaries = Counter(a.keywords.primary.lower() for a in analyses)
     primary = primaries.most_common(1)[0][0]
@@ -860,7 +842,7 @@ def _merge_reviews(reviews: list[ReviewResult]) -> ReviewResult:
         all_strengths.extend(r.strengths)
 
     unique_strengths = list(dict.fromkeys(all_strengths))
-    has_serious = any(i.severity in ("critical", "major") for i in all_issues)
+    has_serious = any(i.severity in _SERIOUS_SEVERITIES for i in all_issues)
     passed = not has_serious
 
     return ReviewResult(
@@ -902,7 +884,7 @@ def _merge_structural_review_issues(
             combined_issues.append(issue)
             seen.add(key)
 
-    serious = any(i.severity in ("critical", "major") for i in combined_issues)
+    serious = any(i.severity in _SERIOUS_SEVERITIES for i in combined_issues)
     summary_suffix = f"Structural validation found {len(issues)} issue(s)."
     summary = f"{review.summary} | {summary_suffix}" if review.summary else summary_suffix
 
@@ -992,7 +974,7 @@ def _validate_block_markdown(
             affected_section=section_name,
             suggestion="Close the code fence and keep all code lines inside the fenced block.",
         ))
-    if _has_collapsed_ordered_list(text):
+    if _has_collapsed_pattern(text, ORDERED_LIST_MARKER_RE):
         add_issue(ReviewIssue(
             category="markdown_structure",
             severity=ReviewSeverity.MAJOR,
@@ -1003,7 +985,7 @@ def _validate_block_markdown(
                 "renders correctly."
             ),
         ))
-    if _has_collapsed_bullet_run(text):
+    if _has_collapsed_pattern(text, BOLD_BULLET_MARKER_RE):
         add_issue(ReviewIssue(
             category="markdown_structure",
             severity=ReviewSeverity.MAJOR,
@@ -1018,37 +1000,23 @@ def _has_unmatched_code_fence(text: str) -> bool:
     fence_char = ""
     fence_len = 0
     for line in text.splitlines():
-        in_fence, fence_char, fence_len = _toggle_fence_state(
+        in_fence, fence_char, fence_len = toggle_fence_state(
             line, in_fence, fence_char, fence_len
         )
     return in_fence
 
 
-def _has_collapsed_ordered_list(text: str) -> bool:
+def _has_collapsed_pattern(text: str, pattern: re.Pattern[str]) -> bool:
+    """Check if a list pattern appears collapsed (multiple items on one line)."""
     in_fence = False
     fence_char = ""
     fence_len = 0
     for line in text.splitlines():
         if not in_fence:
-            matches = list(_ORDERED_LIST_MARKER_RE.finditer(line))
+            matches = list(pattern.finditer(line))
             if len(matches) >= 2 and not line[:matches[0].start()].strip():
                 return True
-        in_fence, fence_char, fence_len = _toggle_fence_state(
-            line, in_fence, fence_char, fence_len
-        )
-    return False
-
-
-def _has_collapsed_bullet_run(text: str) -> bool:
-    in_fence = False
-    fence_char = ""
-    fence_len = 0
-    for line in text.splitlines():
-        if not in_fence:
-            matches = list(_BOLD_BULLET_MARKER_RE.finditer(line))
-            if len(matches) >= 2 and not line[:matches[0].start()].strip():
-                return True
-        in_fence, fence_char, fence_len = _toggle_fence_state(
+        in_fence, fence_char, fence_len = toggle_fence_state(
             line, in_fence, fence_char, fence_len
         )
     return False
@@ -1065,7 +1033,7 @@ def _completion_warning_detail(
             f"({quality.overall:.3f} < {settings.quality_threshold:.3f})"
         )
     if review and not review.passed:
-        serious = sum(1 for issue in review.issues if issue.severity in ("critical", "major"))
+        serious = sum(1 for issue in review.issues if issue.severity in _SERIOUS_SEVERITIES)
         if serious:
             parts.append(f"{serious} major/critical review issues remain")
     if not parts:

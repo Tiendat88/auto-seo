@@ -34,6 +34,8 @@ _LLM_RETRY = retry(
     reraise=True,
 )
 
+_LLM_CACHE_TTL = 3600
+
 # SDK options shared between text + structured paths
 _SDK_DISALLOWED_TOOLS = [
     "Bash", "Read", "Write", "Edit", "Glob", "Grep",
@@ -120,6 +122,12 @@ class LlmClient:
         self._usage: list[TokenUsage] = []
         self._call_log: list[dict] = []
 
+    def _require_client(self, client: Any, name: str) -> Any:
+        """Raise LlmError if the backend client is not initialized."""
+        if client is None:
+            raise LlmError(f"{name} client not initialized (backend={self.backend})")
+        return client
+
     @property
     def model_name(self) -> str:
         """Public read-only access to the model identifier."""
@@ -187,8 +195,12 @@ class LlmClient:
 
     def _record_codex_usage(self, turn: Any) -> None:
         """Extract usage from Codex turn."""
-        in_tok = turn.usage.input_tokens + turn.usage.cached_input_tokens
-        self._record_usage(in_tok, turn.usage.output_tokens)
+        if turn.usage:
+            in_tok = (
+                getattr(turn.usage, "input_tokens", 0)
+                + getattr(turn.usage, "cached_input_tokens", 0)
+            )
+            self._record_usage(in_tok, getattr(turn.usage, "output_tokens", 0))
 
     def _sdk_options(self, **overrides: Any) -> Any:
         """Build ClaudeAgentOptions with shared defaults."""
@@ -282,9 +294,7 @@ class LlmClient:
             raise LlmError(f"LLM text generation failed: {e}") from e
 
     async def _generate_via_api(self, prompt: str, max_tokens: int) -> str:
-        if self._client is None:
-            raise LlmError(f"Anthropic client not initialized (backend={self.backend})")
-        client = self._client
+        client = self._require_client(self._client, "Anthropic")
 
         @_LLM_RETRY
         async def _call() -> str:
@@ -328,9 +338,7 @@ class LlmClient:
         return await _call()
 
     async def _generate_via_codex(self, prompt: str) -> str:
-        if self._codex_client is None:
-            raise LlmError(f"Codex client not initialized (backend={self.backend})")
-        codex_client = self._codex_client
+        codex_client = self._require_client(self._codex_client, "Codex")
 
         @_LLM_RETRY
         async def _call() -> str:
@@ -347,9 +355,7 @@ class LlmClient:
 
     async def _generate_via_gemini(self, prompt: str, max_tokens: int) -> str:
         from google.genai import types  # type: ignore[reportAttributeAccessIssue]
-        if self._gemini_client is None:
-            raise LlmError(f"Gemini client not initialized (backend={self.backend})")
-        gemini_client = self._gemini_client
+        gemini_client = self._require_client(self._gemini_client, "Gemini")
 
         @_LLM_RETRY
         async def _call() -> str:
@@ -389,9 +395,7 @@ class LlmClient:
         return await _call()
 
     async def _generate_structured_via_codex(self, prompt: str, schema: type[T]) -> T:
-        if self._codex_client is None:
-            raise LlmError(f"Codex client not initialized (backend={self.backend})")
-        codex_client = self._codex_client
+        codex_client = self._require_client(self._codex_client, "Codex")
 
         @_LLM_RETRY
         async def _call() -> T:
@@ -411,9 +415,7 @@ class LlmClient:
         self, prompt: str, schema: type[T], max_tokens: int,
     ) -> T:
         from google.genai import types  # type: ignore[reportAttributeAccessIssue]
-        if self._gemini_client is None:
-            raise LlmError(f"Gemini client not initialized (backend={self.backend})")
-        gemini_client = self._gemini_client
+        gemini_client = self._require_client(self._gemini_client, "Gemini")
 
         @_LLM_RETRY
         async def _call() -> T:
@@ -473,7 +475,7 @@ class LlmClient:
                     f"Structured output failed ({self.backend}): {e}"
                 ) from e
             if use_cache:
-                await cache.set(ck, result.model_dump_json(), ttl=3600)
+                await cache.set(ck, result.model_dump_json(), ttl=_LLM_CACHE_TTL)
             return result
 
         # Anthropic API: JSON-in-prompt with validation retry
@@ -505,7 +507,7 @@ class LlmClient:
                 ) from e2
 
         if use_cache:
-            await cache.set(ck, result.model_dump_json(), ttl=3600)
+            await cache.set(ck, result.model_dump_json(), ttl=_LLM_CACHE_TTL)
 
         return result
 
@@ -537,8 +539,7 @@ class LlmClient:
         self, prompt: str, tools: list[dict], tool_handler: Callable,
         schema: type[T], max_tool_rounds: int = 5,
     ) -> T:
-        if self._client is None:
-            raise LlmError(f"Anthropic client not initialized (backend={self.backend})")
+        client = self._require_client(self._client, "Anthropic")
         schema_json = json.dumps(schema.model_json_schema(), indent=2)
         system = (
             f"You have research tools available. Use them to gather data, "
@@ -548,7 +549,7 @@ class LlmClient:
 
         for round_num in range(max_tool_rounds):
             self._log_call("llm_start", f"Tool round {round_num + 1}")
-            response = await self._client.messages.create(
+            response = await client.messages.create(
                 model=self._model,
                 max_tokens=4096,
                 system=system,
@@ -590,8 +591,7 @@ class LlmClient:
         schema: type[T], max_tool_rounds: int = 5,
     ) -> T:
         from google.genai import types  # type: ignore[reportAttributeAccessIssue]
-        if self._gemini_client is None:
-            raise LlmError(f"Gemini client not initialized (backend={self.backend})")
+        gemini_client = self._require_client(self._gemini_client, "Gemini")
 
         gemini_tools = [types.Tool(function_declarations=[
             types.FunctionDeclaration(
@@ -612,7 +612,7 @@ class LlmClient:
 
         for _ in range(max_tool_rounds):
             self._log_call("llm_start", f"Calling {self.backend} ({self._model})")
-            response = await self._gemini_client.aio.models.generate_content(
+            response = await gemini_client.aio.models.generate_content(
                 model=self._model,
                 contents=contents,
                 config=types.GenerateContentConfig(tools=gemini_tools),

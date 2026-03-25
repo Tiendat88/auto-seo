@@ -49,10 +49,10 @@ async def _fetch_firecrawl(url: str) -> ParsedContent:
     else:
         try:
             result = await fetch_page_full(url)
+        except ContentFetchError:
+            raise
         except Exception as exc:
-            if isinstance(exc, ContentFetchError):
-                raise
-            raise ContentFetchError(f"Firecrawl fetch failed: {exc}")
+            raise ContentFetchError(f"Firecrawl fetch failed: {exc}") from exc
         await set_cached_fetch(url, result)
 
     html = result["html"]
@@ -84,12 +84,12 @@ async def _fetch_httpx(url: str) -> str:
             resp = await client.get(url)
             resp.raise_for_status()
             return resp.text
-    except httpx.TimeoutException:
-        raise ContentFetchError(f"Connection timeout after {_FETCH_TIMEOUT}s")
+    except httpx.TimeoutException as exc:
+        raise ContentFetchError(f"Connection timeout after {_FETCH_TIMEOUT}s") from exc
     except httpx.HTTPStatusError as exc:
-        raise ContentFetchError(f"HTTP {exc.response.status_code} from {url}")
+        raise ContentFetchError(f"HTTP {exc.response.status_code} from {url}") from exc
     except httpx.RequestError as exc:
-        raise ContentFetchError(f"Request failed: {exc}")
+        raise ContentFetchError(f"Request failed: {exc}") from exc
 
 
 async def _fetch_httpx_cached(url: str) -> ParsedContent:

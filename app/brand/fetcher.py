@@ -10,6 +10,7 @@ import logging
 
 from tenacity import retry, stop_after_attempt, wait_exponential
 
+from app.brand.gather import gather_partial
 from app.brand.models import PlatformResponse
 from app.config import settings
 from app.errors import LlmError
@@ -102,20 +103,4 @@ async def fetch_platform_responses(
             "Set PERPLEXITY_API_KEY, OPENAI_API_KEY, or GOOGLE_API_KEY."
         )
 
-    results: list[PlatformResponse] = []
-    errors: list[str] = []
-
-    for name, task in tasks.items():
-        try:
-            results.append(await task)
-        except Exception as exc:
-            log.warning("Failed to fetch from %s: %s", name, exc)
-            errors.append(f"{name}: {exc}")
-
-    if not results:
-        raise LlmError(f"All platform fetches failed: {'; '.join(errors)}")
-
-    if errors:
-        log.warning("Some platforms failed: %s", "; ".join(errors))
-
-    return results
+    return await gather_partial(tasks, "API")

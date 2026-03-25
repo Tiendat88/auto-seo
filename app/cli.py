@@ -18,6 +18,11 @@ console = Console()
 log_console = Console(stderr=True)
 
 DEFAULT_API_URL = "http://localhost:8000"
+_DEFAULT_TIMEOUT = 30
+
+_SENTIMENT_STYLES: dict[str, str] = {
+    "positive": "green", "neutral": "yellow", "negative": "red",
+}
 
 STAGES: list[tuple[str, str, str]] = [
     ("researching", "Research", "serp_data"),
@@ -106,6 +111,25 @@ def _is_verbose(ctx: typer.Context) -> bool:
     return False
 
 
+def _check_response(resp: httpx.Response) -> dict:
+    """Check HTTP response and return JSON or exit with error."""
+    if resp.status_code != 200:
+        detail = resp.json().get("detail", resp.text)
+        if isinstance(detail, dict):
+            detail = detail.get("message", str(detail))
+        log_console.print(f"[red]Error ({resp.status_code}): {detail}[/red]")
+        raise typer.Exit(1)
+    return resp.json()
+
+
+def _get_job(url: str, job_id: str) -> dict:
+    """GET a job by ID and return its JSON data."""
+    with httpx.Client(timeout=_DEFAULT_TIMEOUT) as client:
+        resp = client.get(f"{url}/api/jobs/{job_id}")
+        resp.raise_for_status()
+        return resp.json()
+
+
 @app.callback(invoke_without_command=True)
 def main(
     ctx: typer.Context,
@@ -141,7 +165,7 @@ def generate(
     if brand_voice:
         bv_data = json.loads(brand_voice.read_text(encoding="utf-8"))
         payload["brand_voice"] = bv_data
-    with httpx.Client(timeout=30) as client:
+    with httpx.Client(timeout=_DEFAULT_TIMEOUT) as client:
         resp = client.post(f"{url}/api/jobs/", json=payload)
         resp.raise_for_status()
         data = resp.json()
@@ -163,10 +187,7 @@ def status(
 ) -> None:
     """Check job status."""
     url = _api_url(ctx)
-    with httpx.Client(timeout=30) as client:
-        resp = client.get(f"{url}/api/jobs/{job_id}")
-        resp.raise_for_status()
-        data = resp.json()
+    data = _get_job(url, job_id)
 
     _print_status(data)
 
@@ -180,10 +201,7 @@ def result(
 ) -> None:
     """Get completed job result."""
     url = _api_url(ctx)
-    with httpx.Client(timeout=30) as client:
-        resp = client.get(f"{url}/api/jobs/{job_id}")
-        resp.raise_for_status()
-        data = resp.json()
+    data = _get_job(url, job_id)
 
     if data["status"] != "completed":
         log_console.print(f"[yellow]Job is not completed (status: {data['status']})[/yellow]")
@@ -213,7 +231,7 @@ def list_jobs(
     if job_status:
         params["status"] = job_status
 
-    with httpx.Client(timeout=30) as client:
+    with httpx.Client(timeout=_DEFAULT_TIMEOUT) as client:
         resp = client.get(f"{url}/api/jobs/", params=params)
         resp.raise_for_status()
         data = resp.json()
@@ -248,10 +266,7 @@ def watch(
 ) -> None:
     """Watch a running job's progress."""
     url = _api_url(ctx)
-    with httpx.Client(timeout=30) as client:
-        resp = client.get(f"{url}/api/jobs/{job_id}")
-        resp.raise_for_status()
-        data = resp.json()
+    data = _get_job(url, job_id)
 
     if data["status"] == "completed":
         log_console.print("[green]Job already completed.[/green]")
@@ -275,7 +290,7 @@ def resume(
     """Resume a failed job."""
     url = _api_url(ctx)
     verbose = _is_verbose(ctx)
-    with httpx.Client(timeout=30) as client:
+    with httpx.Client(timeout=_DEFAULT_TIMEOUT) as client:
         resp = client.post(f"{url}/api/jobs/{job_id}/resume")
         if resp.status_code == 409:
             log_console.print("[yellow]Job is already running — watching progress...[/yellow]")
@@ -298,10 +313,7 @@ def export_article(
 ) -> None:
     """Export completed article to a markdown file."""
     url = _api_url(ctx)
-    with httpx.Client(timeout=30) as client:
-        resp = client.get(f"{url}/api/jobs/{job_id}")
-        resp.raise_for_status()
-        data = resp.json()
+    data = _get_job(url, job_id)
 
     if data["status"] != "completed":
         log_console.print(f"[red]Job is not completed (status: {data['status']})[/red]")
@@ -772,14 +784,7 @@ def brand(
         with httpx.Client(timeout=180) as client:
             resp = client.post(f"{url}/api/brand-monitor/analyze", json=payload)
 
-    if resp.status_code != 200:
-        detail = resp.json().get("detail", resp.text)
-        if isinstance(detail, dict):
-            detail = detail.get("message", str(detail))
-        log_console.print(f"[red]Error ({resp.status_code}): {detail}[/red]")
-        raise typer.Exit(1)
-
-    data = resp.json()
+    data = _check_response(resp)
 
     if json_out:
         console.print_json(json.dumps(data, indent=2))
@@ -793,11 +798,7 @@ def _render_brand_report(data: dict) -> None:
     agg = data["aggregate"]
 
     # Header
-    sentiment_style = {
-        "positive": "green",
-        "neutral": "yellow",
-        "negative": "red",
-    }.get(agg["overall_sentiment"], "white")
+    sentiment_style = _SENTIMENT_STYLES.get(agg["overall_sentiment"], "white")
 
     header = (
         f"[bold]{data['brand_name']}[/bold] — "
@@ -813,9 +814,7 @@ def _render_brand_report(data: dict) -> None:
     # Per-platform breakdown
     for pa in data["platform_analyses"]:
         sentiment = pa["sentiment"]
-        s_style = {"positive": "green", "neutral": "yellow", "negative": "red"}.get(
-            sentiment["overall"], "white",
-        )
+        s_style = _SENTIMENT_STYLES.get(sentiment["overall"], "white")
 
         # Platform header
         ctx_icon = {
@@ -840,9 +839,7 @@ def _render_brand_report(data: dict) -> None:
         aspects = sentiment.get("aspects", [])
         if aspects:
             for asp in aspects:
-                asp_style = {"positive": "green", "negative": "red"}.get(
-                    asp["sentiment"], "dim",
-                )
+                asp_style = _SENTIMENT_STYLES.get(asp["sentiment"], "dim")
                 console.print(
                     f"    [{asp_style}]{asp['sentiment'][0].upper()}[/{asp_style}] "
                     f"{asp['feature']}: {asp['detail']}"
@@ -923,17 +920,10 @@ def aeo_analyze(
         payload = {"input_type": "text", "input_value": input_value}
 
     with log_console.status("Running AEO checks..."):
-        with httpx.Client(timeout=30) as client:
+        with httpx.Client(timeout=_DEFAULT_TIMEOUT) as client:
             resp = client.post(f"{url}/api/aeo/analyze", json=payload)
 
-    if resp.status_code != 200:
-        detail = resp.json().get("detail", resp.text)
-        if isinstance(detail, dict):
-            detail = detail.get("message", str(detail))
-        log_console.print(f"[red]Error ({resp.status_code}): {detail}[/red]")
-        raise typer.Exit(1)
-
-    data = resp.json()
+    data = _check_response(resp)
 
     if json_out:
         console.print_json(json.dumps(data, indent=2))
@@ -977,14 +967,7 @@ def fanout_generate(
         with httpx.Client(timeout=120) as client:
             resp = client.post(f"{url}/api/aeo/fanout", json=payload, params=params)
 
-    if resp.status_code != 200:
-        detail = resp.json().get("detail", resp.text)
-        if isinstance(detail, dict):
-            detail = detail.get("message", str(detail))
-        log_console.print(f"[red]Error ({resp.status_code}): {detail}[/red]")
-        raise typer.Exit(1)
-
-    data = resp.json()
+    data = _check_response(resp)
 
     if json_out:
         console.print_json(json.dumps(data, indent=2))

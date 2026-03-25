@@ -6,8 +6,12 @@ from dataclasses import dataclass
 from app.article.constants import (
     AI_FILLER_OPENERS,
     AI_WORDS_RE,
+    BOLD_BULLET_MARKER_RE,
+    FENCE_RE,
+    ORDERED_LIST_MARKER_RE,
     SENTENCE_END_RE,
     ZERO_WIDTH_RE,
+    toggle_fence_state,
 )
 from app.article.models import ArticleContent, ArticleSection, FaqItem
 
@@ -15,10 +19,7 @@ _FILLER_RE = re.compile(
     r"(?:^|\.\s+)(" + "|".join(AI_FILLER_OPENERS) + ")",
     re.IGNORECASE | re.MULTILINE,
 )
-_FENCE_RE = re.compile(r"^\s*([`~]{3,})")
-_ORDERED_LIST_MARKER_RE = re.compile(r"(?<!\S)\d+\.\s+")
 _ORDERED_LIST_SPLIT_RE = re.compile(r"(?<=\S)\s+(?=\d+\.\s+)")
-_BOLD_BULLET_MARKER_RE = re.compile(r"(?<!\S)(?:[-*])\s+\*\*[^:\n]{1,80}:\*\*\s+")
 _BOLD_BULLET_SPLIT_RE = re.compile(
     r"(?<=\S)\s+(?=(?:[-*]\s+\*\*[^:\n]{1,80}:\*\*\s+))"
 )
@@ -42,26 +43,6 @@ class ScrubStats:
     code_fences_closed: int = 0
 
 
-def _toggle_fence_state(
-    line: str,
-    in_fence: bool,
-    fence_char: str,
-    fence_len: int,
-) -> tuple[bool, str, int]:
-    match = _FENCE_RE.match(line)
-    if not match:
-        return in_fence, fence_char, fence_len
-
-    marker = match.group(1)
-    char = marker[0]
-    length = len(marker)
-    if not in_fence:
-        return True, char, length
-    if char == fence_char and length >= fence_len:
-        return False, "", 0
-    return in_fence, fence_char, fence_len
-
-
 def _normalize_collapsed_lists(text: str, stats: ScrubStats) -> str:
     lines = text.splitlines()
     out: list[str] = []
@@ -71,14 +52,14 @@ def _normalize_collapsed_lists(text: str, stats: ScrubStats) -> str:
 
     for line in lines:
         if not in_fence:
-            ordered_matches = list(_ORDERED_LIST_MARKER_RE.finditer(line))
+            ordered_matches = list(ORDERED_LIST_MARKER_RE.finditer(line))
             if len(ordered_matches) >= 2 and not line[:ordered_matches[0].start()].strip():
                 normalized = _ORDERED_LIST_SPLIT_RE.sub("\n", line)
                 if normalized != line:
                     stats.ordered_lists_normalized += 1
                     line = normalized
 
-            bullet_matches = list(_BOLD_BULLET_MARKER_RE.finditer(line))
+            bullet_matches = list(BOLD_BULLET_MARKER_RE.finditer(line))
             if len(bullet_matches) >= 2 and not line[:bullet_matches[0].start()].strip():
                 normalized = _BOLD_BULLET_SPLIT_RE.sub("\n", line)
                 if normalized != line:
@@ -86,7 +67,7 @@ def _normalize_collapsed_lists(text: str, stats: ScrubStats) -> str:
                     line = normalized
 
         out.append(line)
-        in_fence, fence_char, fence_len = _toggle_fence_state(
+        in_fence, fence_char, fence_len = toggle_fence_state(
             line, in_fence, fence_char, fence_len
         )
 
@@ -98,7 +79,7 @@ def _close_unmatched_code_fence(text: str, stats: ScrubStats) -> str:
     fence_char = ""
     fence_len = 0
     for line in text.splitlines():
-        in_fence, fence_char, fence_len = _toggle_fence_state(
+        in_fence, fence_char, fence_len = toggle_fence_state(
             line, in_fence, fence_char, fence_len
         )
 
@@ -111,7 +92,7 @@ def _close_unmatched_code_fence(text: str, stats: ScrubStats) -> str:
 
 
 def _contains_code_fence(text: str) -> bool:
-    return any(_FENCE_RE.match(line) for line in text.splitlines())
+    return any(FENCE_RE.match(line) for line in text.splitlines())
 
 
 def _split_long_paragraphs(text: str, stats: ScrubStats) -> str:
@@ -156,12 +137,12 @@ def _cleanup_spacing(text: str) -> str:
     fence_len = 0
 
     for line in text.splitlines():
-        if in_fence or _FENCE_RE.match(line):
+        if in_fence or FENCE_RE.match(line):
             cleaned_lines.append(line.rstrip())
         else:
             compact = re.sub(r"  +", " ", line).rstrip()
             cleaned_lines.append(compact)
-        in_fence, fence_char, fence_len = _toggle_fence_state(
+        in_fence, fence_char, fence_len = toggle_fence_state(
             line, in_fence, fence_char, fence_len
         )
 

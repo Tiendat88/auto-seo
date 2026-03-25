@@ -48,3 +48,29 @@ VAGUE_WORDS = frozenset({
 })
 
 SENTENCE_END_RE = re.compile(r"(?<=[.!?])\s+")
+
+# Markdown fence / list structure patterns — shared by pipeline + scrubber
+FENCE_RE = re.compile(r"^\s*([`~]{3,})")
+ORDERED_LIST_MARKER_RE = re.compile(r"(?<!\S)\d+\.\s+")
+BOLD_BULLET_MARKER_RE = re.compile(r"(?<!\S)(?:[-*])\s+\*\*[^:\n]{1,80}:\*\*\s+")
+
+
+def toggle_fence_state(
+    line: str,
+    in_fence: bool,
+    fence_char: str,
+    fence_len: int,
+) -> tuple[bool, str, int]:
+    """Track fenced code block state across lines."""
+    match = FENCE_RE.match(line)
+    if not match:
+        return in_fence, fence_char, fence_len
+
+    marker = match.group(1)
+    char = marker[0]
+    length = len(marker)
+    if not in_fence:
+        return True, char, length
+    if char == fence_char and length >= fence_len:
+        return False, "", 0
+    return in_fence, fence_char, fence_len

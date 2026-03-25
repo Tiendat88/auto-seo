@@ -1,7 +1,7 @@
 """JSON-LD schema markup generation and featured snippet detection."""
 
 import re
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel
 
@@ -16,8 +16,8 @@ from app.article.models import (
 class SchemaMarkup(BaseModel):
     """JSON-LD schema markup for Article and FAQPage."""
 
-    article_schema: dict
-    faq_schema: dict | None = None
+    article_schema: dict[str, Any]
+    faq_schema: dict[str, Any] | None = None
 
 
 class SnippetOpportunity(BaseModel):

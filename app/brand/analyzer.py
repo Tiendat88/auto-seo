@@ -11,6 +11,7 @@ from app.brand.models import (
     LLMBrandAnalysis,
     MentionContext,
     PlatformAnalysis,
+    PlatformResponse,
     Sentiment,
 )
 from app.llm import LlmClient
@@ -211,12 +212,15 @@ def compute_aggregate(analyses: list[PlatformAnalysis]) -> AggregateSummary:
 
 
 async def analyze_brand(
-    request: BrandMonitorRequest, llm: LlmClient | None = None,
+    request: BrandMonitorRequest,
+    llm: LlmClient | None = None,
+    responses: list[PlatformResponse] | None = None,
 ) -> BrandMonitorResponse:
     """Analyze brand mentions across platforms. Each gets an isolated LLM call."""
     if llm is None:
         llm = LlmClient()
 
+    platform_responses = responses if responses is not None else list(request.platform_responses)
     tasks = [
         analyze_platform(
             llm=llm,
@@ -226,7 +230,7 @@ async def analyze_brand(
             response_text=pr.response_text,
             keywords=request.keywords,
         )
-        for pr in request.platform_responses
+        for pr in platform_responses
     ]
     analyses = list(await asyncio.gather(*tasks))
 

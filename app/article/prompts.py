@@ -183,7 +183,7 @@ def outline_prompt(
         f"- {g.topic}: {g.reason}" for g in analysis.content_gaps
     ) or "None identified"
 
-    brand_block = format_brand_voice(brand_voice) if brand_voice else ""
+    brand_block = format_brand_voice(brand_voice)
 
     headings_block = ""
     if competitor_headings:
@@ -253,8 +253,8 @@ def generate_article_prompt(
     content_gaps: list[ContentGap] | None = None,
 ) -> str:
     """Single-call prompt for full article + inline FAQ."""
-    brief_block = format_brief(outline.brief) if outline.brief else ""
-    brand_block = format_brand_voice(brand_voice) if brand_voice else ""
+    brief_block = format_brief(outline.brief)
+    brand_block = format_brand_voice(brand_voice)
 
     headings_block = "\n".join(
         f"- {h.level.value.upper()}: {h.text} (~{h.target_word_count} words)\n"
@@ -480,7 +480,16 @@ Return a JSON object matching the schema provided."""
 # --- Scoring Prompts ---
 
 
-def depth_differentiation_score_prompt(article_text: str, brief_text: str) -> str:
+def _score_pair_prompt(
+    article_text: str,
+    brief_text: str,
+    dim1: tuple[str, str, str, str],
+    dim2: tuple[str, str, str, str],
+) -> str:
+    """Build a scoring prompt for two quality dimensions.
+
+    Each dimension tuple: (name, label, description, scale).
+    """
     return f"""Rate this article on two quality dimensions (score 0.0 to 1.0 each).
 
 {brief_text}
@@ -490,15 +499,13 @@ Article:
 
 Score these two dimensions:
 
-1. **content_depth** (name: "content_depth"):
-   Does it thoroughly cover the expected themes? Does it go beyond surface-level treatment?
-   Are there specific details, examples, and nuanced discussion?
-   0.0 = superficial/generic, 1.0 = comprehensive expert coverage
+1. **{dim1[1]}** (name: "{dim1[0]}"):
+   {dim1[2]}
+   {dim1[3]}
 
-2. **differentiation** (name: "differentiation"):
-   Does this article offer unique value compared to typical competitor content?
-   Does it exploit content gaps? Does it have a distinct angle or perspective?
-   0.0 = generic rehash, 1.0 = uniquely valuable
+2. **{dim2[1]}** (name: "{dim2[0]}"):
+   {dim2[2]}
+   {dim2[3]}
 
 For each dimension, return:
 - name: exactly as specified above
@@ -508,60 +515,76 @@ For each dimension, return:
 Return JSON with a "dimensions" key containing exactly 2 objects."""
 
 
-def accuracy_consistency_score_prompt(article_text: str, brief_text: str) -> str:
-    return f"""Rate this article on two quality dimensions (score 0.0 to 1.0 each).
+_DIM_CONTENT_DEPTH = (
+    "content_depth", "content_depth",
+    "Does it thoroughly cover the expected themes? Does it go beyond "
+    "surface-level treatment?\n   Are there specific details, examples, "
+    "and nuanced discussion?",
+    "0.0 = superficial/generic, 1.0 = comprehensive expert coverage",
+)
+_DIM_DIFFERENTIATION = (
+    "differentiation", "differentiation",
+    "Does this article offer unique value compared to typical competitor "
+    "content?\n   Does it exploit content gaps? Does it have a distinct "
+    "angle or perspective?",
+    "0.0 = generic rehash, 1.0 = uniquely valuable",
+)
+_DIM_ACCURACY = (
+    "accuracy", "accuracy",
+    "Are claims factually plausible and internally consistent? Are there "
+    "contradictions?\n   Are statistics or data points reasonable? Does "
+    "it avoid making unsupported claims?",
+    "0.0 = contains contradictions/false claims, "
+    "1.0 = internally consistent and accurate",
+)
+_DIM_CONSISTENCY = (
+    "consistency", "consistency",
+    "Is the tone, style, and quality consistent throughout? Do all sections "
+    "feel like\n   they were written by the same author? Is terminology "
+    "used consistently?",
+    "0.0 = inconsistent/jarring, 1.0 = seamlessly consistent",
+)
+_DIM_READABILITY = (
+    "readability", "readability",
+    "Does it read naturally and engagingly? Does it vary sentence "
+    "structure?\n   Does it avoid AI-sounding filler phrases? "
+    "Is it easy to follow?",
+    "0.0 = robotic/hard to read, 1.0 = engaging natural prose",
+)
+_DIM_ACTIONABILITY = (
+    "actionability", "actionability",
+    "Can the reader DO something with this information? Are there "
+    "concrete examples,\n   step-by-step guidance, tools, or "
+    "frameworks they can apply?",
+    "0.0 = purely theoretical, 1.0 = immediately actionable",
+)
 
-{brief_text}
 
-Article:
-{article_text}
-
-Score these two dimensions:
-
-1. **accuracy** (name: "accuracy"):
-   Are claims factually plausible and internally consistent? Are there contradictions?
-   Are statistics or data points reasonable? Does it avoid making unsupported claims?
-   0.0 = contains contradictions/false claims, 1.0 = internally consistent and accurate
-
-2. **consistency** (name: "consistency"):
-   Is the tone, style, and quality consistent throughout? Do all sections feel like
-   they were written by the same author? Is terminology used consistently?
-   0.0 = inconsistent/jarring, 1.0 = seamlessly consistent
-
-For each dimension, return:
-- name: exactly as specified above
-- score: 0.0 to 1.0
-- feedback: specific, actionable feedback (what's good, what to improve)
-
-Return JSON with a "dimensions" key containing exactly 2 objects."""
+def depth_differentiation_score_prompt(
+    article_text: str, brief_text: str,
+) -> str:
+    return _score_pair_prompt(
+        article_text, brief_text,
+        _DIM_CONTENT_DEPTH, _DIM_DIFFERENTIATION,
+    )
 
 
-def readability_actionability_score_prompt(article_text: str, brief_text: str) -> str:
-    return f"""Rate this article on two quality dimensions (score 0.0 to 1.0 each).
+def accuracy_consistency_score_prompt(
+    article_text: str, brief_text: str,
+) -> str:
+    return _score_pair_prompt(
+        article_text, brief_text,
+        _DIM_ACCURACY, _DIM_CONSISTENCY,
+    )
 
-{brief_text}
 
-Article:
-{article_text}
-
-Score these two dimensions:
-
-1. **readability** (name: "readability"):
-   Does it read naturally and engagingly? Does it vary sentence structure?
-   Does it avoid AI-sounding filler phrases? Is it easy to follow?
-   0.0 = robotic/hard to read, 1.0 = engaging natural prose
-
-2. **actionability** (name: "actionability"):
-   Can the reader DO something with this information? Are there concrete examples,
-   step-by-step guidance, tools, or frameworks they can apply?
-   0.0 = purely theoretical, 1.0 = immediately actionable
-
-For each dimension, return:
-- name: exactly as specified above
-- score: 0.0 to 1.0
-- feedback: specific, actionable feedback (what's good, what to improve)
-
-Return JSON with a "dimensions" key containing exactly 2 objects."""
+def readability_actionability_score_prompt(
+    article_text: str, brief_text: str,
+) -> str:
+    return _score_pair_prompt(
+        article_text, brief_text,
+        _DIM_READABILITY, _DIM_ACTIONABILITY,
+    )
 
 
 # --- Edit Prompt ---
@@ -577,8 +600,8 @@ def edit_prompt(
     actual_word_count: int = 0,
 ) -> str:
     """Prompt for editing an article in place based on score and review feedback."""
-    brief_block = format_brief(brief) if brief else ""
-    brand_block = format_brand_voice(brand_voice) if brand_voice else ""
+    brief_block = format_brief(brief)
+    brand_block = format_brand_voice(brand_voice)
 
     scores_block = "\n".join(
         f"- {d.name}: {d.score:.2f} — {d.feedback}" for d in score_dimensions

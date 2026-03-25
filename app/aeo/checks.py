@@ -217,7 +217,8 @@ def check_readability(content: ParsedContent) -> CheckResult:
 def compute_aeo_score(checks: list[CheckResult]) -> tuple[int, str]:
     """Aggregate check scores into an overall AEO readiness score and band."""
     raw = sum(c.score for c in checks)
-    score = round(raw / 60 * 100)
+    max_possible = sum(c.max_score for c in checks)
+    score = round(raw / max_possible * 100) if max_possible else 0
     if score >= 85:
         band = "AEO Optimized"
     elif score >= 65:

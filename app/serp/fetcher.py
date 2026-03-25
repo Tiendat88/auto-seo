@@ -2,7 +2,9 @@
 
 import asyncio
 import logging
+from collections.abc import Callable
 from functools import lru_cache
+from typing import Any
 
 from firecrawl import Firecrawl
 
@@ -11,7 +13,14 @@ from app.config import settings
 log = logging.getLogger(__name__)
 
 _FETCH_TIMEOUT = 30
-_FETCH_SEMAPHORE = asyncio.Semaphore(2)
+_FETCH_SEMAPHORE: asyncio.Semaphore | None = None
+
+
+def _get_semaphore() -> asyncio.Semaphore:
+    global _FETCH_SEMAPHORE
+    if _FETCH_SEMAPHORE is None:
+        _FETCH_SEMAPHORE = asyncio.Semaphore(2)  # type: ignore[reportConstantRedefinition]
+    return _FETCH_SEMAPHORE
 
 
 @lru_cache(maxsize=1)
@@ -19,16 +28,21 @@ def _get_app() -> Firecrawl:
     return Firecrawl(api_key=settings.firecrawl_api_key)
 
 
-async def fetch_page_content(url: str, max_chars: int = 10000) -> tuple[str, int]:
-    """Fetch a URL's content as markdown via Firecrawl."""
-    async with _FETCH_SEMAPHORE:
-        app = _get_app()
-        result = await asyncio.wait_for(
-            asyncio.to_thread(
-                app.scrape, url, formats=["markdown"], only_main_content=True,
-            ),
+async def _firecrawl_call(fn: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
+    """Run a Firecrawl SDK call in a thread with concurrency limiting."""
+    async with _get_semaphore():
+        return await asyncio.wait_for(
+            asyncio.to_thread(fn, *args, **kwargs),
             timeout=_FETCH_TIMEOUT,
         )
+
+
+async def fetch_page_content(url: str, max_chars: int = 10000) -> tuple[str, int]:
+    """Fetch a URL's content as markdown via Firecrawl."""
+    app = _get_app()
+    result = await _firecrawl_call(
+        app.scrape, url, formats=["markdown"], only_main_content=True,
+    )
     md = result.markdown or ""
     truncated = md[:max_chars]
     word_count = len(truncated.split())
@@ -43,15 +57,11 @@ async def fetch_page_full(url: str, max_chars: int = 50000) -> dict:
     markdown for clean text (readability, gap analysis).
     only_main_content strips nav/footer/boilerplate on the Firecrawl side.
     """
-    async with _FETCH_SEMAPHORE:
-        app = _get_app()
-        result = await asyncio.wait_for(
-            asyncio.to_thread(
-                app.scrape, url,
-                formats=["markdown", "html"], only_main_content=True,
-            ),
-            timeout=_FETCH_TIMEOUT,
-        )
+    app = _get_app()
+    result = await _firecrawl_call(
+        app.scrape, url,
+        formats=["markdown", "html"], only_main_content=True,
+    )
     metadata = {}
     if hasattr(result, "metadata") and result.metadata:
         m = result.metadata
@@ -70,12 +80,8 @@ async def fetch_page_full(url: str, max_chars: int = 50000) -> dict:
 
 async def search_web(query: str, num_results: int = 5) -> list[dict]:
     """Search the web via Firecrawl and return results."""
-    async with _FETCH_SEMAPHORE:
-        app = _get_app()
-        results = await asyncio.wait_for(
-            asyncio.to_thread(app.search, query, limit=num_results),
-            timeout=_FETCH_TIMEOUT,
-        )
+    app = _get_app()
+    results = await _firecrawl_call(app.search, query, limit=num_results)
     items = getattr(results, "web", None) or []
     return [
         {
