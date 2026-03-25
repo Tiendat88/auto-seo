@@ -49,7 +49,7 @@ POST /jobs → Job(PENDING) → Background pipeline:
 
 ### Multi-Provider Council
 
-When multiple LLM backends are configured (Anthropic, Gemini, Codex), the pipeline forms a council via `get_llm_council()`:
+When multiple LLM backends are configured (Anthropic, Gemini, Codex), the pipeline forms a council via `get_llm_council()`. Note: standard `OPENAI_API_KEY` alone does **not** join the council — only `OPENAI_CODEX=true` adds the OpenAI backend:
 
 - **Analysis**: all providers analyze competitors in parallel; results are merged by consensus.
 - **Scoring**: LLM dimensions fan out to all providers and are averaged by dimension.
@@ -141,21 +141,23 @@ The completed job returns an `ArticleResult` with:
 uv run pytest tests/ -x -q
 ```
 
-**226 tests** across 13 files:
+**249 tests** across 15 files:
 
 | File | Tests | Coverage |
 |------|-------|----------|
 | `test_models.py` | 48 | Pydantic validation, serialization, constraints, BrandVoice, SeoMetaOptions, KeywordDistribution, SchemaMarkup |
+| `test_pipeline.py` | 34 | State machine, resume, markdown parser, edit loop, merge functions, multi-provider scoring/review |
+| `test_brand.py` | 33 | Brand monitor routes, aggregation, lazy Playwright import, dependency handling |
 | `test_aeo.py` | 32 | AEO parser, checks, aggregation, URL/text input handling |
-| `test_brand.py` | 30 | Brand monitor routes, aggregation, lazy Playwright import, dependency handling |
-| `test_pipeline.py` | 27 | State machine, resume, markdown parser, edit loop, merge functions, multi-provider scoring/review |
 | `test_quality.py` | 17 | Algorithmic scoring: keyword usage, heading structure, word count, readability, humanity, keyword distribution, differentiation delivery |
-| `test_fanout.py` | 15 | Fan-out prompt, parsing, gap analysis, provider/model override |
-| `test_api.py` | 13 | API endpoints, error handling, CRUD, resume edge cases |
+| `test_fanout.py` | 17 | Fan-out prompt, parsing, gap analysis, provider/model override |
+| `test_api.py` | 14 | API endpoints, error handling, CRUD, resume edge cases |
 | `test_seo.py` | 12 | SEO constraint validation |
-| `test_llm.py` | 10 | Provider selection, Gemini backend routing, tool use, usage/cost plumbing |
+| `test_scrubber.py` | 12 | Content scrubber: zero-width removal, filler removal, paragraph splitting, list normalization, AI word/em-dash counting |
+| `test_llm.py` | 11 | Provider selection, Gemini backend routing, tool use, usage/cost plumbing |
 | `test_schema.py` | 9 | JSON-LD schema generation, FAQPage markup, snippet detection |
-| `test_scrubber.py` | 9 | Content scrubber: zero-width removal, filler removal, paragraph splitting, AI word/em-dash counting |
+| `test_cli.py` | 3 | CLI command registration, help output |
+| `test_prompts.py` | 3 | Prompt template rendering, brand voice formatting |
 | `test_db.py` | 2 | Postgres advisory-lock init path, non-Postgres init path |
 | `test_serp_fetcher.py` | 2 | Firecrawl Python SDK contract regression coverage |
 
@@ -338,14 +340,17 @@ app/
 ├── errors.py               # Custom exceptions
 ├── aeo/
 │   ├── routes.py           # /api/aeo/analyze and /api/aeo/fanout
-│   ├── parser.py           # URL/text parsing and boilerplate stripping
-│   ├── checks.py           # AEO scoring checks
+│   ├── models.py           # AEO Pydantic models (CheckResult, SubQuery, FanOutResponse, etc.)
+│   ├── parser.py           # URL/text parsing and boilerplate stripping (BeautifulSoup)
+│   ├── checks.py           # AEO scoring checks (spaCy, textstat)
 │   ├── fanout.py           # Sub-query generation and gap analysis
-│   └── store.py            # AEO persistence + cache helpers
+│   └── store.py            # AEO persistence (AeoAnalysis ORM table) + Redis cache helpers
 ├── brand/
 │   ├── routes.py           # /api/brand-monitor/analyze
+│   ├── models.py           # Brand monitor Pydantic models
 │   ├── analyzer.py         # Structured brand mention analysis
 │   ├── fetcher.py          # API-mode platform fetches
+│   ├── gather.py           # Partial-success gathering utility for parallel fetches
 │   └── browser_fetcher.py  # Browser-mode platform fetches via Playwright
 ├── job/
 │   ├── models.py           # Job table, JobStatus enum, API schemas

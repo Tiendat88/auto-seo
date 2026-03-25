@@ -12,20 +12,21 @@ SEO article generator plus AEO and brand-monitor utilities. FastAPI backend + Ty
 - **Cache**: Redis (`app/cache.py`)
 - **Deps**: `textstat`, `google-genai`, `openai`, `openai-codex-sdk`, `firecrawl-py`, `playwright`, `spacy`, `voyageai`, `beautifulsoup4`
 - **Lint**: `ruff` (line-length=100, rules: E/F/I/N/W), `pyright` strict (`pyrightconfig.json`; third-party noise rules disabled — see config)
-- **Tests**: pytest + pytest-asyncio (`asyncio_mode="auto"`), **249 tests** across 13 files
+- **Tests**: pytest + pytest-asyncio (`asyncio_mode="auto"`), **249 tests** across 15 files
 
 ## Architecture
 
 ### Pipeline (`app/article/pipeline.py`)
 
-State machine: `RESEARCHING → PLANNING → GENERATING → SCORING → REVIEWING → [EDITING] → COMPLETED`
+State machine: `PENDING → RESEARCHING → PLANNING → GENERATING → SCORING → REVIEWING → [EDITING] → COMPLETED | FAILED`
 
 - **Single-call generation**: Full article + FAQ in one `generate_text` call, parsed via `_parse_article_markdown`, then scrubbed via `scrub_article()`
 - **Planning step**: Two-phase `planning_step` — multi-provider analysis (council fans out competitor analysis in parallel), then single-provider outline with embedded `ArticleBrief`
 - **Brand voice**: Optional `BrandVoice` injected into outline/generate/edit prompts via `format_brand_voice()`
 - **Hybrid scoring**: 7 algorithmic + 6 LLM = 13 dimensions, weighted average (`word_count_target` at 2x via `DIMENSION_WEIGHTS`)
 - **Token tracking**: `LlmClient._usage` accumulates `TokenUsage` per call; usage extraction via `_record_sdk_usage`, `_record_gemini_usage`, `_record_codex_usage`; pipeline drains telemetry per step into `job.usage_data`
-- **Multi-provider council**: `get_llm_council()` returns all configured providers as equal peers; analysis, scoring, and review fan out to every provider in parallel, then merge/average results
+- **Multi-provider council**: `get_llm_council()` returns configured providers as equal peers (Anthropic if `ANTHROPIC_API_KEY`, Codex if `OPENAI_CODEX=true`, Gemini if `GOOGLE_API_KEY` — note: standard OpenAI API alone does **not** join the council); analysis, scoring, and review fan out in parallel, then merge/average results
+- **Writer model routing**: `_resolve_article_writer()` routes article drafting and editing to `GEMINI_WRITING_MODEL` (default `gemini-3-pro-preview`) when `GOOGLE_API_KEY` is set, regardless of the primary LLM backend
 - **Event system**: `job.events_data` stores structured events (LLM calls, scrub stats, timing, cache hits). Cleared on completion unless `PERSIST_EVENTS=true`
 - **Edit loop**: Data-driven via `_EDIT_CYCLE` + `_run_step_safely()`; edit → re-score → re-review (capped at `max_revisions`)
 - **Sub-step visibility**: Generate and score update `current_step` with sub-steps like `generating:article` and `scoring:llm`
@@ -42,8 +43,8 @@ State machine: `RESEARCHING → PLANNING → GENERATING → SCORING → REVIEWIN
 
 Post-processes articles after generation and editing. Returns `(ArticleContent, ScrubStats)`:
 
-- **Modifies**: zero-width Unicode strip, AI filler opener removal, long paragraph splitting (>6 sentences)
-- **Counts only**: em-dashes, double-hyphens, AI-favored words
+- **Modifies**: zero-width Unicode strip, AI filler opener removal, collapsed list normalization, unclosed code fence repair, long paragraph splitting (>6 sentences), spacing cleanup
+- **Counts only**: em-dashes/double-hyphens, AI-favored words
 
 ### SEO outputs (`app/article/schema.py`)
 
@@ -56,9 +57,9 @@ Post-processes articles after generation and editing. Returns `(ArticleContent, 
 - **AEO scorer**: `POST /api/aeo/analyze` — 3 checks (direct answer, h-tag hierarchy, readability), each max 20 points, aggregated to 0-100 with band labels
 - **Query fan-out**: `POST /api/aeo/fanout` — LLM decomposes a query into 10-15 sub-queries across 6 types, optional gap analysis via VoyageAI embeddings
 - **Content parser** (`parser.py`): URL fetch via httpx or Firecrawl-backed full-page extraction path, HTML parsing, boilerplate stripping
-- **Checks** (`checks.py`): spaCy `en_core_web_sm`, textstat, BeautifulSoup
+- **Checks** (`checks.py`): spaCy `en_core_web_sm`, textstat
 - **Fan-out** (`fanout.py`): `LlmClient.generate_structured()` for sub-query generation, Voyage `voyage-4-large` embeddings for gap analysis
-- **Tests**: 47 tests across `test_aeo.py` and `test_fanout.py`
+- **Tests**: 49 tests across `test_aeo.py` and `test_fanout.py`
 
 ### Brand monitor (`app/brand/`)
 
@@ -83,19 +84,27 @@ Post-processes articles after generation and editing. Returns `(ArticleContent, 
 | `app/article/scorer.py` | 7 algorithmic scoring functions + `full_text()` helper |
 | `app/article/scrubber.py` | Content post-processor |
 | `app/article/schema.py` | JSON-LD generation, snippet opportunity detection |
+| `app/article/constants.py` | Shared regex/patterns: AI filler phrases, sentence regex, zero-width RE, fence toggling |
+| `app/article/tools.py` | Research tools for LLM tool-use in the planning step |
 | `app/serp/fetcher.py` | Firecrawl Python SDK integration; use snake_case SDK kwargs like `only_main_content`, not raw API camelCase |
+| `app/serp/client.py` | SERP provider abstraction |
 | `app/brand/routes.py` | Brand monitor endpoint and lazy browser fetch import |
 | `app/brand/fetcher.py` | API-mode platform fetches |
 | `app/brand/browser_fetcher.py` | Browser-mode platform fetches; raises helpful `LlmError` if Playwright or Chromium is missing |
 | `app/brand/analyzer.py` | Structured brand analysis + aggregate summary |
+| `app/brand/gather.py` | Partial-success gathering utility for parallel fetches |
 | `app/aeo/checks.py` | Direct answer, h-tag hierarchy, readability checks |
 | `app/aeo/fanout.py` | Fan-out prompt, sub-query generation, gap analysis |
-| `app/aeo/parser.py` | URL fetch + HTML parsing/boilerplate stripping |
+| `app/aeo/parser.py` | URL fetch + HTML parsing/boilerplate stripping (BeautifulSoup) |
 | `app/aeo/routes.py` | AEO analyze and fan-out endpoints |
+| `app/aeo/store.py` | AEO persistence — `AeoAnalysis` ORM model + Redis cache for fetches/fan-out |
 | `app/db.py` | Engine/session setup + advisory-lock init |
+| `app/errors.py` | Error hierarchy (`SeoAgentError` → `JobNotFoundError`/`StepError`/`LlmError`/`SerpError`/`ContentFetchError`) + HTTP helpers |
 | `app/job/service.py` | Job CRUD, `claim_job_for_resume`, persisted resume behavior |
-| `app/cli.py` | Typer CLI: generate, watch, resume, export, brand, aeo, fanout |
+| `app/job/routes.py` | Job API endpoints (CRUD + resume) |
+| `app/cli.py` | Typer CLI: generate, status, result, list, watch, resume, export, brand, aeo, fanout |
 | `app/main.py` | App lifespan, DB init, Redis connect, orphaned-job recovery |
+| `app/cache.py` | Redis cache client with graceful degradation |
 | `app/config.py` | Settings via pydantic-settings |
 
 ## Commands
@@ -110,6 +119,9 @@ uv run playwright install chromium              # Required for brand browser mod
 uv run uvicorn app.main:app --workers 2         # Agent SDK blocks the event loop
 uv run autoseo generate "topic" --brand-voice brand.json
 uv run autoseo -v generate "topic"
+uv run autoseo status <id>
+uv run autoseo result <id>
+uv run autoseo list
 uv run autoseo watch <id>
 uv run autoseo resume <id>
 uv run autoseo export <id> article.md
@@ -156,6 +168,8 @@ ALTER TABLE jobs ADD COLUMN IF NOT EXISTS events_data JSON;
 UPDATE jobs SET status='planning' WHERE status IN ('analyzing', 'outlining');
 ```
 
+A second table `aeo_analyses` (ORM in `app/aeo/store.py`) auto-creates alongside `jobs` on fresh databases.
+
 Fresh databases auto-create on startup, and Postgres startup is serialized with an advisory lock so multi-worker boot is safe.
 
 ## CLI internals
@@ -183,7 +197,7 @@ Fresh databases auto-create on startup, and Postgres startup is serialized with 
 ## Testing patterns
 
 - In-memory SQLite via `create_async_engine("sqlite+aiosqlite:///:memory:")`
-- Full suite currently spans 13 files: pipeline, API, models, quality, schema, scrubber, SEO, LLM, AEO, fan-out, brand, DB, SERP fetcher
+- Full suite currently spans 15 files: pipeline, API, models, quality, schema, scrubber, SEO, LLM, AEO, fan-out, brand, DB, SERP fetcher, CLI, prompts
 - Pipeline tests mock `generate_text`/`generate_structured` with `_smart_generate_structured`
 - Pipeline tests must include `SeoMetaOptions: _make_meta_options()` in model maps
 - Pipeline tests patch `get_llm_council` (return `[mock_llm]`) and `settings` (control threshold)
