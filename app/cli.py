@@ -360,7 +360,7 @@ def _render_analysis(data: dict) -> None:
 
     console.print(Panel("\n".join(lines), title="Competitive Analysis"))
     if themes:
-        console.print(theme_table)
+        console.print(theme_table)  # type: ignore[reportPossiblyUnboundVariable]
 
 
 def _render_outline(data: dict) -> None:

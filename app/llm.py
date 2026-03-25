@@ -90,7 +90,7 @@ class LlmClient:
             self.backend = "gemini"
             self._google_key = api_key or settings.google_api_key
             self._model = model or settings.gemini_model
-            from google import genai
+            from google import genai  # type: ignore[reportAttributeAccessIssue]
 
             self._gemini_client = genai.Client(api_key=self._google_key)
         elif provider == "openai-codex":
@@ -110,7 +110,7 @@ class LlmClient:
             self.backend = "gemini"
             self._google_key = settings.google_api_key
             self._model = model or settings.gemini_model
-            from google import genai
+            from google import genai  # type: ignore[reportAttributeAccessIssue]
 
             self._gemini_client = genai.Client(api_key=self._google_key)
         else:
@@ -284,11 +284,12 @@ class LlmClient:
     async def _generate_via_api(self, prompt: str, max_tokens: int) -> str:
         if self._client is None:
             raise LlmError(f"Anthropic client not initialized (backend={self.backend})")
+        client = self._client
 
         @_LLM_RETRY
         async def _call() -> str:
             self._log_call("llm_start", f"Calling {self.backend} ({self._model})")
-            response = await self._client.messages.create(
+            response = await client.messages.create(
                 model=self._model,
                 max_tokens=max_tokens,
                 messages=[{"role": "user", "content": prompt}],
@@ -329,11 +330,12 @@ class LlmClient:
     async def _generate_via_codex(self, prompt: str) -> str:
         if self._codex_client is None:
             raise LlmError(f"Codex client not initialized (backend={self.backend})")
+        codex_client = self._codex_client
 
         @_LLM_RETRY
         async def _call() -> str:
             self._log_call("llm_start", f"Calling {self.backend} ({self._model})")
-            thread = self._codex_client.start_thread()
+            thread = codex_client.start_thread()
             turn = await thread.run(prompt)
             result = turn.final_response or ""
             self._record_codex_usage(turn)
@@ -344,14 +346,15 @@ class LlmClient:
         return await _call()
 
     async def _generate_via_gemini(self, prompt: str, max_tokens: int) -> str:
-        from google.genai import types
+        from google.genai import types  # type: ignore[reportAttributeAccessIssue]
         if self._gemini_client is None:
             raise LlmError(f"Gemini client not initialized (backend={self.backend})")
+        gemini_client = self._gemini_client
 
         @_LLM_RETRY
         async def _call() -> str:
             self._log_call("llm_start", f"Calling {self.backend} ({self._model})")
-            response = await self._gemini_client.aio.models.generate_content(
+            response = await gemini_client.aio.models.generate_content(
                 model=self._model,
                 contents=prompt,
                 config=types.GenerateContentConfig(max_output_tokens=max_tokens),
@@ -388,11 +391,12 @@ class LlmClient:
     async def _generate_structured_via_codex(self, prompt: str, schema: type[T]) -> T:
         if self._codex_client is None:
             raise LlmError(f"Codex client not initialized (backend={self.backend})")
+        codex_client = self._codex_client
 
         @_LLM_RETRY
         async def _call() -> T:
             self._log_call("llm_start", f"Calling {self.backend} ({self._model})")
-            thread = self._codex_client.start_thread()
+            thread = codex_client.start_thread()
             turn = await thread.run(prompt, {"output_schema": schema.model_json_schema()})
             result = turn.final_response or ""
             self._record_codex_usage(turn)
@@ -406,14 +410,15 @@ class LlmClient:
     async def _generate_structured_via_gemini(
         self, prompt: str, schema: type[T], max_tokens: int,
     ) -> T:
-        from google.genai import types
+        from google.genai import types  # type: ignore[reportAttributeAccessIssue]
         if self._gemini_client is None:
             raise LlmError(f"Gemini client not initialized (backend={self.backend})")
+        gemini_client = self._gemini_client
 
         @_LLM_RETRY
         async def _call() -> T:
             self._log_call("llm_start", f"Calling {self.backend} ({self._model})")
-            response = await self._gemini_client.aio.models.generate_content(
+            response = await gemini_client.aio.models.generate_content(
                 model=self._model,
                 contents=prompt,
                 config=types.GenerateContentConfig(
@@ -584,7 +589,7 @@ class LlmClient:
         self, prompt: str, tools: list[dict], tool_handler: Callable,
         schema: type[T], max_tool_rounds: int = 5,
     ) -> T:
-        from google.genai import types
+        from google.genai import types  # type: ignore[reportAttributeAccessIssue]
         if self._gemini_client is None:
             raise LlmError(f"Gemini client not initialized (backend={self.backend})")
 

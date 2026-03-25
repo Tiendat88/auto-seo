@@ -7,7 +7,7 @@ import statistics
 import time
 from collections import defaultdict
 from collections.abc import Callable, Coroutine
-from typing import Any, cast
+from typing import Any
 
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -811,7 +811,7 @@ def _merge_competitive_analyses(
     patterns = [p for p, _ in pattern_counter.most_common()]
 
     intents = Counter(a.search_intent for a in analyses)
-    intent = cast(str, intents.most_common(1)[0][0])
+    intent = intents.most_common(1)[0][0]
 
     return CompetitiveAnalysis(
         keywords=KeywordCluster(

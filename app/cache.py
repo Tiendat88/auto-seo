@@ -17,8 +17,9 @@ class CacheClient:
 
     async def connect(self) -> None:
         try:
-            self._client = redis.from_url(self._url, decode_responses=True)
-            await self._client.ping()
+            client = redis.from_url(self._url, decode_responses=True)
+            await client.ping()
+            self._client = client
         except Exception:
             log.warning("Redis unavailable — caching disabled")
             self._client = None

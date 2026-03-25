@@ -328,6 +328,7 @@ class TestArticleOutlineWithBrief:
         json_str = sample_outline.model_dump_json()
         restored = ArticleOutline.model_validate_json(json_str)
         assert restored.brief is not None
+        assert sample_outline.brief is not None
         assert restored.brief.target_audience == sample_outline.brief.target_audience
 
 

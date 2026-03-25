@@ -64,8 +64,8 @@ async def _fetch_openai(query: str) -> PlatformResponse:
 @_FETCH_RETRY
 async def _fetch_gemini(query: str) -> PlatformResponse:
     """Query Google Gemini."""
-    from google import genai
-    from google.genai import types
+    from google import genai  # type: ignore[reportAttributeAccessIssue]
+    from google.genai import types  # type: ignore[reportAttributeAccessIssue]
 
     client = genai.Client(api_key=settings.google_api_key)
     response = await client.aio.models.generate_content(

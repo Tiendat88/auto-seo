@@ -113,7 +113,7 @@ class TestGapAnalysis:
                 [[1.0, 0.0]],
             ],
         ):
-            updated, summary = analyze_gaps(sub_queries, content)
+            updated, _ = analyze_gaps(sub_queries, content)
         assert updated[0].similarity_score is not None
         assert updated[0].similarity_score > 0.5
 
@@ -136,7 +136,7 @@ class TestGapAnalysis:
                 [[1.0, 0.0]],
             ],
         ):
-            updated, summary = analyze_gaps(sub_queries, content)
+            updated, _ = analyze_gaps(sub_queries, content)
         assert updated[0].similarity_score is not None
         assert updated[0].similarity_score < 0.72
         assert not updated[0].covered
@@ -145,7 +145,7 @@ class TestGapAnalysis:
         sub_queries = [
             SubQuery(type=SubQueryType.HOW_TO, query="how to use a CRM"),
         ]
-        updated, summary = analyze_gaps(sub_queries, "")
+        updated, _ = analyze_gaps(sub_queries, "")
         assert not updated[0].covered
         assert updated[0].similarity_score == 0.0
 
