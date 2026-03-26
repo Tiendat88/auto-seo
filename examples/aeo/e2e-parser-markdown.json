@@ -1,0 +1,14 @@
+{
+  "is_html": false,
+  "headings": [
+    [
+      "h1",
+      "Title"
+    ],
+    [
+      "h2",
+      "Section"
+    ]
+  ],
+  "first_paragraph": "First paragraph here."
+}

@@ -1,0 +1,62 @@
+{
+  "company": "Notion",
+  "competitors": [
+    {
+      "name": "ClickUp",
+      "competitor_type": "direct",
+      "market_overlap": "high",
+      "confidence": 1.0
+    },
+    {
+      "name": "Coda",
+      "competitor_type": "direct",
+      "market_overlap": "high",
+      "confidence": 1.0
+    },
+    {
+      "name": "Microsoft Loop",
+      "competitor_type": "direct",
+      "market_overlap": "high",
+      "confidence": 1.0
+    },
+    {
+      "name": "Airtable",
+      "competitor_type": "direct",
+      "market_overlap": "high",
+      "confidence": 0.95
+    },
+    {
+      "name": "Monday.com",
+      "competitor_type": "direct",
+      "market_overlap": "high",
+      "confidence": 0.95
+    },
+    {
+      "name": "Asana",
+      "competitor_type": "direct",
+      "market_overlap": "high",
+      "confidence": 0.9
+    },
+    {
+      "name": "Evernote",
+      "competitor_type": "direct",
+      "market_overlap": "medium",
+      "confidence": 0.9
+    },
+    {
+      "name": "Slite",
+      "competitor_type": "direct",
+      "market_overlap": "high",
+      "confidence": 0.85
+    },
+    {
+      "name": "Obsidian",
+      "competitor_type": "direct",
+      "market_overlap": "high",
+      "confidence": 0.8
+    }
+  ],
+  "_meta": {
+    "elapsed_seconds": 6.6
+  }
+}

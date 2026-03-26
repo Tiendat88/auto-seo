@@ -12,7 +12,7 @@ SEO article generator plus AEO and brand-monitor utilities. FastAPI backend + Ty
 - **Cache**: Redis (`app/cache.py`)
 - **Deps**: `textstat`, `google-genai`, `openai`, `openai-codex-sdk`, `firecrawl-py`, `playwright`, `spacy`, `voyageai`, `beautifulsoup4`, `sse-starlette`
 - **Lint**: `ruff` (line-length=100, rules: E/F/I/N/W), `pyright` strict (`pyrightconfig.json`; third-party noise rules disabled — see config)
-- **Tests**: pytest + pytest-asyncio (`asyncio_mode="auto"`), **346 tests** across 19 files
+- **Tests**: pytest + pytest-asyncio (`asyncio_mode="auto"`), **398 tests** across 24 files
 
 ## Architecture
 
@@ -59,7 +59,7 @@ Post-processes articles after generation and editing. Returns `(ArticleContent, 
 - **Content parser** (`parser.py`): URL fetch via httpx or Firecrawl-backed full-page extraction path, HTML parsing, boilerplate stripping
 - **Checks** (`checks.py`): spaCy `en_core_web_sm`, textstat
 - **Fan-out** (`fanout.py`): `LlmClient.generate_structured()` for sub-query generation, Voyage `voyage-4-large` embeddings for gap analysis
-- **Tests**: 49 tests across `test_aeo.py` and `test_fanout.py`
+- **Tests**: 49 unit tests across `test_aeo.py` and `test_fanout.py`
 
 ### Brand monitor (`app/brand/`)
 
@@ -123,7 +123,12 @@ Post-processes articles after generation and editing. Returns `(ArticleContent, 
 uv sync --extra dev --python 3.12
 uv run ruff check app/ tests/
 uvx pyright
-uv run pytest tests/ -x -q                      # Full suite (346 tests; requires en_core_web_sm)
+uv run pytest tests/ -x -q                      # Full suite (398 tests; requires en_core_web_sm)
+uv run pytest tests/ -x -q -k "not e2e"         # Unit tests only (346 tests; skip E2E)
+uv run pytest tests/test_pipeline_e2e.py -x -v  # E2E pipeline (~13m, needs GOOGLE_API_KEY)
+uv run pytest tests/test_brand_e2e.py -x -v     # E2E brand (~7m, needs Google+Perplexity+Firecrawl)
+uv run pytest tests/test_aeo_e2e.py -x -v       # E2E AEO (~15s, Firecrawl optional)
+uv run pytest tests/test_fanout_e2e.py -x -v    # E2E fanout (~1m, needs Google+Voyage)
 uv run python -m spacy download en_core_web_sm  # Required for AEO checks/full suite
 uv run playwright install chromium              # Required for brand browser mode
 uv run uvicorn app.main:app --workers 2         # Agent SDK blocks the event loop
@@ -211,11 +216,27 @@ Fresh databases auto-create on startup, and Postgres startup is serialized with 
 
 ## Testing patterns
 
+### Unit tests (346 tests, 19 files)
+
 - In-memory SQLite via `create_async_engine("sqlite+aiosqlite:///:memory:")`
-- Full suite currently spans 19 files: pipeline, API, models, quality, schema, scrubber, SEO, LLM, AEO, fan-out, brand, brand-detection, brand-scoring, brand-discovery, brand-store, brand-stream, DB, SERP fetcher, CLI, prompts
 - Pipeline tests mock `generate_text`/`generate_structured` with `_smart_generate_structured`
 - Pipeline tests must include `SeoMetaOptions: _make_meta_options()` in model maps
 - Pipeline tests patch `get_llm_council` (return `[mock_llm]`) and `settings` (control threshold)
 - Mock LLM requires `drain_usage = MagicMock(return_value=[])` and `drain_call_log = MagicMock(return_value=[])`
 - Threshold for edit-loop tests: use `0.6` because `word_count_target` is double-weighted
 - Single-provider council dimension count assertion: `9 = 7` algorithmic + `2` merged LLM
+
+### E2E tests (52 tests, 4 files) — real API calls
+
+| File | Tests | Time | Keys required | Examples dir |
+|------|-------|------|---------------|-------------|
+| `test_pipeline_e2e.py` | 9 | ~13m | `GOOGLE_API_KEY` | `examples/pipeline/` |
+| `test_brand_e2e.py` | 18 | ~7m | `GOOGLE_API_KEY`, `PERPLEXITY_API_KEY`, `FIRECRAWL_API_KEY` | `examples/brand/` |
+| `test_aeo_e2e.py` | 17 | ~15s | `FIRECRAWL_API_KEY` (URL tests only) | `examples/aeo/` |
+| `test_fanout_e2e.py` | 8 | ~1m | `GOOGLE_API_KEY`, `VOYAGE_API_KEY` | `examples/fanout/` |
+
+- E2E tests call real APIs and write JSON/log/markdown results to `examples/` subdirs
+- Each test class uses `skipif` markers when required API keys are missing
+- Pipeline E2E uses `MockSerpProvider` + real Gemini LLM (no SERP key needed)
+- `Job.status` is a plain string after SQLite `session.refresh()` — compare with `str(job.status)`, not `JobStatus` enum
+- Voyage gap analysis threshold (0.72) is strict; short content often yields 0% coverage — assert on valid scores, not coverage counts

@@ -1,0 +1,14 @@
+{
+  "check_id": "direct_answer",
+  "name": "Direct Answer Detection",
+  "passed": false,
+  "score": 0,
+  "max_score": 20,
+  "details": {
+    "word_count": 100,
+    "threshold": 60,
+    "is_declarative": false,
+    "has_hedge_phrase": false
+  },
+  "recommendation": "Opening paragraph is 100 words. Rewrite it as a direct answer in under 60 words."
+}

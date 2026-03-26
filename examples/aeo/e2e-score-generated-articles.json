@@ -1,0 +1,55 @@
+{
+  "article_count": 5,
+  "results": [
+    {
+      "file": "best-note-taking-apps-for-founders.md",
+      "aeo_score": 53,
+      "band": "Significant Gaps",
+      "direct_answer": 12,
+      "htag_hierarchy": 20,
+      "readability": 0,
+      "grade_level": 14.6,
+      "word_count": 1262
+    },
+    {
+      "file": "best-productivity-tools-for-remote-teams-2026.md",
+      "aeo_score": 53,
+      "band": "Significant Gaps",
+      "direct_answer": 12,
+      "htag_hierarchy": 20,
+      "readability": 0,
+      "grade_level": 15.5,
+      "word_count": 1569
+    },
+    {
+      "file": "customer-onboarding-checklist-for-b2b-saas.md",
+      "aeo_score": 67,
+      "band": "Needs Improvement",
+      "direct_answer": 20,
+      "htag_hierarchy": 20,
+      "readability": 0,
+      "grade_level": 14.4,
+      "word_count": 1337
+    },
+    {
+      "file": "gemini-cli-fallback-verification.md",
+      "aeo_score": 40,
+      "band": "Significant Gaps",
+      "direct_answer": 12,
+      "htag_hierarchy": 12,
+      "readability": 0,
+      "grade_level": 14.6,
+      "word_count": 854
+    },
+    {
+      "file": "remote-teamwork-tools.md",
+      "aeo_score": 53,
+      "band": "Significant Gaps",
+      "direct_answer": 12,
+      "htag_hierarchy": 20,
+      "readability": 0,
+      "grade_level": 16.3,
+      "word_count": 1673
+    }
+  ]
+}

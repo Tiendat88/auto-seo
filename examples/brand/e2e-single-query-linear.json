@@ -1,0 +1,584 @@
+{
+  "brand_name": "Linear",
+  "query": "What is the best project management tool for engineering teams?",
+  "queries": [
+    "What is the best project management tool for engineering teams?"
+  ],
+  "model_used": "gemini-3-flash-preview",
+  "platform_analyses": [
+    {
+      "brand_mentioned": false,
+      "mention_context": "not_mentioned",
+      "brand_position": null,
+      "sentiment": {
+        "overall": "neutral",
+        "reasoning": "The brand 'Linear' is not mentioned at all in the provided response, which instead focuses on competitors such as Zenhub, Shortcut, Jira, and Asana.",
+        "aspects": []
+      },
+      "keywords_found": [
+        "Jira",
+        "Asana",
+        "Zenhub",
+        "Shortcut",
+        "GitHub",
+        "GitLab",
+        "OpenProject",
+        "Wrike",
+        "Zoho Projects",
+        "Monograph",
+        "Deltek",
+        "Slack"
+      ],
+      "competitors": [
+        {
+          "name": "Zenhub",
+          "recommended": true,
+          "position": 1
+        },
+        {
+          "name": "Shortcut",
+          "recommended": true,
+          "position": 2
+        },
+        {
+          "name": "Jira",
+          "recommended": true,
+          "position": 3
+        },
+        {
+          "name": "Asana",
+          "recommended": true,
+          "position": 4
+        },
+        {
+          "name": "OpenProject",
+          "recommended": true,
+          "position": 5
+        },
+        {
+          "name": "Wrike",
+          "recommended": true,
+          "position": 6
+        },
+        {
+          "name": "Zoho Projects",
+          "recommended": true,
+          "position": 7
+        },
+        {
+          "name": "Monograph",
+          "recommended": true,
+          "position": 8
+        },
+        {
+          "name": "Deltek",
+          "recommended": true,
+          "position": 9
+        }
+      ],
+      "relevant_quotes": [],
+      "platform": "perplexity"
+    },
+    {
+      "brand_mentioned": true,
+      "mention_context": "recommended",
+      "brand_position": 1,
+      "sentiment": {
+        "overall": "positive",
+        "reasoning": "Linear is positioned as the 'standard' for high-growth software startups and is the first recommendation provided for software engineering, highlighted for its speed and modern AI features.",
+        "aspects": [
+          {
+            "feature": "speed",
+            "sentiment": "positive",
+            "detail": "Celebrated for extreme speed and a 'keyboard-first' interface."
+          },
+          {
+            "feature": "design",
+            "sentiment": "positive",
+            "detail": "Described as having a minimalist design and excellent developer experience."
+          },
+          {
+            "feature": "AI automation",
+            "sentiment": "positive",
+            "detail": "The 'AI Agents' feature is highlighted for automatically linking GitHub pull requests to issues."
+          }
+        ]
+      },
+      "keywords_found": [
+        "Linear",
+        "Jira",
+        "Asana",
+        "Shortcut",
+        "Trello",
+        "Duro",
+        "Siemens Teamcenter",
+        "Oracle Cloud PLM",
+        "Plane",
+        "OpenProject",
+        "Taiga",
+        "GitHub Projects",
+        "Monday Dev"
+      ],
+      "competitors": [
+        {
+          "name": "Jira",
+          "recommended": true,
+          "position": 2
+        },
+        {
+          "name": "Shortcut",
+          "recommended": true,
+          "position": 3
+        },
+        {
+          "name": "Asana",
+          "recommended": false,
+          "position": 4
+        },
+        {
+          "name": "Duro",
+          "recommended": true,
+          "position": 6
+        },
+        {
+          "name": "Plane",
+          "recommended": true,
+          "position": 9
+        }
+      ],
+      "relevant_quotes": [
+        "Linear (Best for Speed & Developer Experience): Linear has become the standard for high-growth startups and product-led teams.",
+        "It is celebrated for its \"keyboard-first\" interface, minimalist design, and extreme speed.",
+        "In 2026, its \"AI Agents\" feature stands out, automatically linking GitHub pull requests to issues and moving them to \"Done\" without manual input.",
+        "High-Velocity Software | Linear | Speed, keyboard-driven, AI automation.",
+        "If you are a fast-moving software startup, use Linear."
+      ],
+      "platform": "gemini"
+    }
+  ],
+  "aggregate": {
+    "platforms_mentioning_brand": 1,
+    "total_platforms": 2,
+    "overall_sentiment": "positive",
+    "avg_brand_position": 1.0,
+    "top_competitors": [
+      "Shortcut",
+      "Jira",
+      "Asana",
+      "Zenhub",
+      "OpenProject",
+      "Wrike",
+      "Zoho Projects",
+      "Monograph",
+      "Deltek",
+      "Duro",
+      "Plane"
+    ],
+    "brand_recommended_on": [
+      "gemini"
+    ],
+    "all_keywords_found": [
+      "Jira",
+      "Asana",
+      "Zenhub",
+      "Shortcut",
+      "GitHub",
+      "GitLab",
+      "OpenProject",
+      "Wrike",
+      "Zoho Projects",
+      "Monograph",
+      "Deltek",
+      "Slack",
+      "Linear",
+      "Trello",
+      "Duro",
+      "Siemens Teamcenter",
+      "Oracle Cloud PLM",
+      "Plane",
+      "Taiga",
+      "GitHub Projects",
+      "Monday Dev"
+    ],
+    "common_strengths": [
+      "speed",
+      "design",
+      "ai automation"
+    ],
+    "common_weaknesses": []
+  },
+  "scores": {
+    "visibility_score": 50.0,
+    "share_of_voice": 6.7,
+    "sentiment_score": 100.0,
+    "position_score": 100.0,
+    "overall_score": 57.0
+  },
+  "competitor_rankings": [
+    {
+      "name": "Shortcut",
+      "visibility_score": 100.0,
+      "share_of_voice": 13.3,
+      "sentiment_score": 100.0,
+      "position_score": 85.0,
+      "overall_score": 71.0,
+      "mention_count": 2,
+      "avg_position": 2.5,
+      "is_own": false
+    },
+    {
+      "name": "Jira",
+      "visibility_score": 100.0,
+      "share_of_voice": 13.3,
+      "sentiment_score": 100.0,
+      "position_score": 85.0,
+      "overall_score": 71.0,
+      "mention_count": 2,
+      "avg_position": 2.5,
+      "is_own": false
+    },
+    {
+      "name": "Asana",
+      "visibility_score": 100.0,
+      "share_of_voice": 13.3,
+      "sentiment_score": 75.0,
+      "position_score": 70.0,
+      "overall_score": 63.0,
+      "mention_count": 2,
+      "avg_position": 4.0,
+      "is_own": false
+    },
+    {
+      "name": "Linear",
+      "visibility_score": 50.0,
+      "share_of_voice": 6.7,
+      "sentiment_score": 100.0,
+      "position_score": 100.0,
+      "overall_score": 57.0,
+      "mention_count": 1,
+      "avg_position": 1.0,
+      "is_own": true
+    },
+    {
+      "name": "Zenhub",
+      "visibility_score": 50.0,
+      "share_of_voice": 6.7,
+      "sentiment_score": 100.0,
+      "position_score": 100.0,
+      "overall_score": 57.0,
+      "mention_count": 1,
+      "avg_position": 1.0,
+      "is_own": false
+    },
+    {
+      "name": "OpenProject",
+      "visibility_score": 50.0,
+      "share_of_voice": 6.7,
+      "sentiment_score": 100.0,
+      "position_score": 60.0,
+      "overall_score": 49.0,
+      "mention_count": 1,
+      "avg_position": 5.0,
+      "is_own": false
+    },
+    {
+      "name": "Wrike",
+      "visibility_score": 50.0,
+      "share_of_voice": 6.7,
+      "sentiment_score": 100.0,
+      "position_score": 50.0,
+      "overall_score": 47.0,
+      "mention_count": 1,
+      "avg_position": 6.0,
+      "is_own": false
+    },
+    {
+      "name": "Duro",
+      "visibility_score": 50.0,
+      "share_of_voice": 6.7,
+      "sentiment_score": 100.0,
+      "position_score": 50.0,
+      "overall_score": 47.0,
+      "mention_count": 1,
+      "avg_position": 6.0,
+      "is_own": false
+    },
+    {
+      "name": "Zoho Projects",
+      "visibility_score": 50.0,
+      "share_of_voice": 6.7,
+      "sentiment_score": 100.0,
+      "position_score": 40.0,
+      "overall_score": 45.0,
+      "mention_count": 1,
+      "avg_position": 7.0,
+      "is_own": false
+    },
+    {
+      "name": "Monograph",
+      "visibility_score": 50.0,
+      "share_of_voice": 6.7,
+      "sentiment_score": 100.0,
+      "position_score": 30.0,
+      "overall_score": 43.0,
+      "mention_count": 1,
+      "avg_position": 8.0,
+      "is_own": false
+    },
+    {
+      "name": "Deltek",
+      "visibility_score": 50.0,
+      "share_of_voice": 6.7,
+      "sentiment_score": 100.0,
+      "position_score": 20.0,
+      "overall_score": 41.0,
+      "mention_count": 1,
+      "avg_position": 9.0,
+      "is_own": false
+    },
+    {
+      "name": "Plane",
+      "visibility_score": 50.0,
+      "share_of_voice": 6.7,
+      "sentiment_score": 100.0,
+      "position_score": 20.0,
+      "overall_score": 41.0,
+      "mention_count": 1,
+      "avg_position": 9.0,
+      "is_own": false
+    }
+  ],
+  "provider_comparison": [
+    {
+      "competitor_name": "Linear",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": true,
+          "position": 1,
+          "sentiment": "positive",
+          "visibility_score": 100.0
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": false,
+          "position": null,
+          "sentiment": "neutral",
+          "visibility_score": 0.0
+        }
+      ]
+    },
+    {
+      "competitor_name": "Asana",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": true,
+          "position": 4,
+          "sentiment": "neutral",
+          "visibility_score": 100.0
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": true,
+          "position": 4,
+          "sentiment": "positive",
+          "visibility_score": 100.0
+        }
+      ]
+    },
+    {
+      "competitor_name": "Deltek",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": false,
+          "position": null,
+          "sentiment": "neutral",
+          "visibility_score": 0.0
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": true,
+          "position": 9,
+          "sentiment": "positive",
+          "visibility_score": 100.0
+        }
+      ]
+    },
+    {
+      "competitor_name": "Duro",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": true,
+          "position": 6,
+          "sentiment": "positive",
+          "visibility_score": 100.0
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": false,
+          "position": null,
+          "sentiment": "neutral",
+          "visibility_score": 0.0
+        }
+      ]
+    },
+    {
+      "competitor_name": "Jira",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": true,
+          "position": 2,
+          "sentiment": "positive",
+          "visibility_score": 100.0
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": true,
+          "position": 3,
+          "sentiment": "positive",
+          "visibility_score": 100.0
+        }
+      ]
+    },
+    {
+      "competitor_name": "Monograph",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": false,
+          "position": null,
+          "sentiment": "neutral",
+          "visibility_score": 0.0
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": true,
+          "position": 8,
+          "sentiment": "positive",
+          "visibility_score": 100.0
+        }
+      ]
+    },
+    {
+      "competitor_name": "OpenProject",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": false,
+          "position": null,
+          "sentiment": "neutral",
+          "visibility_score": 0.0
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": true,
+          "position": 5,
+          "sentiment": "positive",
+          "visibility_score": 100.0
+        }
+      ]
+    },
+    {
+      "competitor_name": "Plane",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": true,
+          "position": 9,
+          "sentiment": "positive",
+          "visibility_score": 100.0
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": false,
+          "position": null,
+          "sentiment": "neutral",
+          "visibility_score": 0.0
+        }
+      ]
+    },
+    {
+      "competitor_name": "Shortcut",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": true,
+          "position": 3,
+          "sentiment": "positive",
+          "visibility_score": 100.0
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": true,
+          "position": 2,
+          "sentiment": "positive",
+          "visibility_score": 100.0
+        }
+      ]
+    },
+    {
+      "competitor_name": "Wrike",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": false,
+          "position": null,
+          "sentiment": "neutral",
+          "visibility_score": 0.0
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": true,
+          "position": 6,
+          "sentiment": "positive",
+          "visibility_score": 100.0
+        }
+      ]
+    },
+    {
+      "competitor_name": "Zenhub",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": false,
+          "position": null,
+          "sentiment": "neutral",
+          "visibility_score": 0.0
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": true,
+          "position": 1,
+          "sentiment": "positive",
+          "visibility_score": 100.0
+        }
+      ]
+    },
+    {
+      "competitor_name": "Zoho Projects",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": false,
+          "position": null,
+          "sentiment": "neutral",
+          "visibility_score": 0.0
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": true,
+          "position": 7,
+          "sentiment": "positive",
+          "visibility_score": 100.0
+        }
+      ]
+    }
+  ],
+  "_meta": {
+    "elapsed_seconds": 36.81
+  }
+}

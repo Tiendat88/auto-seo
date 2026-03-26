@@ -1,0 +1,30 @@
+{
+  "brand": "Notion",
+  "text_length": 554,
+  "matches": [
+    {
+      "text": "Notion",
+      "start": 35,
+      "end": 41,
+      "confidence": 1.0,
+      "variation_type": "exact",
+      "negative_context": false
+    },
+    {
+      "text": "Notion's",
+      "start": 361,
+      "end": 369,
+      "confidence": 1.0,
+      "variation_type": "exact",
+      "negative_context": false
+    },
+    {
+      "text": "notion",
+      "start": 434,
+      "end": 440,
+      "confidence": 1.0,
+      "variation_type": "exact",
+      "negative_context": false
+    }
+  ]
+}

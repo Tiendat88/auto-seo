@@ -1,0 +1,690 @@
+{
+  "brand_name": "Notion",
+  "query": "What are the best note-taking apps?",
+  "queries": [
+    "What are the best note-taking apps?"
+  ],
+  "model_used": "gemini-3-flash-preview",
+  "platform_analyses": [
+    {
+      "brand_mentioned": true,
+      "mention_context": "compared",
+      "brand_position": 3,
+      "sentiment": {
+        "overall": "positive",
+        "reasoning": "Notion is positioned as a dominant choice for teams and collaboration, though its free plan is noted as having limitations compared to competitors.",
+        "aspects": [
+          {
+            "feature": "collaboration",
+            "sentiment": "positive",
+            "detail": "Described as dominating for teams with sharing capabilities."
+          },
+          {
+            "feature": "databases",
+            "sentiment": "positive",
+            "detail": "Highlighted as a key strength for structured note-taking."
+          },
+          {
+            "feature": "task management",
+            "sentiment": "positive",
+            "detail": "Listed as a primary use case for the app."
+          },
+          {
+            "feature": "free plan",
+            "sentiment": "negative",
+            "detail": "The free tier is restricted to personal use only."
+          }
+        ]
+      },
+      "keywords_found": [
+        "Notion",
+        "Obsidian",
+        "Evernote",
+        "Microsoft OneNote",
+        "Apple Notes",
+        "Google Keep",
+        "Notability",
+        "Joplin",
+        "GoodNotes",
+        "Hive Notes",
+        "Mem"
+      ],
+      "competitors": [
+        {
+          "name": "Microsoft OneNote",
+          "recommended": true,
+          "position": 1
+        },
+        {
+          "name": "Apple Notes",
+          "recommended": true,
+          "position": 2
+        },
+        {
+          "name": "Obsidian",
+          "recommended": true,
+          "position": 4
+        },
+        {
+          "name": "Google Keep",
+          "recommended": true,
+          "position": 5
+        },
+        {
+          "name": "Evernote",
+          "recommended": true,
+          "position": 6
+        },
+        {
+          "name": "Notability",
+          "recommended": true,
+          "position": 7
+        }
+      ],
+      "relevant_quotes": [
+        "Notion | Collaboration & databases | Team features, task management | Personal use only",
+        "Notion dominates for teams with databases and sharing"
+      ],
+      "platform": "perplexity"
+    },
+    {
+      "brand_mentioned": true,
+      "mention_context": "recommended",
+      "brand_position": 3,
+      "sentiment": {
+        "overall": "positive",
+        "reasoning": "Notion is presented as the industry standard for customization and productivity, highlighting its powerful database features and AI capabilities.",
+        "aspects": [
+          {
+            "feature": "versatility",
+            "sentiment": "positive",
+            "detail": "Combines notes, databases, and project management into one tool."
+          },
+          {
+            "feature": "artificial intelligence",
+            "sentiment": "positive",
+            "detail": "Notion AI can autofill databases and turn raw notes into structured tables."
+          },
+          {
+            "feature": "organization",
+            "sentiment": "positive",
+            "detail": "Best for power users and students who like interconnected notes."
+          }
+        ]
+      },
+      "keywords_found": [
+        "Notion",
+        "Obsidian",
+        "Evernote",
+        "Microsoft OneNote",
+        "Apple Notes",
+        "Goodnotes",
+        "Samsung Notes",
+        "Nebo",
+        "Notesnook",
+        "Standard Notes",
+        "Anytype",
+        "Google Keep",
+        "Simplenote"
+      ],
+      "competitors": [
+        {
+          "name": "Microsoft OneNote",
+          "recommended": true,
+          "position": 1
+        },
+        {
+          "name": "Apple Notes",
+          "recommended": true,
+          "position": 2
+        },
+        {
+          "name": "Obsidian",
+          "recommended": true,
+          "position": 4
+        },
+        {
+          "name": "Goodnotes",
+          "recommended": true,
+          "position": 5
+        },
+        {
+          "name": "Samsung Notes",
+          "recommended": true,
+          "position": 6
+        },
+        {
+          "name": "Nebo",
+          "recommended": true,
+          "position": 7
+        },
+        {
+          "name": "Notesnook",
+          "recommended": true,
+          "position": 8
+        },
+        {
+          "name": "Standard Notes",
+          "recommended": true,
+          "position": 9
+        },
+        {
+          "name": "Anytype",
+          "recommended": true,
+          "position": 10
+        },
+        {
+          "name": "Google Keep",
+          "recommended": true,
+          "position": 11
+        },
+        {
+          "name": "Simplenote",
+          "recommended": true,
+          "position": 12
+        },
+        {
+          "name": "Evernote",
+          "recommended": false,
+          "position": null
+        }
+      ],
+      "relevant_quotes": [
+        "Notion: The industry standard for those who want to build a customized workspace.",
+        "It combines notes, databases, and project management into one tool.",
+        "Key 2026 Feature: Notion AI can now \"autofill\" databases, turning raw notes into structured tables or summaries without manual input.",
+        "Best for: Teams, power users, and students who like \"interconnected\" notes.",
+        "Anytype: A privacy-focused alternative to Notion."
+      ],
+      "platform": "gemini"
+    }
+  ],
+  "aggregate": {
+    "platforms_mentioning_brand": 2,
+    "total_platforms": 2,
+    "overall_sentiment": "positive",
+    "avg_brand_position": 3.0,
+    "top_competitors": [
+      "Microsoft OneNote",
+      "Apple Notes",
+      "Obsidian",
+      "Google Keep",
+      "Evernote",
+      "Notability",
+      "Goodnotes",
+      "Samsung Notes",
+      "Nebo",
+      "Notesnook",
+      "Standard Notes",
+      "Anytype",
+      "Simplenote"
+    ],
+    "brand_recommended_on": [
+      "gemini"
+    ],
+    "all_keywords_found": [
+      "Notion",
+      "Obsidian",
+      "Evernote",
+      "Microsoft OneNote",
+      "Apple Notes",
+      "Google Keep",
+      "Notability",
+      "Joplin",
+      "GoodNotes",
+      "Hive Notes",
+      "Mem",
+      "Samsung Notes",
+      "Nebo",
+      "Notesnook",
+      "Standard Notes",
+      "Anytype",
+      "Simplenote"
+    ],
+    "common_strengths": [
+      "collaboration",
+      "databases",
+      "task management",
+      "versatility",
+      "artificial intelligence",
+      "organization"
+    ],
+    "common_weaknesses": [
+      "free plan"
+    ]
+  },
+  "scores": {
+    "visibility_score": 100.0,
+    "share_of_voice": 10.0,
+    "sentiment_score": 100.0,
+    "position_score": 80.0,
+    "overall_score": 69.0
+  },
+  "competitor_rankings": [
+    {
+      "name": "Microsoft OneNote",
+      "visibility_score": 100.0,
+      "share_of_voice": 10.0,
+      "sentiment_score": 100.0,
+      "position_score": 100.0,
+      "overall_score": 73.0,
+      "mention_count": 2,
+      "avg_position": 1.0,
+      "is_own": false
+    },
+    {
+      "name": "Apple Notes",
+      "visibility_score": 100.0,
+      "share_of_voice": 10.0,
+      "sentiment_score": 100.0,
+      "position_score": 90.0,
+      "overall_score": 71.0,
+      "mention_count": 2,
+      "avg_position": 2.0,
+      "is_own": false
+    },
+    {
+      "name": "Notion",
+      "visibility_score": 100.0,
+      "share_of_voice": 10.0,
+      "sentiment_score": 100.0,
+      "position_score": 80.0,
+      "overall_score": 69.0,
+      "mention_count": 2,
+      "avg_position": 3.0,
+      "is_own": true
+    },
+    {
+      "name": "Obsidian",
+      "visibility_score": 100.0,
+      "share_of_voice": 10.0,
+      "sentiment_score": 100.0,
+      "position_score": 70.0,
+      "overall_score": 67.0,
+      "mention_count": 2,
+      "avg_position": 4.0,
+      "is_own": false
+    },
+    {
+      "name": "Google Keep",
+      "visibility_score": 100.0,
+      "share_of_voice": 10.0,
+      "sentiment_score": 100.0,
+      "position_score": 30.0,
+      "overall_score": 59.0,
+      "mention_count": 2,
+      "avg_position": 8.0,
+      "is_own": false
+    },
+    {
+      "name": "Evernote",
+      "visibility_score": 100.0,
+      "share_of_voice": 10.0,
+      "sentiment_score": 75.0,
+      "position_score": 50.0,
+      "overall_score": 58.0,
+      "mention_count": 2,
+      "avg_position": 6.0,
+      "is_own": false
+    },
+    {
+      "name": "Goodnotes",
+      "visibility_score": 50.0,
+      "share_of_voice": 5.0,
+      "sentiment_score": 100.0,
+      "position_score": 60.0,
+      "overall_score": 48.5,
+      "mention_count": 1,
+      "avg_position": 5.0,
+      "is_own": false
+    },
+    {
+      "name": "Samsung Notes",
+      "visibility_score": 50.0,
+      "share_of_voice": 5.0,
+      "sentiment_score": 100.0,
+      "position_score": 50.0,
+      "overall_score": 46.5,
+      "mention_count": 1,
+      "avg_position": 6.0,
+      "is_own": false
+    },
+    {
+      "name": "Notability",
+      "visibility_score": 50.0,
+      "share_of_voice": 5.0,
+      "sentiment_score": 100.0,
+      "position_score": 40.0,
+      "overall_score": 44.5,
+      "mention_count": 1,
+      "avg_position": 7.0,
+      "is_own": false
+    },
+    {
+      "name": "Nebo",
+      "visibility_score": 50.0,
+      "share_of_voice": 5.0,
+      "sentiment_score": 100.0,
+      "position_score": 40.0,
+      "overall_score": 44.5,
+      "mention_count": 1,
+      "avg_position": 7.0,
+      "is_own": false
+    },
+    {
+      "name": "Notesnook",
+      "visibility_score": 50.0,
+      "share_of_voice": 5.0,
+      "sentiment_score": 100.0,
+      "position_score": 30.0,
+      "overall_score": 42.5,
+      "mention_count": 1,
+      "avg_position": 8.0,
+      "is_own": false
+    },
+    {
+      "name": "Standard Notes",
+      "visibility_score": 50.0,
+      "share_of_voice": 5.0,
+      "sentiment_score": 100.0,
+      "position_score": 20.0,
+      "overall_score": 40.5,
+      "mention_count": 1,
+      "avg_position": 9.0,
+      "is_own": false
+    },
+    {
+      "name": "Anytype",
+      "visibility_score": 50.0,
+      "share_of_voice": 5.0,
+      "sentiment_score": 100.0,
+      "position_score": 10.0,
+      "overall_score": 38.5,
+      "mention_count": 1,
+      "avg_position": 10.0,
+      "is_own": false
+    },
+    {
+      "name": "Simplenote",
+      "visibility_score": 50.0,
+      "share_of_voice": 5.0,
+      "sentiment_score": 100.0,
+      "position_score": 0.0,
+      "overall_score": 36.5,
+      "mention_count": 1,
+      "avg_position": 12.0,
+      "is_own": false
+    }
+  ],
+  "provider_comparison": [
+    {
+      "competitor_name": "Notion",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": true,
+          "position": 3,
+          "sentiment": "positive",
+          "visibility_score": 100.0
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": true,
+          "position": 3,
+          "sentiment": "positive",
+          "visibility_score": 100.0
+        }
+      ]
+    },
+    {
+      "competitor_name": "Anytype",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": true,
+          "position": 10,
+          "sentiment": "positive",
+          "visibility_score": 100.0
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": false,
+          "position": null,
+          "sentiment": "neutral",
+          "visibility_score": 0.0
+        }
+      ]
+    },
+    {
+      "competitor_name": "Apple Notes",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": true,
+          "position": 2,
+          "sentiment": "positive",
+          "visibility_score": 100.0
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": true,
+          "position": 2,
+          "sentiment": "positive",
+          "visibility_score": 100.0
+        }
+      ]
+    },
+    {
+      "competitor_name": "Evernote",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": true,
+          "position": null,
+          "sentiment": "neutral",
+          "visibility_score": 100.0
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": true,
+          "position": 6,
+          "sentiment": "positive",
+          "visibility_score": 100.0
+        }
+      ]
+    },
+    {
+      "competitor_name": "Goodnotes",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": true,
+          "position": 5,
+          "sentiment": "positive",
+          "visibility_score": 100.0
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": false,
+          "position": null,
+          "sentiment": "neutral",
+          "visibility_score": 0.0
+        }
+      ]
+    },
+    {
+      "competitor_name": "Google Keep",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": true,
+          "position": 11,
+          "sentiment": "positive",
+          "visibility_score": 100.0
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": true,
+          "position": 5,
+          "sentiment": "positive",
+          "visibility_score": 100.0
+        }
+      ]
+    },
+    {
+      "competitor_name": "Microsoft OneNote",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": true,
+          "position": 1,
+          "sentiment": "positive",
+          "visibility_score": 100.0
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": true,
+          "position": 1,
+          "sentiment": "positive",
+          "visibility_score": 100.0
+        }
+      ]
+    },
+    {
+      "competitor_name": "Nebo",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": true,
+          "position": 7,
+          "sentiment": "positive",
+          "visibility_score": 100.0
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": false,
+          "position": null,
+          "sentiment": "neutral",
+          "visibility_score": 0.0
+        }
+      ]
+    },
+    {
+      "competitor_name": "Notability",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": false,
+          "position": null,
+          "sentiment": "neutral",
+          "visibility_score": 0.0
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": true,
+          "position": 7,
+          "sentiment": "positive",
+          "visibility_score": 100.0
+        }
+      ]
+    },
+    {
+      "competitor_name": "Notesnook",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": true,
+          "position": 8,
+          "sentiment": "positive",
+          "visibility_score": 100.0
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": false,
+          "position": null,
+          "sentiment": "neutral",
+          "visibility_score": 0.0
+        }
+      ]
+    },
+    {
+      "competitor_name": "Obsidian",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": true,
+          "position": 4,
+          "sentiment": "positive",
+          "visibility_score": 100.0
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": true,
+          "position": 4,
+          "sentiment": "positive",
+          "visibility_score": 100.0
+        }
+      ]
+    },
+    {
+      "competitor_name": "Samsung Notes",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": true,
+          "position": 6,
+          "sentiment": "positive",
+          "visibility_score": 100.0
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": false,
+          "position": null,
+          "sentiment": "neutral",
+          "visibility_score": 0.0
+        }
+      ]
+    },
+    {
+      "competitor_name": "Simplenote",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": true,
+          "position": 12,
+          "sentiment": "positive",
+          "visibility_score": 100.0
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": false,
+          "position": null,
+          "sentiment": "neutral",
+          "visibility_score": 0.0
+        }
+      ]
+    },
+    {
+      "competitor_name": "Standard Notes",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": true,
+          "position": 9,
+          "sentiment": "positive",
+          "visibility_score": 100.0
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": false,
+          "position": null,
+          "sentiment": "neutral",
+          "visibility_score": 0.0
+        }
+      ]
+    }
+  ],
+  "_meta": {
+    "elapsed_seconds": 35.54
+  }
+}

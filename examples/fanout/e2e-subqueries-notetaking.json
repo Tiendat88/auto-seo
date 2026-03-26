@@ -1,0 +1,90 @@
+{
+  "query": "best note-taking app for students",
+  "model": "gemini-3-flash-preview",
+  "count": 12,
+  "types": {
+    "comparative": 2,
+    "definitional": 2,
+    "feature_specific": 2,
+    "how_to": 2,
+    "trust_signals": 2,
+    "use_case": 2
+  },
+  "sub_queries": [
+    {
+      "type": "comparative",
+      "query": "Notion vs Obsidian vs Evernote for university students",
+      "covered": null,
+      "similarity_score": null
+    },
+    {
+      "type": "comparative",
+      "query": "best free note-taking apps vs paid subscription apps for students",
+      "covered": null,
+      "similarity_score": null
+    },
+    {
+      "type": "feature_specific",
+      "query": "note-taking apps with OCR and handwriting search for Apple Pencil",
+      "covered": null,
+      "similarity_score": null
+    },
+    {
+      "type": "feature_specific",
+      "query": "apps that support LaTeX and mathematical equations for STEM students",
+      "covered": null,
+      "similarity_score": null
+    },
+    {
+      "type": "use_case",
+      "query": "best apps for recording lectures and syncing audio to text notes",
+      "covered": null,
+      "similarity_score": null
+    },
+    {
+      "type": "use_case",
+      "query": "collaborative note-taking tools for medical school study groups",
+      "covered": null,
+      "similarity_score": null
+    },
+    {
+      "type": "trust_signals",
+      "query": "top-rated student note-taking apps according to Reddit r/students 2024",
+      "covered": null,
+      "similarity_score": null
+    },
+    {
+      "type": "trust_signals",
+      "query": "case studies on student productivity using the Zettelkasten method in Obsidian",
+      "covered": null,
+      "similarity_score": null
+    },
+    {
+      "type": "how_to",
+      "query": "how to set up the Cornell note-taking system in Notion",
+      "covered": null,
+      "similarity_score": null
+    },
+    {
+      "type": "how_to",
+      "query": "how to organize lecture notes and PDFs for easy retrieval",
+      "covered": null,
+      "similarity_score": null
+    },
+    {
+      "type": "definitional",
+      "query": "what is a personal knowledge management system for students",
+      "covered": null,
+      "similarity_score": null
+    },
+    {
+      "type": "definitional",
+      "query": "difference between hierarchical and networked note-taking apps",
+      "covered": null,
+      "similarity_score": null
+    }
+  ],
+  "_meta": {
+    "elapsed_seconds": 6.39
+  }
+}

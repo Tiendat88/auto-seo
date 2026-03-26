@@ -1,0 +1,70 @@
+{
+  "results": [
+    {
+      "query": "best productivity tools for remote teams",
+      "result_count": 10,
+      "question_count": 5,
+      "top_3": [
+        {
+          "rank": 1,
+          "domain": "blog.hubspot.com",
+          "title": "15 Best Best Productivity Tools For Remote Teams in 2025 | C"
+        },
+        {
+          "rank": 2,
+          "domain": "www.forbes.com",
+          "title": "Best Productivity Tools For Remote Teams: Top Picks for Team"
+        },
+        {
+          "rank": 3,
+          "domain": "www.techradar.com",
+          "title": "The Ultimate Guide to Best Productivity Tools For Remote Tea"
+        }
+      ]
+    },
+    {
+      "query": "how to implement RAG",
+      "result_count": 10,
+      "question_count": 5,
+      "top_3": [
+        {
+          "rank": 1,
+          "domain": "blog.hubspot.com",
+          "title": "15 Best How To Implement Rag in 2025 | Complete Guide"
+        },
+        {
+          "rank": 2,
+          "domain": "www.forbes.com",
+          "title": "How To Implement Rag: Top Picks for Teams & Individuals"
+        },
+        {
+          "rank": 3,
+          "domain": "www.techradar.com",
+          "title": "The Ultimate Guide to How To Implement Rag (2025 Edition)"
+        }
+      ]
+    },
+    {
+      "query": "customer onboarding checklist SaaS",
+      "result_count": 10,
+      "question_count": 5,
+      "top_3": [
+        {
+          "rank": 1,
+          "domain": "blog.hubspot.com",
+          "title": "15 Best Customer Onboarding Checklist Saas in 2025 | Complet"
+        },
+        {
+          "rank": 2,
+          "domain": "www.forbes.com",
+          "title": "Customer Onboarding Checklist Saas: Top Picks for Teams & In"
+        },
+        {
+          "rank": 3,
+          "domain": "www.techradar.com",
+          "title": "The Ultimate Guide to Customer Onboarding Checklist Saas (20"
+        }
+      ]
+    }
+  ]
+}

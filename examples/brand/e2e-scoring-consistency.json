@@ -1,0 +1,614 @@
+{
+  "scores": {
+    "visibility_score": 100.0,
+    "share_of_voice": 8.3,
+    "sentiment_score": 100.0,
+    "position_score": 70.0,
+    "overall_score": 66.5
+  },
+  "rankings": [
+    {
+      "name": "Perplexity",
+      "visibility_score": 100.0,
+      "share_of_voice": 8.3,
+      "sentiment_score": 100.0,
+      "position_score": 80.0,
+      "overall_score": 68.5,
+      "mention_count": 2,
+      "avg_position": 3.0,
+      "is_own": false
+    },
+    {
+      "name": "Notion",
+      "visibility_score": 100.0,
+      "share_of_voice": 8.3,
+      "sentiment_score": 100.0,
+      "position_score": 70.0,
+      "overall_score": 66.5,
+      "mention_count": 2,
+      "avg_position": 4.0,
+      "is_own": true
+    },
+    {
+      "name": "Motion",
+      "visibility_score": 100.0,
+      "share_of_voice": 8.3,
+      "sentiment_score": 100.0,
+      "position_score": 60.0,
+      "overall_score": 64.5,
+      "mention_count": 2,
+      "avg_position": 5.0,
+      "is_own": false
+    },
+    {
+      "name": "Todoist",
+      "visibility_score": 100.0,
+      "share_of_voice": 8.3,
+      "sentiment_score": 100.0,
+      "position_score": 25.0,
+      "overall_score": 57.5,
+      "mention_count": 2,
+      "avg_position": 11.5,
+      "is_own": false
+    },
+    {
+      "name": "Wisprflow",
+      "visibility_score": 50.0,
+      "share_of_voice": 4.2,
+      "sentiment_score": 100.0,
+      "position_score": 100.0,
+      "overall_score": 56.3,
+      "mention_count": 1,
+      "avg_position": 1.0,
+      "is_own": false
+    },
+    {
+      "name": "Comet",
+      "visibility_score": 50.0,
+      "share_of_voice": 4.2,
+      "sentiment_score": 100.0,
+      "position_score": 90.0,
+      "overall_score": 54.3,
+      "mention_count": 1,
+      "avg_position": 2.0,
+      "is_own": false
+    },
+    {
+      "name": "Claude",
+      "visibility_score": 50.0,
+      "share_of_voice": 4.2,
+      "sentiment_score": 100.0,
+      "position_score": 90.0,
+      "overall_score": 54.3,
+      "mention_count": 1,
+      "avg_position": 2.0,
+      "is_own": false
+    },
+    {
+      "name": "ChatGPT",
+      "visibility_score": 50.0,
+      "share_of_voice": 4.2,
+      "sentiment_score": 100.0,
+      "position_score": 80.0,
+      "overall_score": 52.3,
+      "mention_count": 1,
+      "avg_position": 3.0,
+      "is_own": false
+    },
+    {
+      "name": "Monday.com",
+      "visibility_score": 50.0,
+      "share_of_voice": 4.2,
+      "sentiment_score": 100.0,
+      "position_score": 60.0,
+      "overall_score": 48.3,
+      "mention_count": 1,
+      "avg_position": 5.0,
+      "is_own": false
+    },
+    {
+      "name": "Akiflow",
+      "visibility_score": 50.0,
+      "share_of_voice": 4.2,
+      "sentiment_score": 100.0,
+      "position_score": 50.0,
+      "overall_score": 46.3,
+      "mention_count": 1,
+      "avg_position": 6.0,
+      "is_own": false
+    },
+    {
+      "name": "Reclaim.ai",
+      "visibility_score": 50.0,
+      "share_of_voice": 4.2,
+      "sentiment_score": 100.0,
+      "position_score": 30.0,
+      "overall_score": 42.3,
+      "mention_count": 1,
+      "avg_position": 8.0,
+      "is_own": false
+    },
+    {
+      "name": "Sunsama",
+      "visibility_score": 50.0,
+      "share_of_voice": 4.2,
+      "sentiment_score": 100.0,
+      "position_score": 20.0,
+      "overall_score": 40.3,
+      "mention_count": 1,
+      "avg_position": 9.0,
+      "is_own": false
+    },
+    {
+      "name": "Obsidian",
+      "visibility_score": 50.0,
+      "share_of_voice": 4.2,
+      "sentiment_score": 100.0,
+      "position_score": 10.0,
+      "overall_score": 38.3,
+      "mention_count": 1,
+      "avg_position": 10.0,
+      "is_own": false
+    },
+    {
+      "name": "Microsoft OneNote",
+      "visibility_score": 50.0,
+      "share_of_voice": 4.2,
+      "sentiment_score": 100.0,
+      "position_score": 0.0,
+      "overall_score": 36.3,
+      "mention_count": 1,
+      "avg_position": 11.0,
+      "is_own": false
+    },
+    {
+      "name": "NoteNest",
+      "visibility_score": 50.0,
+      "share_of_voice": 4.2,
+      "sentiment_score": 100.0,
+      "position_score": 0.0,
+      "overall_score": 36.3,
+      "mention_count": 1,
+      "avg_position": 12.0,
+      "is_own": false
+    },
+    {
+      "name": "Zapier",
+      "visibility_score": 50.0,
+      "share_of_voice": 4.2,
+      "sentiment_score": 100.0,
+      "position_score": 0.0,
+      "overall_score": 36.3,
+      "mention_count": 1,
+      "avg_position": 13.0,
+      "is_own": false
+    },
+    {
+      "name": "n8n",
+      "visibility_score": 50.0,
+      "share_of_voice": 4.2,
+      "sentiment_score": 100.0,
+      "position_score": 0.0,
+      "overall_score": 36.3,
+      "mention_count": 1,
+      "avg_position": 14.0,
+      "is_own": false
+    },
+    {
+      "name": "Superhuman",
+      "visibility_score": 50.0,
+      "share_of_voice": 4.2,
+      "sentiment_score": 100.0,
+      "position_score": 0.0,
+      "overall_score": 36.3,
+      "mention_count": 1,
+      "avg_position": 15.0,
+      "is_own": false
+    },
+    {
+      "name": "Slack",
+      "visibility_score": 50.0,
+      "share_of_voice": 4.2,
+      "sentiment_score": 100.0,
+      "position_score": 0.0,
+      "overall_score": 36.3,
+      "mention_count": 1,
+      "avg_position": 16.0,
+      "is_own": false
+    },
+    {
+      "name": "Fireflies.ai",
+      "visibility_score": 50.0,
+      "share_of_voice": 4.2,
+      "sentiment_score": 100.0,
+      "position_score": 0.0,
+      "overall_score": 36.3,
+      "mention_count": 1,
+      "avg_position": 17.0,
+      "is_own": false
+    }
+  ],
+  "provider_comparison": [
+    {
+      "competitor_name": "Notion",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": true,
+          "position": 4,
+          "sentiment": "positive",
+          "visibility_score": 100.0
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": true,
+          "position": 4,
+          "sentiment": "positive",
+          "visibility_score": 100.0
+        }
+      ]
+    },
+    {
+      "competitor_name": "Akiflow",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": false,
+          "position": null,
+          "sentiment": "neutral",
+          "visibility_score": 0.0
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": true,
+          "position": 6,
+          "sentiment": "positive",
+          "visibility_score": 100.0
+        }
+      ]
+    },
+    {
+      "competitor_name": "ChatGPT",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": true,
+          "position": 3,
+          "sentiment": "positive",
+          "visibility_score": 100.0
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": false,
+          "position": null,
+          "sentiment": "neutral",
+          "visibility_score": 0.0
+        }
+      ]
+    },
+    {
+      "competitor_name": "Claude",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": true,
+          "position": 2,
+          "sentiment": "positive",
+          "visibility_score": 100.0
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": false,
+          "position": null,
+          "sentiment": "neutral",
+          "visibility_score": 0.0
+        }
+      ]
+    },
+    {
+      "competitor_name": "Comet",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": false,
+          "position": null,
+          "sentiment": "neutral",
+          "visibility_score": 0.0
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": true,
+          "position": 2,
+          "sentiment": "positive",
+          "visibility_score": 100.0
+        }
+      ]
+    },
+    {
+      "competitor_name": "Fireflies.ai",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": true,
+          "position": 17,
+          "sentiment": "positive",
+          "visibility_score": 100.0
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": false,
+          "position": null,
+          "sentiment": "neutral",
+          "visibility_score": 0.0
+        }
+      ]
+    },
+    {
+      "competitor_name": "Microsoft OneNote",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": true,
+          "position": 11,
+          "sentiment": "positive",
+          "visibility_score": 100.0
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": false,
+          "position": null,
+          "sentiment": "neutral",
+          "visibility_score": 0.0
+        }
+      ]
+    },
+    {
+      "competitor_name": "Monday.com",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": true,
+          "position": 5,
+          "sentiment": "positive",
+          "visibility_score": 100.0
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": false,
+          "position": null,
+          "sentiment": "neutral",
+          "visibility_score": 0.0
+        }
+      ]
+    },
+    {
+      "competitor_name": "Motion",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": true,
+          "position": 7,
+          "sentiment": "positive",
+          "visibility_score": 100.0
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": true,
+          "position": 3,
+          "sentiment": "positive",
+          "visibility_score": 100.0
+        }
+      ]
+    },
+    {
+      "competitor_name": "NoteNest",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": true,
+          "position": 12,
+          "sentiment": "positive",
+          "visibility_score": 100.0
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": false,
+          "position": null,
+          "sentiment": "neutral",
+          "visibility_score": 0.0
+        }
+      ]
+    },
+    {
+      "competitor_name": "Obsidian",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": true,
+          "position": 10,
+          "sentiment": "positive",
+          "visibility_score": 100.0
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": false,
+          "position": null,
+          "sentiment": "neutral",
+          "visibility_score": 0.0
+        }
+      ]
+    },
+    {
+      "competitor_name": "Perplexity",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": true,
+          "position": 1,
+          "sentiment": "positive",
+          "visibility_score": 100.0
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": true,
+          "position": 5,
+          "sentiment": "positive",
+          "visibility_score": 100.0
+        }
+      ]
+    },
+    {
+      "competitor_name": "Reclaim.ai",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": true,
+          "position": 8,
+          "sentiment": "positive",
+          "visibility_score": 100.0
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": false,
+          "position": null,
+          "sentiment": "neutral",
+          "visibility_score": 0.0
+        }
+      ]
+    },
+    {
+      "competitor_name": "Slack",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": true,
+          "position": 16,
+          "sentiment": "positive",
+          "visibility_score": 100.0
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": false,
+          "position": null,
+          "sentiment": "neutral",
+          "visibility_score": 0.0
+        }
+      ]
+    },
+    {
+      "competitor_name": "Sunsama",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": true,
+          "position": 9,
+          "sentiment": "positive",
+          "visibility_score": 100.0
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": false,
+          "position": null,
+          "sentiment": "neutral",
+          "visibility_score": 0.0
+        }
+      ]
+    },
+    {
+      "competitor_name": "Superhuman",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": true,
+          "position": 15,
+          "sentiment": "positive",
+          "visibility_score": 100.0
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": false,
+          "position": null,
+          "sentiment": "neutral",
+          "visibility_score": 0.0
+        }
+      ]
+    },
+    {
+      "competitor_name": "Todoist",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": true,
+          "position": 6,
+          "sentiment": "positive",
+          "visibility_score": 100.0
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": true,
+          "position": 17,
+          "sentiment": "positive",
+          "visibility_score": 100.0
+        }
+      ]
+    },
+    {
+      "competitor_name": "Wisprflow",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": false,
+          "position": null,
+          "sentiment": "neutral",
+          "visibility_score": 0.0
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": true,
+          "position": 1,
+          "sentiment": "positive",
+          "visibility_score": 100.0
+        }
+      ]
+    },
+    {
+      "competitor_name": "Zapier",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": true,
+          "position": 13,
+          "sentiment": "positive",
+          "visibility_score": 100.0
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": false,
+          "position": null,
+          "sentiment": "neutral",
+          "visibility_score": 0.0
+        }
+      ]
+    },
+    {
+      "competitor_name": "n8n",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": true,
+          "position": 14,
+          "sentiment": "positive",
+          "visibility_score": 100.0
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": false,
+          "position": null,
+          "sentiment": "neutral",
+          "visibility_score": 0.0
+        }
+      ]
+    }
+  ],
+  "platform_count": 2
+}

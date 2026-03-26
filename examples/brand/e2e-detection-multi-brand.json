@@ -1,0 +1,55 @@
+{
+  "brands": [
+    "Notion",
+    "Obsidian",
+    "Evernote",
+    "Bear"
+  ],
+  "text_length": 554,
+  "results": {
+    "Notion": [
+      {
+        "text": "Notion",
+        "confidence": 1.0,
+        "variation_type": "exact",
+        "negative_context": false
+      },
+      {
+        "text": "Notion's",
+        "confidence": 1.0,
+        "variation_type": "exact",
+        "negative_context": false
+      },
+      {
+        "text": "notion",
+        "confidence": 1.0,
+        "variation_type": "exact",
+        "negative_context": false
+      }
+    ],
+    "Obsidian": [
+      {
+        "text": "Obsidian",
+        "confidence": 1.0,
+        "variation_type": "exact",
+        "negative_context": false
+      }
+    ],
+    "Evernote": [
+      {
+        "text": "Evernote",
+        "confidence": 1.0,
+        "variation_type": "exact",
+        "negative_context": false
+      }
+    ],
+    "Bear": [
+      {
+        "text": "Bear",
+        "confidence": 1.0,
+        "variation_type": "exact",
+        "negative_context": true
+      }
+    ]
+  }
+}

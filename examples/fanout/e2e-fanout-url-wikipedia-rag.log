@@ -1,0 +1,15 @@
+[fetch] https://en.wikipedia.org/wiki/Retrieval-augmented_generation → 24592 chars in 2.6s
+[generate] 12 sub-queries in 6.2s
+[gap] Coverage: 0% in 1.7s
+  [GAP] (0.68) [definitional] what is retrieval augmented generation RAG simplified explanation
+  [GAP] (0.55) [definitional] core components of a RAG system architecture
+  [GAP] (0.67) [comparative] retrieval augmented generation vs fine-tuning LLMs
+  [GAP] (0.53) [comparative] RAG vs long context window models comparison
+  [GAP] (0.65) [feature_specific] how vector databases enable retrieval in RAG pipelines
+  [GAP] (0.57) [feature_specific] role of embeddings and semantic search in retrieval augmented generation
+  [GAP] (0.54) [use_case] implementing RAG for internal corporate knowledge base search
+  [GAP] (0.49) [use_case] how RAG is used to build real-time financial news chatbots
+  [GAP] (0.61) [trust_signals] evaluating RAG accuracy and hallucination rates case studies
+  [GAP] (0.57) [trust_signals] industry benchmarks for RAG performance and retrieval precision
+  [GAP] (0.47) [how_to] how to build a RAG pipeline using LangChain and Python
+  [GAP] (0.58) [how_to] step by step guide to data chunking for RAG systems

@@ -1,0 +1,24 @@
+[generate] 12 sub-queries in 10.2s (model=gemini-3-flash-preview)
+  comparative: 2
+  definitional: 2
+  feature_specific: 2
+  how_to: 2
+  trust_signals: 2
+  use_case: 2
+[gap] Coverage: 0% in 1.1s
+[gap] Covered: 0/12
+[gap] Covered types: []
+[gap] Missing types: ['comparative', 'definitional', 'feature_specific', 'how_to', 'trust_signals', 'use_case']
+  [GAP] (0.56) [comparative] best CRM for startups Reddit threads 2024
+  [GAP] (0.52) [comparative] HubSpot vs Freshsales vs Copper for tech startups
+  [GAP] (0.43) [feature_specific] CRMs with AI-powered sales forecasting for small teams
+  [GAP] (0.41) [feature_specific] startup CRM with native LinkedIn integration
+  [GAP] (0.48) [use_case] CRM for outbound B2B sales automation in startups
+  [GAP] (0.41) [use_case] best CRM for tracking pre-seed investment rounds
+  [GAP] (0.59) [trust_signals] most recommended CRMs for startups on G2 Crowd
+  [GAP] (0.41) [trust_signals] CRM success stories for Y Combinator alumni
+  [GAP] (0.32) [how_to] how to automate lead scoring in a startup CRM
+  [GAP] (0.37) [how_to] how to implement a CRM without a dedicated sales ops team
+  [GAP] (0.48) [definitional] essential CRM terminology for first-time founders
+  [GAP] (0.32) [definitional] differences between operational and analytical CRMs for startups
+[total] 11.2s

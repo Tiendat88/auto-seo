@@ -1,0 +1,12 @@
+{
+  "gap_summary": {
+    "covered": 0,
+    "total": 2,
+    "coverage_percent": 0,
+    "covered_types": [],
+    "missing_types": [
+      "definitional",
+      "how_to"
+    ]
+  }
+}

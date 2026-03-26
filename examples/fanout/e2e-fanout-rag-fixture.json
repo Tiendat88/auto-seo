@@ -1,0 +1,96 @@
+{
+  "query": "what is retrieval augmented generation",
+  "model": "gemini-3-flash-preview",
+  "content_source": "tests/fixtures/article_good.html",
+  "gap_summary": {
+    "covered": 0,
+    "total": 12,
+    "coverage_percent": 0,
+    "covered_types": [],
+    "missing_types": [
+      "comparative",
+      "definitional",
+      "feature_specific",
+      "how_to",
+      "trust_signals",
+      "use_case"
+    ]
+  },
+  "sub_queries": [
+    {
+      "type": "definitional",
+      "query": "what is retrieval augmented generation in simple terms",
+      "covered": false,
+      "similarity_score": 0.68
+    },
+    {
+      "type": "definitional",
+      "query": "core components and architecture of a RAG system",
+      "covered": false,
+      "similarity_score": 0.6
+    },
+    {
+      "type": "comparative",
+      "query": "RAG vs fine-tuning for large language models",
+      "covered": false,
+      "similarity_score": 0.61
+    },
+    {
+      "type": "comparative",
+      "query": "vector databases vs relational databases for RAG",
+      "covered": false,
+      "similarity_score": 0.51
+    },
+    {
+      "type": "feature_specific",
+      "query": "role of semantic search and embeddings in retrieval augmented generation",
+      "covered": false,
+      "similarity_score": 0.48
+    },
+    {
+      "type": "feature_specific",
+      "query": "context window limitations and retrieval mechanisms in RAG",
+      "covered": false,
+      "similarity_score": 0.4
+    },
+    {
+      "type": "use_case",
+      "query": "how enterprises use RAG for private document search",
+      "covered": false,
+      "similarity_score": 0.51
+    },
+    {
+      "type": "use_case",
+      "query": "retrieval augmented generation examples in customer support chatbots",
+      "covered": false,
+      "similarity_score": 0.44
+    },
+    {
+      "type": "trust_signals",
+      "query": "research papers proving RAG reduces hallucinations in LLMs",
+      "covered": false,
+      "similarity_score": 0.64
+    },
+    {
+      "type": "trust_signals",
+      "query": "case studies on RAG implementation ROI for tech companies",
+      "covered": false,
+      "similarity_score": 0.4
+    },
+    {
+      "type": "how_to",
+      "query": "how to build a basic RAG pipeline using LangChain and Python",
+      "covered": false,
+      "similarity_score": 0.68
+    },
+    {
+      "type": "how_to",
+      "query": "step by step guide to evaluating RAG retrieval accuracy",
+      "covered": false,
+      "similarity_score": 0.47
+    }
+  ],
+  "_meta": {
+    "elapsed_seconds": 7.59
+  }
+}

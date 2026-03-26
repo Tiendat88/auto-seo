@@ -1,0 +1,38 @@
+[scrape] Scraping https://notion.so...
+[scrape] Company: Notion (Productivity Software)
+[scrape] Keywords: ['AI workspace', 'project management', 'wikis', 'documents', 'AI agents', 'enterprise search', 'meeting notes', 'task automation', 'knowledge base', 'productivity']
+[competitors] Found 8: ['ClickUp', 'Coda', 'Microsoft Loop', 'Monday.com', 'Confluence', 'Asana', 'Airtable', 'Slite']
+[prompts] Generated 6 prompts
+  [ranking] What are the top 10 Productivity Software tools right now?
+  [ranking] What are the best Productivity Software solutions available today?
+  [ranking] Which Productivity Software platforms are most popular right now?
+  [comparison] Notion vs ClickUp: which is better for Productivity Software?
+  [comparison] How does Notion compare to Coda?
+  [comparison] Compare Notion and Microsoft Loop for Notion AI Workspace.
+[fetch] Prompt 1/3: What are the top 10 Productivity Software tools right now?...
+[fetch]   Got 2 responses: ['perplexity', 'gemini']
+[fetch] Prompt 2/3: What are the best Productivity Software solutions available ...
+[fetch]   Got 2 responses: ['perplexity', 'gemini']
+[fetch] Prompt 3/3: Which Productivity Software platforms are most popular right...
+[fetch]   Got 2 responses: ['perplexity', 'gemini']
+[analyze] Analyzed 6 responses
+[aggregate] Mentioned: 6/6
+[aggregate] Sentiment: positive
+[aggregate] Top competitors: ['Todoist', 'ClickUp', 'Zapier', 'Slack', 'TickTick', 'Motion', 'Microsoft 365', 'Google Workspace', 'Monday.com', 'Linear', 'Jira', 'Pocket Informant', 'monday.com', 'Perplexity', 'Asana', 'Trello', 'TrackingTime', 'Claude by Anthropic', 'Obsidian', 'Microsoft Teams', 'Toggl Track', 'Forest', 'Text Blaze', 'Arc Browser', 'Sunsama', 'Reclaim.ai', 'Lovable', 'Bolt.new', 'Cursor', 'Airtable', 'Zapier Ultra', 'CamoCopy', 'Notesnook', 'Proton Workspace', 'Slack Quantum', 'Superhuman', 'remio', 'SkedPal', 'ChatGPT', 'Claude', 'Loom', 'Zoom']
+[scores] Overall: 70.0
+[scores] Visibility: 100.0
+[scores] Share of voice: 8.2
+[scores] Sentiment: 91.7
+[scores] Position: 96.0
+[rankings]
+  Notion (own): overall=70.0 vis=100.0 mentions=6
+  Todoist: overall=62.2 vis=83.3 mentions=5
+  ClickUp: overall=54.2 vis=66.7 mentions=4
+  Monday.com: overall=52.7 vis=66.7 mentions=4
+  Zapier: overall=47.7 vis=66.7 mentions=4
+  Slack: overall=47.6 vis=50.0 mentions=3
+  Motion: overall=46.9 vis=50.0 mentions=3
+  Pocket Informant: overall=45.8 vis=33.3 mentions=2
+  Microsoft 365: overall=44.9 vis=50.0 mentions=3
+  Google Workspace: overall=43.8 vis=33.3 mentions=2
+[total] 123.7s

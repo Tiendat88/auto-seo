@@ -1,0 +1,10 @@
+{
+  "brand": "Bear",
+  "matches": [
+    {
+      "text": "Bear",
+      "confidence": 1.0,
+      "negative_context": true
+    }
+  ]
+}

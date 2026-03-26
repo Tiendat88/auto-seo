@@ -1,0 +1,97 @@
+{
+  "url": "https://en.wikipedia.org/wiki/Retrieval-augmented_generation",
+  "query": "what is retrieval augmented generation and how does it work",
+  "model": "gemini-3-flash-preview",
+  "content_words": 2860,
+  "gap_summary": {
+    "covered": 0,
+    "total": 12,
+    "coverage_percent": 0,
+    "covered_types": [],
+    "missing_types": [
+      "comparative",
+      "definitional",
+      "feature_specific",
+      "how_to",
+      "trust_signals",
+      "use_case"
+    ]
+  },
+  "sub_queries": [
+    {
+      "type": "definitional",
+      "query": "what is retrieval augmented generation RAG simplified explanation",
+      "covered": false,
+      "similarity_score": 0.68
+    },
+    {
+      "type": "definitional",
+      "query": "core components of a RAG system architecture",
+      "covered": false,
+      "similarity_score": 0.55
+    },
+    {
+      "type": "comparative",
+      "query": "retrieval augmented generation vs fine-tuning LLMs",
+      "covered": false,
+      "similarity_score": 0.67
+    },
+    {
+      "type": "comparative",
+      "query": "RAG vs long context window models comparison",
+      "covered": false,
+      "similarity_score": 0.53
+    },
+    {
+      "type": "feature_specific",
+      "query": "how vector databases enable retrieval in RAG pipelines",
+      "covered": false,
+      "similarity_score": 0.65
+    },
+    {
+      "type": "feature_specific",
+      "query": "role of embeddings and semantic search in retrieval augmented generation",
+      "covered": false,
+      "similarity_score": 0.57
+    },
+    {
+      "type": "use_case",
+      "query": "implementing RAG for internal corporate knowledge base search",
+      "covered": false,
+      "similarity_score": 0.54
+    },
+    {
+      "type": "use_case",
+      "query": "how RAG is used to build real-time financial news chatbots",
+      "covered": false,
+      "similarity_score": 0.49
+    },
+    {
+      "type": "trust_signals",
+      "query": "evaluating RAG accuracy and hallucination rates case studies",
+      "covered": false,
+      "similarity_score": 0.61
+    },
+    {
+      "type": "trust_signals",
+      "query": "industry benchmarks for RAG performance and retrieval precision",
+      "covered": false,
+      "similarity_score": 0.57
+    },
+    {
+      "type": "how_to",
+      "query": "how to build a RAG pipeline using LangChain and Python",
+      "covered": false,
+      "similarity_score": 0.47
+    },
+    {
+      "type": "how_to",
+      "query": "step by step guide to data chunking for RAG systems",
+      "covered": false,
+      "similarity_score": 0.58
+    }
+  ],
+  "_meta": {
+    "elapsed_seconds": 10.51
+  }
+}

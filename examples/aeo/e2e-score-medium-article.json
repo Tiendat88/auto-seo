@@ -1,0 +1,62 @@
+{
+  "aeo_score": 90,
+  "band": "AEO Optimized",
+  "checks": [
+    {
+      "check_id": "direct_answer",
+      "name": "Direct Answer Detection",
+      "passed": true,
+      "score": 20,
+      "max_score": 20,
+      "details": {
+        "word_count": 57,
+        "threshold": 60,
+        "is_declarative": true,
+        "has_hedge_phrase": false
+      },
+      "recommendation": null
+    },
+    {
+      "check_id": "htag_hierarchy",
+      "name": "H-tag Hierarchy",
+      "passed": true,
+      "score": 20,
+      "max_score": 20,
+      "details": {
+        "violations": [],
+        "h_tags_found": [
+          "h1",
+          "h2",
+          "h2",
+          "h3",
+          "h3",
+          "h3",
+          "h2",
+          "h2",
+          "h2"
+        ]
+      },
+      "recommendation": null
+    },
+    {
+      "check_id": "readability",
+      "name": "Snippet Readability",
+      "passed": false,
+      "score": 14,
+      "max_score": 20,
+      "details": {
+        "fk_grade_level": 9.9,
+        "target_range": "7-9",
+        "complex_sentences": [
+          "Native integrations are more reliable than Zapier workarounds.",
+          "Key Features to Evaluate Start with contact management, pipeline visualization, and email integration.",
+          "Evaluate Attio if flexibility and modern integrations matter more than a large ecosystem of third-party apps."
+        ]
+      },
+      "recommendation": "Content reads at Grade 9.9. Simplify sentences to reach Grade 7-9."
+    }
+  ],
+  "first_paragraph_words": 57,
+  "heading_count": 9,
+  "text_length": 2249
+}

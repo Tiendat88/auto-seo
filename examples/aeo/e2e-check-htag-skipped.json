@@ -1,0 +1,17 @@
+{
+  "check_id": "htag_hierarchy",
+  "name": "H-tag Hierarchy",
+  "passed": false,
+  "score": 12,
+  "max_score": 20,
+  "details": {
+    "violations": [
+      "Skipped heading level: H1 \u2192 H3"
+    ],
+    "h_tags_found": [
+      "h1",
+      "h3"
+    ]
+  },
+  "recommendation": "Fix heading hierarchy: Skipped heading level: H1 \u2192 H3."
+}

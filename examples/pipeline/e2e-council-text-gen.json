@@ -1,0 +1,11 @@
+{
+  "results": [
+    {
+      "backend": "gemini",
+      "model": "gemini-3-flash-preview",
+      "response_length": 41,
+      "response_preview": "1. **Improved Work-Life Balance:** Offers",
+      "elapsed": 2.07
+    }
+  ]
+}

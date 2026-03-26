@@ -1,0 +1,2061 @@
+{
+  "brand_name": "Notion",
+  "query": "What are the top 10 Productivity Software tools right now?",
+  "queries": [
+    "What are the top 10 Productivity Software tools right now?",
+    "What are the best Productivity Software solutions available today?",
+    "Which Productivity Software platforms are most popular right now?"
+  ],
+  "model_used": "gemini-3-flash-preview",
+  "platform_analyses": [
+    {
+      "brand_mentioned": true,
+      "mention_context": "recommended",
+      "brand_position": 1,
+      "sentiment": {
+        "overall": "positive",
+        "reasoning": "Notion is listed as the number one productivity tool and is characterized as a 'highly versatile' all-in-one workspace for various use cases.",
+        "aspects": [
+          {
+            "feature": "versatility",
+            "sentiment": "positive",
+            "detail": "Described as highly versatile for both personal and team use."
+          },
+          {
+            "feature": "integration of functions",
+            "sentiment": "positive",
+            "detail": "Combines notes, tasks, databases, and documentation into an all-in-one workspace."
+          }
+        ]
+      },
+      "keywords_found": [
+        "Notion",
+        "Todoist",
+        "Slack",
+        "Asana",
+        "Trello",
+        "ClickUp",
+        "Google Workspace",
+        "Drive",
+        "Docs",
+        "Zapier",
+        "TickTick",
+        "TrackingTime",
+        "Sunsama",
+        "Akiflow",
+        "Toggl Track",
+        "Quire",
+        "Office365",
+        "project management",
+        "documents",
+        "task automation",
+        "productivity"
+      ],
+      "competitors": [
+        {
+          "name": "Todoist",
+          "recommended": true,
+          "position": 2
+        },
+        {
+          "name": "Slack",
+          "recommended": true,
+          "position": 3
+        },
+        {
+          "name": "Asana",
+          "recommended": true,
+          "position": 4
+        },
+        {
+          "name": "Trello",
+          "recommended": true,
+          "position": 5
+        },
+        {
+          "name": "ClickUp",
+          "recommended": true,
+          "position": 6
+        },
+        {
+          "name": "Google Workspace",
+          "recommended": true,
+          "position": 7
+        },
+        {
+          "name": "Zapier",
+          "recommended": true,
+          "position": 8
+        },
+        {
+          "name": "TickTick",
+          "recommended": true,
+          "position": 9
+        },
+        {
+          "name": "TrackingTime",
+          "recommended": true,
+          "position": 10
+        }
+      ],
+      "relevant_quotes": [
+        "Notion, Todoist, Slack, Asana, and Trello rank among the most frequently recommended productivity software tools",
+        "All-in-one workspace for notes, tasks, databases, and documentation; highly versatile for personal and team use."
+      ],
+      "platform": "perplexity"
+    },
+    {
+      "brand_mentioned": true,
+      "mention_context": "recommended",
+      "brand_position": 1,
+      "sentiment": {
+        "overall": "positive",
+        "reasoning": "Notion is ranked as the top productivity tool and described as the 'home base' for knowledge workers, with praise for its AI-driven automation and versatility.",
+        "aspects": [
+          {
+            "feature": "Notion AI + Database Automations",
+            "sentiment": "positive",
+            "detail": "Automatically categorizes notes, summarizes documents, and moves tasks between projects."
+          },
+          {
+            "feature": "all-in-one workspace",
+            "sentiment": "positive",
+            "detail": "Serves as a combined wiki, project manager, and document editor."
+          }
+        ]
+      },
+      "keywords_found": [
+        "Notion",
+        "Todoist",
+        "Slack",
+        "Monday.com",
+        "Claude",
+        "Anthropic",
+        "Obsidian",
+        "Zapier",
+        "Microsoft Teams",
+        "Microsoft 365",
+        "Microsoft Copilot",
+        "Linear",
+        "Jira",
+        "Toggl Track",
+        "Forest",
+        "Text Blaze",
+        "Arc Browser",
+        "productivity",
+        "project management",
+        "wikis",
+        "documents"
+      ],
+      "competitors": [
+        {
+          "name": "Todoist",
+          "recommended": true,
+          "position": 2
+        },
+        {
+          "name": "Slack",
+          "recommended": true,
+          "position": 3
+        },
+        {
+          "name": "Monday.com",
+          "recommended": true,
+          "position": 4
+        },
+        {
+          "name": "Claude by Anthropic",
+          "recommended": true,
+          "position": 5
+        },
+        {
+          "name": "Obsidian",
+          "recommended": true,
+          "position": 6
+        },
+        {
+          "name": "Zapier",
+          "recommended": true,
+          "position": 7
+        },
+        {
+          "name": "Microsoft Teams",
+          "recommended": true,
+          "position": 8
+        },
+        {
+          "name": "Linear",
+          "recommended": true,
+          "position": 9
+        },
+        {
+          "name": "Toggl Track",
+          "recommended": true,
+          "position": 10
+        },
+        {
+          "name": "Jira",
+          "recommended": false,
+          "position": null
+        },
+        {
+          "name": "Forest",
+          "recommended": true,
+          "position": null
+        },
+        {
+          "name": "Text Blaze",
+          "recommended": true,
+          "position": null
+        },
+        {
+          "name": "Arc Browser",
+          "recommended": true,
+          "position": null
+        }
+      ],
+      "relevant_quotes": [
+        "Notion continues to be the \"home base\" for most knowledge workers.",
+        "In 2026, its standout feature is Notion AI + Database Automations, which can now automatically categorize notes, summarize long documents, and move tasks between projects without manual input.",
+        "It serves as a combined wiki, project manager, and document editor."
+      ],
+      "platform": "gemini"
+    },
+    {
+      "brand_mentioned": true,
+      "mention_context": "compared",
+      "brand_position": null,
+      "sentiment": {
+        "overall": "neutral",
+        "reasoning": "The text acknowledges Notion as a 'flexible tool' but notes it can 'overwhelm beginners,' presenting both a strength and a weakness.",
+        "aspects": [
+          {
+            "feature": "flexibility",
+            "sentiment": "positive",
+            "detail": "Described as a flexible tool."
+          },
+          {
+            "feature": "onboarding",
+            "sentiment": "negative",
+            "detail": "Mentioned as potentially overwhelming for beginners."
+          }
+        ]
+      },
+      "keywords_found": [
+        "Notion",
+        "Todoist",
+        "Pocket Informant",
+        "Sunsama",
+        "Motion",
+        "Reclaim.ai",
+        "Zapier",
+        "TickTick",
+        "Microsoft 365",
+        "productivity"
+      ],
+      "competitors": [
+        {
+          "name": "Todoist",
+          "recommended": true,
+          "position": 1
+        },
+        {
+          "name": "Pocket Informant",
+          "recommended": true,
+          "position": 2
+        },
+        {
+          "name": "Sunsama",
+          "recommended": true,
+          "position": 3
+        },
+        {
+          "name": "Motion",
+          "recommended": true,
+          "position": 4
+        },
+        {
+          "name": "Reclaim.ai",
+          "recommended": true,
+          "position": 5
+        },
+        {
+          "name": "Zapier",
+          "recommended": true,
+          "position": 6
+        },
+        {
+          "name": "TickTick",
+          "recommended": true,
+          "position": 7
+        },
+        {
+          "name": "Microsoft 365",
+          "recommended": true,
+          "position": 8
+        }
+      ],
+      "relevant_quotes": [
+        "Sources note trade-offs: flexible tools like Notion may overwhelm beginners, while automation-heavy options like Zapier require setup time.[1][3]"
+      ],
+      "platform": "perplexity"
+    },
+    {
+      "brand_mentioned": true,
+      "mention_context": "recommended",
+      "brand_position": 1,
+      "sentiment": {
+        "overall": "positive",
+        "reasoning": "The text identifies Notion as a 'leader' in the space and specifically recommends it as a top tool for solo freelancers.",
+        "aspects": [
+          {
+            "feature": "knowledge base management",
+            "sentiment": "positive",
+            "detail": "Described as a leader for 'Building a Second Brain' with AI that manages knowledge bases and links related documents."
+          },
+          {
+            "feature": "project updates",
+            "sentiment": "positive",
+            "detail": "AI capabilities allow for automatically generating project updates."
+          },
+          {
+            "feature": "organization",
+            "sentiment": "positive",
+            "detail": "Recommended for solo freelancers for organization purposes."
+          }
+        ]
+      },
+      "keywords_found": [
+        "project management",
+        "documents",
+        "AI agents",
+        "knowledge base",
+        "productivity",
+        "Notion",
+        "monday.com",
+        "ClickUp",
+        "Linear",
+        "Lovable",
+        "Bolt.new",
+        "Cursor",
+        "Airtable",
+        "Motion",
+        "Zapier Ultra",
+        "Perplexity",
+        "CamoCopy",
+        "Notesnook",
+        "Proton Workspace",
+        "Slack Quantum",
+        "Superhuman",
+        "Microsoft 365"
+      ],
+      "competitors": [
+        {
+          "name": "monday.com",
+          "recommended": true,
+          "position": 2
+        },
+        {
+          "name": "ClickUp",
+          "recommended": true,
+          "position": 3
+        },
+        {
+          "name": "Linear",
+          "recommended": true,
+          "position": 4
+        },
+        {
+          "name": "Lovable",
+          "recommended": true,
+          "position": 5
+        },
+        {
+          "name": "Bolt.new",
+          "recommended": true,
+          "position": 6
+        },
+        {
+          "name": "Cursor",
+          "recommended": true,
+          "position": 7
+        },
+        {
+          "name": "Airtable",
+          "recommended": true,
+          "position": 8
+        },
+        {
+          "name": "Motion",
+          "recommended": true,
+          "position": 9
+        },
+        {
+          "name": "Zapier Ultra",
+          "recommended": true,
+          "position": 10
+        },
+        {
+          "name": "Perplexity",
+          "recommended": true,
+          "position": 11
+        },
+        {
+          "name": "CamoCopy",
+          "recommended": true,
+          "position": 12
+        },
+        {
+          "name": "Notesnook",
+          "recommended": true,
+          "position": 13
+        },
+        {
+          "name": "Proton Workspace",
+          "recommended": true,
+          "position": 14
+        },
+        {
+          "name": "Slack Quantum",
+          "recommended": true,
+          "position": 15
+        },
+        {
+          "name": "Superhuman",
+          "recommended": true,
+          "position": 16
+        },
+        {
+          "name": "Microsoft 365",
+          "recommended": true,
+          "position": 17
+        }
+      ],
+      "relevant_quotes": [
+        "Notion: Still the leader for \"Building a Second Brain.\"",
+        "In 2026, Notion AI manages entire knowledge bases, automatically linking related documents and generating project updates.",
+        "Solo Freelancer | Motion + Notion (for scheduling and organization)"
+      ],
+      "platform": "gemini"
+    },
+    {
+      "brand_mentioned": true,
+      "mention_context": "compared",
+      "brand_position": 3,
+      "sentiment": {
+        "overall": "positive",
+        "reasoning": "Notion is identified as a dominant tool for knowledge management and note-taking that consolidates information and workflows.",
+        "aspects": [
+          {
+            "feature": "knowledge management",
+            "sentiment": "positive",
+            "detail": "Described as dominating the space alongside remio."
+          },
+          {
+            "feature": "information consolidation",
+            "sentiment": "positive",
+            "detail": "Helps consolidate information and build personal workflows."
+          }
+        ]
+      },
+      "keywords_found": [
+        "Notion",
+        "Todoist",
+        "ClickUp",
+        "Motion",
+        "Pocket Informant",
+        "TickTick",
+        "remio",
+        "SkedPal",
+        "monday.com",
+        "Slack",
+        "Google Calendar",
+        "Zoom",
+        "Chili Piper",
+        "project management",
+        "productivity"
+      ],
+      "competitors": [
+        {
+          "name": "Todoist",
+          "recommended": true,
+          "position": 1
+        },
+        {
+          "name": "ClickUp",
+          "recommended": true,
+          "position": 2
+        },
+        {
+          "name": "Motion",
+          "recommended": true,
+          "position": 4
+        },
+        {
+          "name": "Pocket Informant",
+          "recommended": true,
+          "position": 5
+        },
+        {
+          "name": "TickTick",
+          "recommended": true,
+          "position": 6
+        },
+        {
+          "name": "remio",
+          "recommended": true,
+          "position": 7
+        },
+        {
+          "name": "SkedPal",
+          "recommended": true,
+          "position": 8
+        },
+        {
+          "name": "monday.com",
+          "recommended": true,
+          "position": 9
+        }
+      ],
+      "relevant_quotes": [
+        "Based on 2026 rankings, the most popular productivity platforms are **Todoist**, **ClickUp**, **Notion**, **Motion**, and **Pocket Informant**",
+        "**Knowledge management and note-taking** are dominated by **Notion**, which helps consolidate information and build personal workflows[4]"
+      ],
+      "platform": "perplexity"
+    },
+    {
+      "brand_mentioned": true,
+      "mention_context": "recommended",
+      "brand_position": 1,
+      "sentiment": {
+        "overall": "positive",
+        "reasoning": "Notion is described as the 'Productivity Home Base' and the most popular tool for knowledge management, while also being recommended as the top choice for personal use.",
+        "aspects": [
+          {
+            "feature": "knowledge management",
+            "sentiment": "positive",
+            "detail": "Described as the most popular tool for this use case."
+          },
+          {
+            "feature": "project management",
+            "sentiment": "positive",
+            "detail": "Recent updates have made it a powerful tool that competes with specialized apps."
+          },
+          {
+            "feature": "versatility",
+            "sentiment": "positive",
+            "detail": "Called an 'All-in-One Workspace' and a 'Productivity Home Base'."
+          }
+        ]
+      },
+      "keywords_found": [
+        "productivity",
+        "project management",
+        "AI agents",
+        "Notion",
+        "Microsoft 365",
+        "Google Workspace",
+        "ChatGPT",
+        "Claude",
+        "Perplexity",
+        "Monday.com",
+        "ClickUp",
+        "Jira",
+        "Slack",
+        "Zapier",
+        "Loom",
+        "Zoom",
+        "Todoist",
+        "Lovable",
+        "Bolt"
+      ],
+      "competitors": [
+        {
+          "name": "Microsoft 365",
+          "recommended": true,
+          "position": 1
+        },
+        {
+          "name": "Google Workspace",
+          "recommended": true,
+          "position": 2
+        },
+        {
+          "name": "ChatGPT",
+          "recommended": true,
+          "position": 3
+        },
+        {
+          "name": "Claude",
+          "recommended": true,
+          "position": 4
+        },
+        {
+          "name": "Perplexity",
+          "recommended": true,
+          "position": 5
+        },
+        {
+          "name": "Monday.com",
+          "recommended": true,
+          "position": 7
+        },
+        {
+          "name": "ClickUp",
+          "recommended": true,
+          "position": 8
+        },
+        {
+          "name": "Jira",
+          "recommended": true,
+          "position": 9
+        },
+        {
+          "name": "Slack",
+          "recommended": true,
+          "position": 10
+        },
+        {
+          "name": "Zapier",
+          "recommended": true,
+          "position": 11
+        },
+        {
+          "name": "Loom",
+          "recommended": true,
+          "position": 12
+        },
+        {
+          "name": "Zoom",
+          "recommended": true,
+          "position": 13
+        },
+        {
+          "name": "Todoist",
+          "recommended": true,
+          "position": 14
+        }
+      ],
+      "relevant_quotes": [
+        "Notion: Often called the 'Productivity Home Base,' Notion is the most popular tool for knowledge management.",
+        "Its recent updates have turned it into a powerful project management tool that competes directly with specialized apps.",
+        "Best for Personal Use: Notion + Todoist + ChatGPT"
+      ],
+      "platform": "gemini"
+    }
+  ],
+  "aggregate": {
+    "platforms_mentioning_brand": 6,
+    "total_platforms": 6,
+    "overall_sentiment": "positive",
+    "avg_brand_position": 1.4,
+    "top_competitors": [
+      "Todoist",
+      "ClickUp",
+      "Zapier",
+      "Slack",
+      "TickTick",
+      "Motion",
+      "Microsoft 365",
+      "Google Workspace",
+      "Monday.com",
+      "Linear",
+      "Jira",
+      "Pocket Informant",
+      "monday.com",
+      "Perplexity",
+      "Asana",
+      "Trello",
+      "TrackingTime",
+      "Claude by Anthropic",
+      "Obsidian",
+      "Microsoft Teams",
+      "Toggl Track",
+      "Forest",
+      "Text Blaze",
+      "Arc Browser",
+      "Sunsama",
+      "Reclaim.ai",
+      "Lovable",
+      "Bolt.new",
+      "Cursor",
+      "Airtable",
+      "Zapier Ultra",
+      "CamoCopy",
+      "Notesnook",
+      "Proton Workspace",
+      "Slack Quantum",
+      "Superhuman",
+      "remio",
+      "SkedPal",
+      "ChatGPT",
+      "Claude",
+      "Loom",
+      "Zoom"
+    ],
+    "brand_recommended_on": [
+      "perplexity",
+      "gemini",
+      "gemini",
+      "gemini"
+    ],
+    "all_keywords_found": [
+      "Notion",
+      "Todoist",
+      "Slack",
+      "Asana",
+      "Trello",
+      "ClickUp",
+      "Google Workspace",
+      "Drive",
+      "Docs",
+      "Zapier",
+      "TickTick",
+      "TrackingTime",
+      "Sunsama",
+      "Akiflow",
+      "Toggl Track",
+      "Quire",
+      "Office365",
+      "project management",
+      "documents",
+      "task automation",
+      "productivity",
+      "Monday.com",
+      "Claude",
+      "Anthropic",
+      "Obsidian",
+      "Microsoft Teams",
+      "Microsoft 365",
+      "Microsoft Copilot",
+      "Linear",
+      "Jira",
+      "Forest",
+      "Text Blaze",
+      "Arc Browser",
+      "wikis",
+      "Pocket Informant",
+      "Motion",
+      "Reclaim.ai",
+      "AI agents",
+      "knowledge base",
+      "Lovable",
+      "Bolt.new",
+      "Cursor",
+      "Airtable",
+      "Zapier Ultra",
+      "Perplexity",
+      "CamoCopy",
+      "Notesnook",
+      "Proton Workspace",
+      "Slack Quantum",
+      "Superhuman",
+      "remio",
+      "SkedPal",
+      "Google Calendar",
+      "Zoom",
+      "Chili Piper",
+      "ChatGPT",
+      "Loom",
+      "Bolt"
+    ],
+    "common_strengths": [
+      "versatility",
+      "knowledge management"
+    ],
+    "common_weaknesses": []
+  },
+  "scores": {
+    "visibility_score": 100.0,
+    "share_of_voice": 8.2,
+    "sentiment_score": 91.7,
+    "position_score": 96.0,
+    "overall_score": 70.0
+  },
+  "competitor_rankings": [
+    {
+      "name": "Notion",
+      "visibility_score": 100.0,
+      "share_of_voice": 8.2,
+      "sentiment_score": 91.7,
+      "position_score": 96.0,
+      "overall_score": 70.0,
+      "mention_count": 6,
+      "avg_position": 1.4,
+      "is_own": true
+    },
+    {
+      "name": "Todoist",
+      "visibility_score": 83.3,
+      "share_of_voice": 6.8,
+      "sentiment_score": 100.0,
+      "position_score": 76.0,
+      "overall_score": 62.2,
+      "mention_count": 5,
+      "avg_position": 4.0,
+      "is_own": false
+    },
+    {
+      "name": "ClickUp",
+      "visibility_score": 66.7,
+      "share_of_voice": 5.5,
+      "sentiment_score": 100.0,
+      "position_score": 62.5,
+      "overall_score": 54.2,
+      "mention_count": 4,
+      "avg_position": 4.8,
+      "is_own": false
+    },
+    {
+      "name": "Monday.com",
+      "visibility_score": 66.7,
+      "share_of_voice": 5.5,
+      "sentiment_score": 100.0,
+      "position_score": 55.0,
+      "overall_score": 52.7,
+      "mention_count": 4,
+      "avg_position": 5.5,
+      "is_own": false
+    },
+    {
+      "name": "Zapier",
+      "visibility_score": 66.7,
+      "share_of_voice": 5.5,
+      "sentiment_score": 100.0,
+      "position_score": 30.0,
+      "overall_score": 47.7,
+      "mention_count": 4,
+      "avg_position": 8.0,
+      "is_own": false
+    },
+    {
+      "name": "Slack",
+      "visibility_score": 50.0,
+      "share_of_voice": 4.1,
+      "sentiment_score": 100.0,
+      "position_score": 56.7,
+      "overall_score": 47.6,
+      "mention_count": 3,
+      "avg_position": 5.3,
+      "is_own": false
+    },
+    {
+      "name": "Motion",
+      "visibility_score": 50.0,
+      "share_of_voice": 4.1,
+      "sentiment_score": 100.0,
+      "position_score": 53.3,
+      "overall_score": 46.9,
+      "mention_count": 3,
+      "avg_position": 5.7,
+      "is_own": false
+    },
+    {
+      "name": "Pocket Informant",
+      "visibility_score": 33.3,
+      "share_of_voice": 2.7,
+      "sentiment_score": 100.0,
+      "position_score": 75.0,
+      "overall_score": 45.8,
+      "mention_count": 2,
+      "avg_position": 3.5,
+      "is_own": false
+    },
+    {
+      "name": "Microsoft 365",
+      "visibility_score": 50.0,
+      "share_of_voice": 4.1,
+      "sentiment_score": 100.0,
+      "position_score": 43.3,
+      "overall_score": 44.9,
+      "mention_count": 3,
+      "avg_position": 8.7,
+      "is_own": false
+    },
+    {
+      "name": "Google Workspace",
+      "visibility_score": 33.3,
+      "share_of_voice": 2.7,
+      "sentiment_score": 100.0,
+      "position_score": 65.0,
+      "overall_score": 43.8,
+      "mention_count": 2,
+      "avg_position": 4.5,
+      "is_own": false
+    },
+    {
+      "name": "TickTick",
+      "visibility_score": 50.0,
+      "share_of_voice": 4.1,
+      "sentiment_score": 100.0,
+      "position_score": 36.7,
+      "overall_score": 43.6,
+      "mention_count": 3,
+      "avg_position": 7.3,
+      "is_own": false
+    },
+    {
+      "name": "Sunsama",
+      "visibility_score": 16.7,
+      "share_of_voice": 1.4,
+      "sentiment_score": 100.0,
+      "position_score": 80.0,
+      "overall_score": 41.4,
+      "mention_count": 1,
+      "avg_position": 3.0,
+      "is_own": false
+    },
+    {
+      "name": "ChatGPT",
+      "visibility_score": 16.7,
+      "share_of_voice": 1.4,
+      "sentiment_score": 100.0,
+      "position_score": 80.0,
+      "overall_score": 41.4,
+      "mention_count": 1,
+      "avg_position": 3.0,
+      "is_own": false
+    },
+    {
+      "name": "Linear",
+      "visibility_score": 33.3,
+      "share_of_voice": 2.7,
+      "sentiment_score": 100.0,
+      "position_score": 45.0,
+      "overall_score": 39.8,
+      "mention_count": 2,
+      "avg_position": 6.5,
+      "is_own": false
+    },
+    {
+      "name": "Asana",
+      "visibility_score": 16.7,
+      "share_of_voice": 1.4,
+      "sentiment_score": 100.0,
+      "position_score": 70.0,
+      "overall_score": 39.4,
+      "mention_count": 1,
+      "avg_position": 4.0,
+      "is_own": false
+    },
+    {
+      "name": "Claude",
+      "visibility_score": 16.7,
+      "share_of_voice": 1.4,
+      "sentiment_score": 100.0,
+      "position_score": 70.0,
+      "overall_score": 39.4,
+      "mention_count": 1,
+      "avg_position": 4.0,
+      "is_own": false
+    },
+    {
+      "name": "Trello",
+      "visibility_score": 16.7,
+      "share_of_voice": 1.4,
+      "sentiment_score": 100.0,
+      "position_score": 60.0,
+      "overall_score": 37.4,
+      "mention_count": 1,
+      "avg_position": 5.0,
+      "is_own": false
+    },
+    {
+      "name": "Claude by Anthropic",
+      "visibility_score": 16.7,
+      "share_of_voice": 1.4,
+      "sentiment_score": 100.0,
+      "position_score": 60.0,
+      "overall_score": 37.4,
+      "mention_count": 1,
+      "avg_position": 5.0,
+      "is_own": false
+    },
+    {
+      "name": "Reclaim.ai",
+      "visibility_score": 16.7,
+      "share_of_voice": 1.4,
+      "sentiment_score": 100.0,
+      "position_score": 60.0,
+      "overall_score": 37.4,
+      "mention_count": 1,
+      "avg_position": 5.0,
+      "is_own": false
+    },
+    {
+      "name": "Lovable",
+      "visibility_score": 16.7,
+      "share_of_voice": 1.4,
+      "sentiment_score": 100.0,
+      "position_score": 60.0,
+      "overall_score": 37.4,
+      "mention_count": 1,
+      "avg_position": 5.0,
+      "is_own": false
+    },
+    {
+      "name": "Perplexity",
+      "visibility_score": 33.3,
+      "share_of_voice": 2.7,
+      "sentiment_score": 100.0,
+      "position_score": 30.0,
+      "overall_score": 36.8,
+      "mention_count": 2,
+      "avg_position": 8.0,
+      "is_own": false
+    },
+    {
+      "name": "Obsidian",
+      "visibility_score": 16.7,
+      "share_of_voice": 1.4,
+      "sentiment_score": 100.0,
+      "position_score": 50.0,
+      "overall_score": 35.4,
+      "mention_count": 1,
+      "avg_position": 6.0,
+      "is_own": false
+    },
+    {
+      "name": "Bolt.new",
+      "visibility_score": 16.7,
+      "share_of_voice": 1.4,
+      "sentiment_score": 100.0,
+      "position_score": 50.0,
+      "overall_score": 35.4,
+      "mention_count": 1,
+      "avg_position": 6.0,
+      "is_own": false
+    },
+    {
+      "name": "Cursor",
+      "visibility_score": 16.7,
+      "share_of_voice": 1.4,
+      "sentiment_score": 100.0,
+      "position_score": 40.0,
+      "overall_score": 33.4,
+      "mention_count": 1,
+      "avg_position": 7.0,
+      "is_own": false
+    },
+    {
+      "name": "remio",
+      "visibility_score": 16.7,
+      "share_of_voice": 1.4,
+      "sentiment_score": 100.0,
+      "position_score": 40.0,
+      "overall_score": 33.4,
+      "mention_count": 1,
+      "avg_position": 7.0,
+      "is_own": false
+    },
+    {
+      "name": "Microsoft Teams",
+      "visibility_score": 16.7,
+      "share_of_voice": 1.4,
+      "sentiment_score": 100.0,
+      "position_score": 30.0,
+      "overall_score": 31.4,
+      "mention_count": 1,
+      "avg_position": 8.0,
+      "is_own": false
+    },
+    {
+      "name": "Airtable",
+      "visibility_score": 16.7,
+      "share_of_voice": 1.4,
+      "sentiment_score": 100.0,
+      "position_score": 30.0,
+      "overall_score": 31.4,
+      "mention_count": 1,
+      "avg_position": 8.0,
+      "is_own": false
+    },
+    {
+      "name": "SkedPal",
+      "visibility_score": 16.7,
+      "share_of_voice": 1.4,
+      "sentiment_score": 100.0,
+      "position_score": 30.0,
+      "overall_score": 31.4,
+      "mention_count": 1,
+      "avg_position": 8.0,
+      "is_own": false
+    },
+    {
+      "name": "Jira",
+      "visibility_score": 33.3,
+      "share_of_voice": 2.7,
+      "sentiment_score": 75.0,
+      "position_score": 20.0,
+      "overall_score": 29.8,
+      "mention_count": 2,
+      "avg_position": 9.0,
+      "is_own": false
+    },
+    {
+      "name": "TrackingTime",
+      "visibility_score": 16.7,
+      "share_of_voice": 1.4,
+      "sentiment_score": 100.0,
+      "position_score": 10.0,
+      "overall_score": 27.4,
+      "mention_count": 1,
+      "avg_position": 10.0,
+      "is_own": false
+    },
+    {
+      "name": "Toggl Track",
+      "visibility_score": 16.7,
+      "share_of_voice": 1.4,
+      "sentiment_score": 100.0,
+      "position_score": 10.0,
+      "overall_score": 27.4,
+      "mention_count": 1,
+      "avg_position": 10.0,
+      "is_own": false
+    },
+    {
+      "name": "Zapier Ultra",
+      "visibility_score": 16.7,
+      "share_of_voice": 1.4,
+      "sentiment_score": 100.0,
+      "position_score": 10.0,
+      "overall_score": 27.4,
+      "mention_count": 1,
+      "avg_position": 10.0,
+      "is_own": false
+    },
+    {
+      "name": "Forest",
+      "visibility_score": 16.7,
+      "share_of_voice": 1.4,
+      "sentiment_score": 100.0,
+      "position_score": 0.0,
+      "overall_score": 25.4,
+      "mention_count": 1,
+      "avg_position": null,
+      "is_own": false
+    },
+    {
+      "name": "Text Blaze",
+      "visibility_score": 16.7,
+      "share_of_voice": 1.4,
+      "sentiment_score": 100.0,
+      "position_score": 0.0,
+      "overall_score": 25.4,
+      "mention_count": 1,
+      "avg_position": null,
+      "is_own": false
+    },
+    {
+      "name": "Arc Browser",
+      "visibility_score": 16.7,
+      "share_of_voice": 1.4,
+      "sentiment_score": 100.0,
+      "position_score": 0.0,
+      "overall_score": 25.4,
+      "mention_count": 1,
+      "avg_position": null,
+      "is_own": false
+    },
+    {
+      "name": "CamoCopy",
+      "visibility_score": 16.7,
+      "share_of_voice": 1.4,
+      "sentiment_score": 100.0,
+      "position_score": 0.0,
+      "overall_score": 25.4,
+      "mention_count": 1,
+      "avg_position": 12.0,
+      "is_own": false
+    },
+    {
+      "name": "Notesnook",
+      "visibility_score": 16.7,
+      "share_of_voice": 1.4,
+      "sentiment_score": 100.0,
+      "position_score": 0.0,
+      "overall_score": 25.4,
+      "mention_count": 1,
+      "avg_position": 13.0,
+      "is_own": false
+    },
+    {
+      "name": "Proton Workspace",
+      "visibility_score": 16.7,
+      "share_of_voice": 1.4,
+      "sentiment_score": 100.0,
+      "position_score": 0.0,
+      "overall_score": 25.4,
+      "mention_count": 1,
+      "avg_position": 14.0,
+      "is_own": false
+    },
+    {
+      "name": "Slack Quantum",
+      "visibility_score": 16.7,
+      "share_of_voice": 1.4,
+      "sentiment_score": 100.0,
+      "position_score": 0.0,
+      "overall_score": 25.4,
+      "mention_count": 1,
+      "avg_position": 15.0,
+      "is_own": false
+    },
+    {
+      "name": "Superhuman",
+      "visibility_score": 16.7,
+      "share_of_voice": 1.4,
+      "sentiment_score": 100.0,
+      "position_score": 0.0,
+      "overall_score": 25.4,
+      "mention_count": 1,
+      "avg_position": 16.0,
+      "is_own": false
+    },
+    {
+      "name": "Loom",
+      "visibility_score": 16.7,
+      "share_of_voice": 1.4,
+      "sentiment_score": 100.0,
+      "position_score": 0.0,
+      "overall_score": 25.4,
+      "mention_count": 1,
+      "avg_position": 12.0,
+      "is_own": false
+    },
+    {
+      "name": "Zoom",
+      "visibility_score": 16.7,
+      "share_of_voice": 1.4,
+      "sentiment_score": 100.0,
+      "position_score": 0.0,
+      "overall_score": 25.4,
+      "mention_count": 1,
+      "avg_position": 13.0,
+      "is_own": false
+    }
+  ],
+  "provider_comparison": [
+    {
+      "competitor_name": "Notion",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": true,
+          "position": 1,
+          "sentiment": "positive",
+          "visibility_score": 100.0
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": true,
+          "position": 2,
+          "sentiment": "positive",
+          "visibility_score": 100.0
+        }
+      ]
+    },
+    {
+      "competitor_name": "Airtable",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": true,
+          "position": 8,
+          "sentiment": "positive",
+          "visibility_score": 33.3
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": false,
+          "position": null,
+          "sentiment": "neutral",
+          "visibility_score": 0.0
+        }
+      ]
+    },
+    {
+      "competitor_name": "Arc Browser",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": true,
+          "position": null,
+          "sentiment": "positive",
+          "visibility_score": 33.3
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": false,
+          "position": null,
+          "sentiment": "neutral",
+          "visibility_score": 0.0
+        }
+      ]
+    },
+    {
+      "competitor_name": "Asana",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": false,
+          "position": null,
+          "sentiment": "neutral",
+          "visibility_score": 0.0
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": true,
+          "position": 4,
+          "sentiment": "positive",
+          "visibility_score": 33.3
+        }
+      ]
+    },
+    {
+      "competitor_name": "Bolt.new",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": true,
+          "position": 6,
+          "sentiment": "positive",
+          "visibility_score": 33.3
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": false,
+          "position": null,
+          "sentiment": "neutral",
+          "visibility_score": 0.0
+        }
+      ]
+    },
+    {
+      "competitor_name": "CamoCopy",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": true,
+          "position": 12,
+          "sentiment": "positive",
+          "visibility_score": 33.3
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": false,
+          "position": null,
+          "sentiment": "neutral",
+          "visibility_score": 0.0
+        }
+      ]
+    },
+    {
+      "competitor_name": "ChatGPT",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": true,
+          "position": 3,
+          "sentiment": "positive",
+          "visibility_score": 33.3
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": false,
+          "position": null,
+          "sentiment": "neutral",
+          "visibility_score": 0.0
+        }
+      ]
+    },
+    {
+      "competitor_name": "Claude",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": true,
+          "position": 4,
+          "sentiment": "positive",
+          "visibility_score": 33.3
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": false,
+          "position": null,
+          "sentiment": "neutral",
+          "visibility_score": 0.0
+        }
+      ]
+    },
+    {
+      "competitor_name": "Claude by Anthropic",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": true,
+          "position": 5,
+          "sentiment": "positive",
+          "visibility_score": 33.3
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": false,
+          "position": null,
+          "sentiment": "neutral",
+          "visibility_score": 0.0
+        }
+      ]
+    },
+    {
+      "competitor_name": "ClickUp",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": true,
+          "position": 6,
+          "sentiment": "positive",
+          "visibility_score": 66.7
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": true,
+          "position": 4,
+          "sentiment": "positive",
+          "visibility_score": 66.7
+        }
+      ]
+    },
+    {
+      "competitor_name": "Cursor",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": true,
+          "position": 7,
+          "sentiment": "positive",
+          "visibility_score": 33.3
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": false,
+          "position": null,
+          "sentiment": "neutral",
+          "visibility_score": 0.0
+        }
+      ]
+    },
+    {
+      "competitor_name": "Forest",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": true,
+          "position": null,
+          "sentiment": "positive",
+          "visibility_score": 33.3
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": false,
+          "position": null,
+          "sentiment": "neutral",
+          "visibility_score": 0.0
+        }
+      ]
+    },
+    {
+      "competitor_name": "Google Workspace",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": true,
+          "position": 2,
+          "sentiment": "positive",
+          "visibility_score": 33.3
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": true,
+          "position": 7,
+          "sentiment": "positive",
+          "visibility_score": 33.3
+        }
+      ]
+    },
+    {
+      "competitor_name": "Jira",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": true,
+          "position": 9,
+          "sentiment": "neutral",
+          "visibility_score": 66.7
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": false,
+          "position": null,
+          "sentiment": "neutral",
+          "visibility_score": 0.0
+        }
+      ]
+    },
+    {
+      "competitor_name": "Linear",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": true,
+          "position": 6,
+          "sentiment": "positive",
+          "visibility_score": 66.7
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": false,
+          "position": null,
+          "sentiment": "neutral",
+          "visibility_score": 0.0
+        }
+      ]
+    },
+    {
+      "competitor_name": "Loom",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": true,
+          "position": 12,
+          "sentiment": "positive",
+          "visibility_score": 33.3
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": false,
+          "position": null,
+          "sentiment": "neutral",
+          "visibility_score": 0.0
+        }
+      ]
+    },
+    {
+      "competitor_name": "Lovable",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": true,
+          "position": 5,
+          "sentiment": "positive",
+          "visibility_score": 33.3
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": false,
+          "position": null,
+          "sentiment": "neutral",
+          "visibility_score": 0.0
+        }
+      ]
+    },
+    {
+      "competitor_name": "Microsoft 365",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": true,
+          "position": 9,
+          "sentiment": "positive",
+          "visibility_score": 66.7
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": true,
+          "position": 8,
+          "sentiment": "positive",
+          "visibility_score": 33.3
+        }
+      ]
+    },
+    {
+      "competitor_name": "Microsoft Teams",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": true,
+          "position": 8,
+          "sentiment": "positive",
+          "visibility_score": 33.3
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": false,
+          "position": null,
+          "sentiment": "neutral",
+          "visibility_score": 0.0
+        }
+      ]
+    },
+    {
+      "competitor_name": "Monday.com",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": true,
+          "position": 4,
+          "sentiment": "positive",
+          "visibility_score": 100.0
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": true,
+          "position": 9,
+          "sentiment": "positive",
+          "visibility_score": 33.3
+        }
+      ]
+    },
+    {
+      "competitor_name": "Motion",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": true,
+          "position": 9,
+          "sentiment": "positive",
+          "visibility_score": 33.3
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": true,
+          "position": 4,
+          "sentiment": "positive",
+          "visibility_score": 66.7
+        }
+      ]
+    },
+    {
+      "competitor_name": "Notesnook",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": true,
+          "position": 13,
+          "sentiment": "positive",
+          "visibility_score": 33.3
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": false,
+          "position": null,
+          "sentiment": "neutral",
+          "visibility_score": 0.0
+        }
+      ]
+    },
+    {
+      "competitor_name": "Obsidian",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": true,
+          "position": 6,
+          "sentiment": "positive",
+          "visibility_score": 33.3
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": false,
+          "position": null,
+          "sentiment": "neutral",
+          "visibility_score": 0.0
+        }
+      ]
+    },
+    {
+      "competitor_name": "Perplexity",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": true,
+          "position": 8,
+          "sentiment": "positive",
+          "visibility_score": 66.7
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": false,
+          "position": null,
+          "sentiment": "neutral",
+          "visibility_score": 0.0
+        }
+      ]
+    },
+    {
+      "competitor_name": "Pocket Informant",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": false,
+          "position": null,
+          "sentiment": "neutral",
+          "visibility_score": 0.0
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": true,
+          "position": 4,
+          "sentiment": "positive",
+          "visibility_score": 66.7
+        }
+      ]
+    },
+    {
+      "competitor_name": "Proton Workspace",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": true,
+          "position": 14,
+          "sentiment": "positive",
+          "visibility_score": 33.3
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": false,
+          "position": null,
+          "sentiment": "neutral",
+          "visibility_score": 0.0
+        }
+      ]
+    },
+    {
+      "competitor_name": "Reclaim.ai",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": false,
+          "position": null,
+          "sentiment": "neutral",
+          "visibility_score": 0.0
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": true,
+          "position": 5,
+          "sentiment": "positive",
+          "visibility_score": 33.3
+        }
+      ]
+    },
+    {
+      "competitor_name": "SkedPal",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": false,
+          "position": null,
+          "sentiment": "neutral",
+          "visibility_score": 0.0
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": true,
+          "position": 8,
+          "sentiment": "positive",
+          "visibility_score": 33.3
+        }
+      ]
+    },
+    {
+      "competitor_name": "Slack",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": true,
+          "position": 6,
+          "sentiment": "positive",
+          "visibility_score": 66.7
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": true,
+          "position": 3,
+          "sentiment": "positive",
+          "visibility_score": 33.3
+        }
+      ]
+    },
+    {
+      "competitor_name": "Slack Quantum",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": true,
+          "position": 15,
+          "sentiment": "positive",
+          "visibility_score": 33.3
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": false,
+          "position": null,
+          "sentiment": "neutral",
+          "visibility_score": 0.0
+        }
+      ]
+    },
+    {
+      "competitor_name": "Sunsama",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": false,
+          "position": null,
+          "sentiment": "neutral",
+          "visibility_score": 0.0
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": true,
+          "position": 3,
+          "sentiment": "positive",
+          "visibility_score": 33.3
+        }
+      ]
+    },
+    {
+      "competitor_name": "Superhuman",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": true,
+          "position": 16,
+          "sentiment": "positive",
+          "visibility_score": 33.3
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": false,
+          "position": null,
+          "sentiment": "neutral",
+          "visibility_score": 0.0
+        }
+      ]
+    },
+    {
+      "competitor_name": "Text Blaze",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": true,
+          "position": null,
+          "sentiment": "positive",
+          "visibility_score": 33.3
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": false,
+          "position": null,
+          "sentiment": "neutral",
+          "visibility_score": 0.0
+        }
+      ]
+    },
+    {
+      "competitor_name": "TickTick",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": false,
+          "position": null,
+          "sentiment": "neutral",
+          "visibility_score": 0.0
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": true,
+          "position": 7,
+          "sentiment": "positive",
+          "visibility_score": 100.0
+        }
+      ]
+    },
+    {
+      "competitor_name": "Todoist",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": true,
+          "position": 8,
+          "sentiment": "positive",
+          "visibility_score": 66.7
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": true,
+          "position": 1,
+          "sentiment": "positive",
+          "visibility_score": 100.0
+        }
+      ]
+    },
+    {
+      "competitor_name": "Toggl Track",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": true,
+          "position": 10,
+          "sentiment": "positive",
+          "visibility_score": 33.3
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": false,
+          "position": null,
+          "sentiment": "neutral",
+          "visibility_score": 0.0
+        }
+      ]
+    },
+    {
+      "competitor_name": "TrackingTime",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": false,
+          "position": null,
+          "sentiment": "neutral",
+          "visibility_score": 0.0
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": true,
+          "position": 10,
+          "sentiment": "positive",
+          "visibility_score": 33.3
+        }
+      ]
+    },
+    {
+      "competitor_name": "Trello",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": false,
+          "position": null,
+          "sentiment": "neutral",
+          "visibility_score": 0.0
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": true,
+          "position": 5,
+          "sentiment": "positive",
+          "visibility_score": 33.3
+        }
+      ]
+    },
+    {
+      "competitor_name": "Zapier",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": true,
+          "position": 9,
+          "sentiment": "positive",
+          "visibility_score": 66.7
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": true,
+          "position": 7,
+          "sentiment": "positive",
+          "visibility_score": 66.7
+        }
+      ]
+    },
+    {
+      "competitor_name": "Zapier Ultra",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": true,
+          "position": 10,
+          "sentiment": "positive",
+          "visibility_score": 33.3
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": false,
+          "position": null,
+          "sentiment": "neutral",
+          "visibility_score": 0.0
+        }
+      ]
+    },
+    {
+      "competitor_name": "Zoom",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": true,
+          "position": 13,
+          "sentiment": "positive",
+          "visibility_score": 33.3
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": false,
+          "position": null,
+          "sentiment": "neutral",
+          "visibility_score": 0.0
+        }
+      ]
+    },
+    {
+      "competitor_name": "monday.com",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": true,
+          "position": 4,
+          "sentiment": "positive",
+          "visibility_score": 100.0
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": true,
+          "position": 9,
+          "sentiment": "positive",
+          "visibility_score": 33.3
+        }
+      ]
+    },
+    {
+      "competitor_name": "remio",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": false,
+          "position": null,
+          "sentiment": "neutral",
+          "visibility_score": 0.0
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": true,
+          "position": 7,
+          "sentiment": "positive",
+          "visibility_score": 33.3
+        }
+      ]
+    }
+  ],
+  "_meta": {
+    "elapsed_seconds": 123.66
+  }
+}

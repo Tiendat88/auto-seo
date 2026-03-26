@@ -1,0 +1,75 @@
+{
+  "url": "https://en.wikipedia.org/wiki/Retrieval-augmented_generation",
+  "aeo_score": 47,
+  "band": "Significant Gaps",
+  "checks": [
+    {
+      "check_id": "direct_answer",
+      "name": "Direct Answer Detection",
+      "passed": false,
+      "score": 8,
+      "max_score": 20,
+      "details": {
+        "word_count": 73,
+        "threshold": 60,
+        "is_declarative": true,
+        "has_hedge_phrase": false
+      },
+      "recommendation": "Opening paragraph is 73 words. Trim to under 60 words with a direct, declarative answer."
+    },
+    {
+      "check_id": "htag_hierarchy",
+      "name": "H-tag Hierarchy",
+      "passed": true,
+      "score": 20,
+      "max_score": 20,
+      "details": {
+        "violations": [],
+        "h_tags_found": [
+          "h1",
+          "h2",
+          "h2",
+          "h3",
+          "h2",
+          "h3",
+          "h3",
+          "h3",
+          "h3",
+          "h3",
+          "h3",
+          "h2",
+          "h3",
+          "h2"
+        ]
+      },
+      "recommendation": null
+    },
+    {
+      "check_id": "readability",
+      "name": "Snippet Readability",
+      "passed": false,
+      "score": 0,
+      "max_score": 20,
+      "details": {
+        "fk_grade_level": 15.3,
+        "target_range": "7-9",
+        "complex_sentences": [
+          "\"GEO: Generative Engine Optimization\".",
+          "_Transactions of the Association for Computational Linguistics_.",
+          "_Transactions of the Association for Computational Linguistics_."
+        ]
+      },
+      "recommendation": "Content reads at Grade 15.3. Simplify sentences to reach Grade 7-9."
+    }
+  ],
+  "content_stats": {
+    "text_length": 24592,
+    "heading_count": 14,
+    "first_paragraph_words": 73,
+    "is_html": true
+  },
+  "fetch_seconds": 6.84,
+  "_meta": {
+    "elapsed_seconds": 6.87
+  }
+}

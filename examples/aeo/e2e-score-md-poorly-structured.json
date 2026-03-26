@@ -1,0 +1,51 @@
+{
+  "aeo_score": 37,
+  "band": "Not AEO Ready",
+  "checks": [
+    {
+      "check_id": "direct_answer",
+      "name": "Direct Answer Detection",
+      "passed": false,
+      "score": 8,
+      "max_score": 20,
+      "details": {
+        "word_count": 80,
+        "threshold": 60,
+        "is_declarative": true,
+        "has_hedge_phrase": true
+      },
+      "recommendation": "Opening paragraph is 80 words. Trim to under 60 words with a direct, declarative answer."
+    },
+    {
+      "check_id": "htag_hierarchy",
+      "name": "H-tag Hierarchy",
+      "passed": false,
+      "score": 0,
+      "max_score": 20,
+      "details": {
+        "violations": [
+          "Missing H1 tag"
+        ],
+        "h_tags_found": []
+      },
+      "recommendation": "Fix heading hierarchy: Missing H1 tag."
+    },
+    {
+      "check_id": "readability",
+      "name": "Snippet Readability",
+      "passed": false,
+      "score": 14,
+      "max_score": 20,
+      "details": {
+        "fk_grade_level": 6.5,
+        "target_range": "7-9",
+        "complex_sentences": [
+          "The whole idea is quite complex and multifaceted really.",
+          "Generally speaking, it varies from project to project and there's no one-size-fits-all answer to this question.",
+          "It may vary depending on your budget, team size, and technical requirements."
+        ]
+      },
+      "recommendation": "Content reads at Grade 6.5. Add depth to sentences to reach Grade 7-9."
+    }
+  ]
+}

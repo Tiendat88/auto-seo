@@ -1,0 +1,18 @@
+{
+  "check_id": "readability",
+  "name": "Snippet Readability",
+  "passed": true,
+  "score": 20,
+  "max_score": 20,
+  "details": {
+    "fk_grade_level": 8.0,
+    "target_range": "7-9",
+    "complex_sentences": [
+      "The mobile app sends push notifications for each delivery update.",
+      "Customer support is available through chat and email around the clock.",
+      "The new system processes orders in under two seconds."
+    ]
+  },
+  "recommendation": null,
+  "actual_grade": 8.0
+}

@@ -1,0 +1,46 @@
+{
+  "company": {
+    "name": "Notion",
+    "description": "Notion is an AI-powered workspace and productivity platform that integrates documents, wikis, project management, and custom AI agents into a single collaborative environment to streamline workflows and reduce the need for multiple standalone tools.",
+    "industry": "Productivity Software",
+    "keywords": [
+      "AI agents",
+      "workspace",
+      "project management",
+      "wikis",
+      "documents",
+      "AI search",
+      "meeting notes",
+      "enterprise search",
+      "collaboration",
+      "knowledge base",
+      "AI writing",
+      "reporting",
+      "task routing",
+      "calendar",
+      "email",
+      "productivity",
+      "automation"
+    ],
+    "main_products": [
+      "Notion AI Agents",
+      "Notion Docs",
+      "Notion Wikis",
+      "Notion Projects",
+      "Notion Mail",
+      "Notion Calendar",
+      "Notion AI Search",
+      "Notion AI Meeting Notes"
+    ],
+    "known_competitors": [
+      "Slack",
+      "HubSpot",
+      "Gmail",
+      "GitHub",
+      "Amplitude"
+    ]
+  },
+  "_meta": {
+    "elapsed_seconds": 10.72
+  }
+}

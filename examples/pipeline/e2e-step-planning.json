@@ -1,0 +1,80 @@
+{
+  "topic": "customer onboarding best practices for SaaS",
+  "analysis": {
+    "primary_keyword": "customer onboarding best practices for SaaS",
+    "secondary_keywords": [
+      "customer onboarding software",
+      "SaaS onboarding tools",
+      "user onboarding strategies",
+      "onboarding automation",
+      "SaaS retention tactics"
+    ],
+    "theme_count": 3,
+    "themes": [
+      {
+        "theme": "Software Comparison and Selection",
+        "frequency": 9
+      },
+      {
+        "theme": "Expert Recommendations and Authority",
+        "frequency": 6
+      },
+      {
+        "theme": "Operational Efficiency and Team Productivity",
+        "frequency": 5
+      }
+    ],
+    "search_intent": "commercial",
+    "avg_word_count": 1950
+  },
+  "outline": {
+    "h1": "Customer Onboarding Best Practices for SaaS: A Comprehensive Guide to User Success",
+    "heading_count": 7,
+    "estimated_words": 1200,
+    "faq_questions": [
+      "What is the most important KPI for SaaS onboarding?",
+      "How do I determine the 'Aha!' moment for my SaaS product?",
+      "Should I build my own onboarding flow or use third-party software?"
+    ],
+    "headings": [
+      {
+        "level": "h2",
+        "text": "The Impact of Onboarding on SaaS Retention Tactics",
+        "target_words": 150
+      },
+      {
+        "level": "h2",
+        "text": "Behavioral Design: Reaching the 'Aha!' Moment Faster",
+        "target_words": 200
+      },
+      {
+        "level": "h2",
+        "text": "Core Customer Onboarding Best Practices for SaaS",
+        "target_words": 250
+      },
+      {
+        "level": "h3",
+        "text": "Using In-App Checklists to Guide Progress",
+        "target_words": 50
+      },
+      {
+        "level": "h2",
+        "text": "The Hybrid Approach: Combining Onboarding Automation with Human Touch",
+        "target_words": 200
+      },
+      {
+        "level": "h2",
+        "text": "Evaluating Customer Onboarding Software and Selection Criteria",
+        "target_words": 200
+      },
+      {
+        "level": "h2",
+        "text": "Measuring Success: Onboarding KPIs and Benchmarking",
+        "target_words": 150
+      }
+    ]
+  },
+  "_meta": {
+    "elapsed_seconds": 34.3
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "is_html": true,
+  "heading_count": 7,
+  "headings": [
+    [
+      "h1",
+      "What Is Retrieval-Augmented Generation (RAG)?"
+    ],
+    [
+      "h2",
+      "How RAG Works"
+    ],
+    [
+      "h3",
+      "The Retriever"
+    ],
+    [
+      "h3",
+      "The Generator"
+    ],
+    [
+      "h2",
+      "When to Use RAG"
+    ],
+    [
+      "h2",
+      "RAG vs. Fine-Tuning"
+    ],
+    [
+      "h2",
+      "Getting Started"
+    ]
+  ],
+  "first_paragraph": "Retrieval-augmented generation is a technique that combines a large language model with an external knowledge base. The model retrieves relevant documents at inference time and uses them to produce gr",
+  "text_length": 1897
+}

@@ -1,0 +1,14 @@
+{
+  "check_id": "direct_answer",
+  "name": "Direct Answer Detection",
+  "passed": true,
+  "score": 20,
+  "max_score": 20,
+  "details": {
+    "word_count": 10,
+    "threshold": 60,
+    "is_declarative": true,
+    "has_hedge_phrase": false
+  },
+  "recommendation": null
+}

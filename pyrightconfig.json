@@ -7,6 +7,7 @@
   "reportMissingTypeStubs": false,
   "reportUntypedBaseClass": false,
   "reportUntypedFunctionDecorator": false,
+  "reportUntypedClassDecorator": false,
   "reportMissingParameterType": false,
   "reportPrivateUsage": false,
   "reportUnknownMemberType": false,

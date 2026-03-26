@@ -1,0 +1,17 @@
+{
+  "check_id": "htag_hierarchy",
+  "name": "H-tag Hierarchy",
+  "passed": true,
+  "score": 20,
+  "max_score": 20,
+  "details": {
+    "violations": [],
+    "h_tags_found": [
+      "h1",
+      "h2",
+      "h3",
+      "h2"
+    ]
+  },
+  "recommendation": null
+}

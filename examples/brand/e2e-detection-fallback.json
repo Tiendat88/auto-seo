@@ -1,0 +1,11 @@
+{
+  "query": "What productivity tools do you recommend?",
+  "platforms": [
+    "perplexity",
+    "gemini"
+  ],
+  "log": [
+    "[perplexity] detection=True llm=True \u2192 agree",
+    "[gemini] detection=True llm=True \u2192 agree"
+  ]
+}

@@ -1,0 +1,52 @@
+{
+  "analysis": {
+    "brand_mentioned": false,
+    "mention_context": "not_mentioned",
+    "brand_position": null,
+    "sentiment": {
+      "overall": "neutral",
+      "reasoning": "The brand 'Notion' is not mentioned in the text, so no sentiment can be determined.",
+      "aspects": []
+    },
+    "keywords_found": [
+      "CRM",
+      "HubSpot",
+      "Salesforce",
+      "Pipedrive",
+      "Zoho CRM",
+      "Freshsales"
+    ],
+    "competitors": [
+      {
+        "name": "HubSpot",
+        "recommended": true,
+        "position": 1
+      },
+      {
+        "name": "Salesforce",
+        "recommended": true,
+        "position": 2
+      },
+      {
+        "name": "Pipedrive",
+        "recommended": true,
+        "position": 3
+      },
+      {
+        "name": "Zoho CRM",
+        "recommended": true,
+        "position": 4
+      },
+      {
+        "name": "Freshsales",
+        "recommended": true,
+        "position": 5
+      }
+    ],
+    "relevant_quotes": [],
+    "platform": "synthetic-absent"
+  },
+  "_meta": {
+    "elapsed_seconds": 6.18
+  }
+}

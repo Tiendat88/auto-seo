@@ -1,4 +1,5 @@
 import json
+import logging
 from pathlib import Path
 
 import pytest
@@ -26,11 +27,75 @@ from app.article.models import (
     ReviewSeverity,
     SeoMetadata,
 )
+from app.config import settings
 from app.db import Base
 from app.job.models import Job
 from app.serp.models import SerpData
 
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
+
+_e2e_log = logging.getLogger("e2e")
+
+# ---------------------------------------------------------------------------
+# E2E: shared skip markers
+# ---------------------------------------------------------------------------
+
+_has_google = bool(settings.google_api_key)
+_has_perplexity = bool(settings.perplexity_api_key)
+_has_firecrawl = bool(settings.firecrawl_api_key)
+_has_voyage = bool(settings.voyage_api_key)
+
+_has_any_fetch = _has_google or _has_perplexity
+_has_llm = _has_google  # Gemini fallback when no Anthropic key
+
+skip_no_fetch = pytest.mark.skipif(
+    not _has_any_fetch,
+    reason="No fetch API keys (GOOGLE_API_KEY or PERPLEXITY_API_KEY)",
+)
+skip_no_llm = pytest.mark.skipif(
+    not _has_llm, reason="No LLM backend (needs GOOGLE_API_KEY)",
+)
+skip_no_firecrawl = pytest.mark.skipif(
+    not _has_firecrawl, reason="FIRECRAWL_API_KEY not set",
+)
+skip_no_voyage = pytest.mark.skipif(
+    not _has_voyage, reason="VOYAGE_API_KEY not set",
+)
+
+
+# ---------------------------------------------------------------------------
+# E2E: example file writers
+# ---------------------------------------------------------------------------
+
+
+def write_example(
+    examples_dir: Path,
+    name: str,
+    data: dict,
+    elapsed: float | None = None,
+) -> Path:
+    """Write JSON result to examples/{subdir}/{name}.json."""
+    examples_dir.mkdir(parents=True, exist_ok=True)
+    path = examples_dir / f"{name}.json"
+    output = {**data}
+    if elapsed is not None:
+        output["_meta"] = {"elapsed_seconds": round(elapsed, 2)}
+    path.write_text(json.dumps(output, indent=2, default=str))
+    _e2e_log.info("Wrote example: %s (%d bytes)", path, path.stat().st_size)
+    return path
+
+
+def write_log(examples_dir: Path, name: str, lines: list[str]) -> Path:
+    """Write plain-text log to examples/{subdir}/{name}.log."""
+    examples_dir.mkdir(parents=True, exist_ok=True)
+    path = examples_dir / f"{name}.log"
+    path.write_text("\n".join(lines) + "\n")
+    return path
+
+
+# ---------------------------------------------------------------------------
+# Shared fixtures
+# ---------------------------------------------------------------------------
 
 
 @pytest.fixture

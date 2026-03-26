@@ -1,0 +1,70 @@
+{
+  "content_words": 213,
+  "gap_summary": {
+    "covered": 0,
+    "total": 8,
+    "coverage_percent": 0,
+    "covered_types": [],
+    "missing_types": [
+      "comparative",
+      "definitional",
+      "feature_specific",
+      "how_to",
+      "trust_signals",
+      "use_case"
+    ]
+  },
+  "sub_queries": [
+    {
+      "type": "definitional",
+      "query": "what is retrieval augmented generation",
+      "covered": false,
+      "similarity_score": 0.66
+    },
+    {
+      "type": "how_to",
+      "query": "how to build a RAG pipeline with Python",
+      "covered": false,
+      "similarity_score": 0.63
+    },
+    {
+      "type": "comparative",
+      "query": "RAG vs fine-tuning which is better",
+      "covered": false,
+      "similarity_score": 0.72
+    },
+    {
+      "type": "feature_specific",
+      "query": "best vector database for RAG",
+      "covered": false,
+      "similarity_score": 0.54
+    },
+    {
+      "type": "use_case",
+      "query": "RAG for customer support chatbot",
+      "covered": false,
+      "similarity_score": 0.55
+    },
+    {
+      "type": "trust_signals",
+      "query": "RAG production case studies and benchmarks",
+      "covered": false,
+      "similarity_score": 0.41
+    },
+    {
+      "type": "how_to",
+      "query": "how to evaluate RAG answer quality",
+      "covered": false,
+      "similarity_score": 0.48
+    },
+    {
+      "type": "feature_specific",
+      "query": "chunking strategies for RAG documents",
+      "covered": false,
+      "similarity_score": 0.43
+    }
+  ],
+  "_meta": {
+    "elapsed_seconds": 1.76
+  }
+}

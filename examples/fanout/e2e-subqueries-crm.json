@@ -1,0 +1,90 @@
+{
+  "query": "best CRM for startups",
+  "model": "gemini-3-flash-preview",
+  "count": 12,
+  "types": {
+    "comparative": 2,
+    "definitional": 2,
+    "feature_specific": 2,
+    "how_to": 2,
+    "trust_signals": 2,
+    "use_case": 2
+  },
+  "sub_queries": [
+    {
+      "type": "comparative",
+      "query": "HubSpot vs Salesforce vs Pipedrive pricing for early-stage startups",
+      "covered": null,
+      "similarity_score": null
+    },
+    {
+      "type": "comparative",
+      "query": "best free CRM vs affordable paid CRM for small businesses",
+      "covered": null,
+      "similarity_score": null
+    },
+    {
+      "type": "feature_specific",
+      "query": "CRM with native LinkedIn integration and lead scraping for founders",
+      "covered": null,
+      "similarity_score": null
+    },
+    {
+      "type": "feature_specific",
+      "query": "best CRM for startups with built-in email automation and sequencing",
+      "covered": null,
+      "similarity_score": null
+    },
+    {
+      "type": "use_case",
+      "query": "best CRM for managing venture capital investor relations and fundraising",
+      "covered": null,
+      "similarity_score": null
+    },
+    {
+      "type": "use_case",
+      "query": "CRM for B2B SaaS startups with complex account-based marketing",
+      "covered": null,
+      "similarity_score": null
+    },
+    {
+      "type": "trust_signals",
+      "query": "top-rated CRMs for small teams on G2 and Capterra 2024",
+      "covered": null,
+      "similarity_score": null
+    },
+    {
+      "type": "trust_signals",
+      "query": "case studies of startups scaling from seed to Series A using HubSpot",
+      "covered": null,
+      "similarity_score": null
+    },
+    {
+      "type": "how_to",
+      "query": "how to set up a sales pipeline in a CRM for a new startup",
+      "covered": null,
+      "similarity_score": null
+    },
+    {
+      "type": "how_to",
+      "query": "how to migrate customer data from Google Sheets to a professional CRM",
+      "covered": null,
+      "similarity_score": null
+    },
+    {
+      "type": "definitional",
+      "query": "what is a startup CRM and how does it differ from enterprise solutions",
+      "covered": null,
+      "similarity_score": null
+    },
+    {
+      "type": "definitional",
+      "query": "understanding CRM core functions for early-stage business growth",
+      "covered": null,
+      "similarity_score": null
+    }
+  ],
+  "_meta": {
+    "elapsed_seconds": 9.16
+  }
+}

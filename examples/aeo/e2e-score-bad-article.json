@@ -1,0 +1,63 @@
+{
+  "aeo_score": 33,
+  "band": "Not AEO Ready",
+  "checks": [
+    {
+      "check_id": "direct_answer",
+      "name": "Direct Answer Detection",
+      "passed": false,
+      "score": 8,
+      "max_score": 20,
+      "details": {
+        "word_count": 88,
+        "threshold": 60,
+        "is_declarative": true,
+        "has_hedge_phrase": true
+      },
+      "recommendation": "Opening paragraph is 88 words. Trim to under 60 words with a direct, declarative answer."
+    },
+    {
+      "check_id": "htag_hierarchy",
+      "name": "H-tag Hierarchy",
+      "passed": false,
+      "score": 12,
+      "max_score": 20,
+      "details": {
+        "violations": [
+          "Heading H3 appears before H1",
+          "Skipped heading level: H1 \u2192 H3"
+        ],
+        "h_tags_found": [
+          "h3",
+          "h2",
+          "h1",
+          "h3",
+          "h2",
+          "h3",
+          "h3"
+        ]
+      },
+      "recommendation": "Fix heading hierarchy: Heading H3 appears before H1; Skipped heading level: H1 \u2192 H3."
+    },
+    {
+      "check_id": "readability",
+      "name": "Snippet Readability",
+      "passed": false,
+      "score": 0,
+      "max_score": 20,
+      "details": {
+        "fk_grade_level": 20.4,
+        "target_range": "7-9",
+        "complex_sentences": [
+          "From healthcare to finance, organizations are leveraging machine learning algorithms and natural language processing capabilities to automate previously manual processes and derive actionable insights from vast quantities of unstructured data that would otherwise remain inaccessible to human analysts operating within traditional analytical frameworks.",
+          "AI Tools Some Thoughts on AI Tools In the rapidly evolving, multifaceted landscape of contemporary artificial intelligence tooling, it depends on a wide variety of factors whether these sophisticated computational instruments will prove to be beneficial for your particular organizational context, given that the heterogeneous nature of enterprise requirements, the idiosyncratic characteristics of individual workflow configurations, and the ever-shifting paradigmatic frameworks that govern technological adoption in some cases may necessitate a more nuanced, comprehensive, and longitudinally-oriented evaluation methodology than what is generally speaking available through conventional assessment mechanisms that predominate in the current marketplace ecosystem.",
+          "Why AI Matters Artificial intelligence is transforming industries across the globe."
+        ]
+      },
+      "recommendation": "Content reads at Grade 20.4. Simplify sentences to reach Grade 7-9."
+    }
+  ],
+  "first_paragraph_words": 88,
+  "heading_count": 7,
+  "text_length": 2337
+}

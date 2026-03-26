@@ -1,0 +1,65 @@
+{
+  "company": "Notion",
+  "competitors": [
+    "Obsidian",
+    "Confluence",
+    "Coda",
+    "Monday.com"
+  ],
+  "prompts": [
+    {
+      "category": "ranking",
+      "prompt": "What are the top 10 productivity software tools right now?"
+    },
+    {
+      "category": "ranking",
+      "prompt": "What are the best productivity software solutions available today?"
+    },
+    {
+      "category": "ranking",
+      "prompt": "Which productivity software platforms are most popular right now?"
+    },
+    {
+      "category": "comparison",
+      "prompt": "Notion vs Obsidian: which is better for productivity software?"
+    },
+    {
+      "category": "comparison",
+      "prompt": "How does Notion compare to Confluence?"
+    },
+    {
+      "category": "comparison",
+      "prompt": "Compare Notion and Coda for Notion Workspace."
+    },
+    {
+      "category": "alternatives",
+      "prompt": "What are the best alternatives to Notion?"
+    },
+    {
+      "category": "alternatives",
+      "prompt": "I'm looking for alternatives to Notion. What do you recommend?"
+    },
+    {
+      "category": "alternatives",
+      "prompt": "What should I use instead of Notion?"
+    },
+    {
+      "category": "recommendations",
+      "prompt": "What productivity software tool would you recommend for a small business?"
+    },
+    {
+      "category": "recommendations",
+      "prompt": "I need a productivity software solution. What should I choose?"
+    },
+    {
+      "category": "recommendations",
+      "prompt": "What's the best productivity software platform for teams?"
+    }
+  ],
+  "category_counts": {
+    "alternatives": 3,
+    "comparison": 3,
+    "ranking": 3,
+    "recommendations": 3
+  }
+}

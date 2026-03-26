@@ -1,0 +1,80 @@
+{
+  "url": "https://www.anthropic.com/research/building-effective-agents",
+  "aeo_score": 53,
+  "band": "Significant Gaps",
+  "checks": [
+    {
+      "check_id": "direct_answer",
+      "name": "Direct Answer Detection",
+      "passed": false,
+      "score": 12,
+      "max_score": 20,
+      "details": {
+        "word_count": 3,
+        "threshold": 60,
+        "is_declarative": false,
+        "has_hedge_phrase": false
+      },
+      "recommendation": "Use a clear declarative statement with subject and verb."
+    },
+    {
+      "check_id": "htag_hierarchy",
+      "name": "H-tag Hierarchy",
+      "passed": true,
+      "score": 20,
+      "max_score": 20,
+      "details": {
+        "violations": [],
+        "h_tags_found": [
+          "h1",
+          "h2",
+          "h2",
+          "h2",
+          "h2",
+          "h3",
+          "h3",
+          "h3",
+          "h3",
+          "h3",
+          "h3",
+          "h3",
+          "h2",
+          "h2",
+          "h3",
+          "h2",
+          "h3",
+          "h3",
+          "h2",
+          "h2"
+        ]
+      },
+      "recommendation": null
+    },
+    {
+      "check_id": "readability",
+      "name": "Snippet Readability",
+      "passed": false,
+      "score": 0,
+      "max_score": 20,
+      "details": {
+        "fk_grade_level": 12.9,
+        "target_range": "7-9",
+        "complex_sentences": [
+          "Customer support Customer support combines familiar chatbot interfaces with enhanced capabilities through tool integration.",
+          "Consistently, the most successful implementations weren't using complex frameworks or specialized libraries.",
+          "We'll start with our foundational building block\u2014the augmented LLM\u2014and progressively increase complexity, from simple compositional workflows to autonomous agents."
+        ]
+      },
+      "recommendation": "Content reads at Grade 12.9. Simplify sentences to reach Grade 7-9."
+    }
+  ],
+  "content_stats": {
+    "text_length": 18489,
+    "heading_count": 20,
+    "first_paragraph_words": 3
+  },
+  "fetch_seconds": 14.4,
+  "_meta": {
+    "elapsed_seconds": 14.41
+  }
+}

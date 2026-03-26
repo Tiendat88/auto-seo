@@ -1,0 +1,9 @@
+{
+  "council_size": 1,
+  "members": [
+    {
+      "backend": "gemini",
+      "model": "gemini-3-flash-preview"
+    }
+  ]
+}
