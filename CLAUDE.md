@@ -212,7 +212,7 @@ Fresh databases auto-create on startup, and Postgres startup is serialized with 
 - **Brand API fetches use provider SDKs directly**: `app/brand/fetcher.py` uses `openai.AsyncOpenAI` for both OpenAI and Perplexity-compatible APIs
 - **`claim_job_for_resume` requires `session.refresh()`**: Without it, `_job_to_response` can trigger `MissingGreenlet`
 - **`from google import genai` needs `# type: ignore[reportAttributeAccessIssue]`**: The `google` namespace package doesn't expose `genai` in stubs; all `google.genai` imports require inline suppression
-- **pyright runs outside venv via `uvx`**: Third-party type noise is disabled in `pyrightconfig.json` (`reportMissingImports`, `reportMissingTypeStubs`, `reportUntypedBaseClass`, `reportUntypedFunctionDecorator`, `reportMissingParameterType`, `reportPrivateUsage`)
+- **pyright runs outside venv via `uvx`**: Third-party type noise is disabled in `pyrightconfig.json` (`reportMissingImports`, `reportMissingTypeStubs`, `reportUntypedBaseClass`, `reportUntypedFunctionDecorator`, `reportUntypedClassDecorator`, `reportMissingParameterType`, `reportPrivateUsage`)
 
 ## Testing patterns
 
@@ -228,15 +228,16 @@ Fresh databases auto-create on startup, and Postgres startup is serialized with 
 
 ### E2E tests (52 tests, 4 files) — real API calls
 
-| File | Tests | Time | Keys required | Examples dir |
-|------|-------|------|---------------|-------------|
-| `test_pipeline_e2e.py` | 9 | ~13m | `GOOGLE_API_KEY` | `examples/pipeline/` |
-| `test_brand_e2e.py` | 18 | ~7m | `GOOGLE_API_KEY`, `PERPLEXITY_API_KEY`, `FIRECRAWL_API_KEY` | `examples/brand/` |
-| `test_aeo_e2e.py` | 17 | ~15s | `FIRECRAWL_API_KEY` (URL tests only) | `examples/aeo/` |
-| `test_fanout_e2e.py` | 8 | ~1m | `GOOGLE_API_KEY`, `VOYAGE_API_KEY` | `examples/fanout/` |
+| File | Tests | Time | Keys required |
+|------|-------|------|---------------|
+| `test_pipeline_e2e.py` | 9 | ~13m | `GOOGLE_API_KEY` |
+| `test_brand_e2e.py` | 18 | ~7m | `GOOGLE_API_KEY`, `PERPLEXITY_API_KEY`, `FIRECRAWL_API_KEY` |
+| `test_aeo_e2e.py` | 17 | ~15s | `FIRECRAWL_API_KEY` (URL tests only) |
+| `test_fanout_e2e.py` | 8 | ~1m | `GOOGLE_API_KEY`, `VOYAGE_API_KEY` |
 
-- E2E tests call real APIs and write JSON/log/markdown results to `examples/` subdirs
-- Each test class uses `skipif` markers when required API keys are missing
+- Shared helpers in `conftest.py`: `write_example()`, `write_log()`, skip markers (`skip_no_llm`, `skip_no_fetch`, `skip_no_firecrawl`, `skip_no_voyage`)
+- Each test file has `EXAMPLES_DIR` (showcase) + `INTERNALS_DIR` (test artifacts in `_internals/`)
+- Generated articles write to `examples/articles/{slug}.md` via `_write_article()`; pipeline JSON stays in `examples/pipeline/`
 - Pipeline E2E uses `MockSerpProvider` + real Gemini LLM (no SERP key needed)
 - `Job.status` is a plain string after SQLite `session.refresh()` — compare with `str(job.status)`, not `JobStatus` enum
 - Voyage gap analysis threshold (0.72) is strict; short content often yields 0% coverage — assert on valid scores, not coverage counts

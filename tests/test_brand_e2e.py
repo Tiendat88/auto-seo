@@ -38,6 +38,7 @@ from tests.conftest import (
 )
 
 EXAMPLES_DIR = Path(__file__).resolve().parent.parent / "examples" / "brand"
+INTERNALS_DIR = EXAMPLES_DIR / "_internals"
 
 
 # ---------------------------------------------------------------------------
@@ -60,7 +61,7 @@ class TestFetchLayer:
         for r in responses:
             assert len(r.response_text) > 50, f"{r.platform} response too short"
 
-        write_example(EXAMPLES_DIR, "e2e-fetch-single", {
+        write_example(INTERNALS_DIR, "fetch-single", {
             "query": query,
             "platforms": [r.platform for r in responses],
             "response_lengths": {r.platform: len(r.response_text) for r in responses},
@@ -75,7 +76,7 @@ class TestFetchLayer:
         elapsed = time.monotonic() - t0
 
         assert len(responses) >= 1
-        write_example(EXAMPLES_DIR, "e2e-fetch-brand-query", {
+        write_example(INTERNALS_DIR, "fetch-brand-query", {
             "query": query,
             "platforms": [r.platform for r in responses],
             "responses": [r.model_dump() for r in responses],
@@ -89,7 +90,7 @@ class TestFetchLayer:
         elapsed = time.monotonic() - t0
 
         assert len(responses) >= 1
-        write_example(EXAMPLES_DIR, "e2e-fetch-no-web-search", {
+        write_example(INTERNALS_DIR, "fetch-no-web-search", {
             "query": query,
             "web_search": False,
             "platforms": [r.platform for r in responses],
@@ -123,7 +124,7 @@ class TestDetectionOnRealText:
         exact = [m for m in matches if m.variation_type == "exact"]
         assert len(exact) >= 1
 
-        write_example(EXAMPLES_DIR, "e2e-detection-notion", {
+        write_example(INTERNALS_DIR, "detection-notion", {
             "brand": "Notion",
             "text_length": len(self._SAMPLE_RESPONSE),
             "matches": [
@@ -144,7 +145,7 @@ class TestDetectionOnRealText:
             assert brand in results
             assert len(results[brand]) >= 1, f"Expected >=1 match for {brand}"
 
-        write_example(EXAMPLES_DIR, "e2e-detection-multi-brand", {
+        write_example(INTERNALS_DIR, "detection-multi-brand", {
             "brands": brands,
             "text_length": len(self._SAMPLE_RESPONSE),
             "results": {
@@ -167,7 +168,7 @@ class TestDetectionOnRealText:
         negative = [m for m in matches if m.negative_context]
         assert len(negative) >= 1, "Should detect negative context for 'avoid Bear'"
 
-        write_example(EXAMPLES_DIR, "e2e-detection-negative-context", {
+        write_example(INTERNALS_DIR, "detection-negative-context", {
             "brand": "Bear",
             "matches": [
                 {
@@ -218,7 +219,7 @@ class TestAnalysisSinglePlatform:
         assert analysis.brand_position is not None
         assert analysis.brand_position <= 3
 
-        write_example(EXAMPLES_DIR, "e2e-analysis-positive", {
+        write_example(INTERNALS_DIR, "analysis-positive", {
             "analysis": analysis.model_dump(),
         }, elapsed)
 
@@ -247,7 +248,7 @@ class TestAnalysisSinglePlatform:
 
         assert analysis.brand_mentioned is False
 
-        write_example(EXAMPLES_DIR, "e2e-analysis-absent", {
+        write_example(INTERNALS_DIR, "analysis-absent", {
             "analysis": analysis.model_dump(),
         }, elapsed)
 
@@ -314,8 +315,8 @@ class TestSingleQueryPipeline:
         log_lines.append(f"[scores] Sentiment: {result.scores.sentiment_score}")
         log_lines.append(f"[total] {total_elapsed:.1f}s")
 
-        write_example(EXAMPLES_DIR, "e2e-single-query-notion", result.model_dump(), total_elapsed)
-        write_log(EXAMPLES_DIR, "e2e-single-query-notion", log_lines)
+        write_example(EXAMPLES_DIR, "single-query-notion", result.model_dump(), total_elapsed)
+        write_log(EXAMPLES_DIR, "single-query-notion", log_lines)
 
     async def test_linear_single_query(self) -> None:
         """Run complete single-query brand analysis for Linear."""
@@ -345,7 +346,7 @@ class TestSingleQueryPipeline:
         assert len(result.platform_analyses) >= 1
         assert result.scores is not None
 
-        write_example(EXAMPLES_DIR, "e2e-single-query-linear", result.model_dump(), elapsed)
+        write_example(EXAMPLES_DIR, "single-query-linear", result.model_dump(), elapsed)
 
 
 # ---------------------------------------------------------------------------
@@ -369,7 +370,7 @@ class TestDiscoveryLayer:
         assert company.industry, "Industry should not be empty"
         assert len(company.keywords) >= 3, "Should extract at least 3 keywords"
 
-        write_example(EXAMPLES_DIR, "e2e-discovery-scrape-notion", {
+        write_example(INTERNALS_DIR, "discovery-scrape-notion", {
             "company": company.model_dump(),
         }, elapsed)
 
@@ -397,7 +398,7 @@ class TestDiscoveryLayer:
             "obsidian" in n.lower() or "confluence" in n.lower() for n in names
         ), "Should include known competitors"
 
-        write_example(EXAMPLES_DIR, "e2e-discovery-competitors-notion", {
+        write_example(INTERNALS_DIR, "discovery-competitors-notion", {
             "company": company.name,
             "competitors": [c.model_dump() for c in competitors],
         }, elapsed)
@@ -425,7 +426,7 @@ class TestDiscoveryLayer:
         assert "alternatives" in categories
         assert "recommendations" in categories
 
-        write_example(EXAMPLES_DIR, "e2e-discovery-prompts-notion", {
+        write_example(EXAMPLES_DIR, "discovery-prompts-notion", {
             "company": company.name,
             "competitors": competitors,
             "prompts": [p.model_dump() for p in prompts],
@@ -534,8 +535,8 @@ class TestAutoDiscoveryPipeline:
         assert result.scores.overall_score >= 0
         assert len(result.competitor_rankings) >= 1
 
-        write_example(EXAMPLES_DIR, "e2e-auto-discovery-notion", result.model_dump(), elapsed)
-        write_log(EXAMPLES_DIR, "e2e-auto-discovery-notion", log_lines)
+        write_example(EXAMPLES_DIR, "auto-discovery-notion", result.model_dump(), elapsed)
+        write_log(EXAMPLES_DIR, "auto-discovery-notion", log_lines)
 
 
 # ---------------------------------------------------------------------------
@@ -587,7 +588,7 @@ class TestScoringOnRealData:
             result.platform_analyses, "Notion", competitor_names,
         )
 
-        write_example(EXAMPLES_DIR, "e2e-scoring-consistency", {
+        write_example(EXAMPLES_DIR, "scoring-with-rankings", {
             "scores": scores.model_dump(),
             "rankings": [r.model_dump() for r in rankings],
             "provider_comparison": [c.model_dump() for c in comparison],
@@ -645,8 +646,8 @@ class TestMultiQueryPipeline:
         if result.scores:
             log_lines.append(f"[scores] Overall: {result.scores.overall_score}")
 
-        write_example(EXAMPLES_DIR, "e2e-multi-query-notion", result.model_dump(), elapsed)
-        write_log(EXAMPLES_DIR, "e2e-multi-query-notion", log_lines)
+        write_example(EXAMPLES_DIR, "multi-query-notion", result.model_dump(), elapsed)
+        write_log(EXAMPLES_DIR, "multi-query-notion", log_lines)
 
 
 # ---------------------------------------------------------------------------
@@ -693,8 +694,8 @@ class TestDetectionFallback:
                 f"[{r.platform}] detection={det_found} llm={analysis.brand_mentioned} → {status}"
             )
 
-        write_log(EXAMPLES_DIR, "e2e-detection-fallback", log_lines)
-        write_example(EXAMPLES_DIR, "e2e-detection-fallback", {
+        write_log(INTERNALS_DIR, "detection-fallback", log_lines)
+        write_example(INTERNALS_DIR, "detection-fallback", {
             "query": query,
             "platforms": [r.platform for r in responses],
             "log": log_lines,
@@ -736,7 +737,7 @@ class TestAggregateComputation:
         assert aggregate.total_platforms == len(analyses)
         assert aggregate.platforms_mentioning_brand <= aggregate.total_platforms
 
-        write_example(EXAMPLES_DIR, "e2e-aggregate-project-mgmt", {
+        write_example(INTERNALS_DIR, "aggregate-project-mgmt", {
             "query": query,
             "aggregate": aggregate.model_dump(),
             "per_platform": [

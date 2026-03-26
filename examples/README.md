@@ -1,154 +1,75 @@
 # Examples
 
-Live CLI artifacts and logs captured from fresh runs of `autoseo`.
+Real outputs from autoseo's article generation, brand monitoring, AEO scoring, and fan-out analysis. All JSON files are produced by real API calls (Gemini, Perplexity, Firecrawl, Voyage).
 
-These examples use the CLI's split-output mode:
+## Brand Monitoring (`brand/`)
 
-- `--output <file>` writes the primary artifact
-- `--log-file <file>` writes progress, status text, and errors
+Track how AI platforms mention your brand across ChatGPT, Perplexity, Gemini, and Claude.
 
-Short commands such as `status` and `list` often have empty log files because they do not emit progress output.
+| File | What it shows |
+|------|--------------|
+| `auto-discovery-notion.json` | Full pipeline: URL scrape, competitor identification, 6 auto-generated prompts, fetch from 2 providers, analysis with scores and rankings |
+| `auto-discovery-notion.log` | Step-by-step trace: scrape, competitors found, prompts generated, fetch results, scores |
+| `single-query-notion.json` | Single-query analysis: "What are the best note-taking apps?" with visibility scores, competitor rankings, and provider comparison |
+| `single-query-linear.json` | Same flow for Linear — "best project management tool for engineering teams" |
+| `multi-query-notion.json` | Two-prompt analysis combining ranking + comparison queries |
+| `scoring-with-rankings.json` | Detailed scoring breakdown: visibility, share of voice, sentiment, position, plus competitor rankings and provider comparison matrix |
+| `discovery-prompts-notion.json` | The 14 auto-generated prompts across ranking, comparison, alternatives, and recommendations categories |
+| `notion-api.json` | CLI-generated analysis (`autoseo brand "Notion" "best note-taking app" --mode api --json`) |
 
-## Clean layout
+## Article Generation (`pipeline/` + `articles/`)
 
-- `examples/articles/`
-  Final markdown article gallery only.
-- `examples/article-workflows/`
-  One folder per article topic with the full `generate`, `status`, `watch`, `result`, and `export` outputs.
-- `examples/article-workflows/manifest.tsv`
-  Canonical mapping of `slug`, `job_id`, and topic for the latest rerun set.
+Research topics, analyze competitors, generate optimized articles with quality scoring.
 
-## Article gallery
+| File | What it shows |
+|------|--------------|
+| `pipeline/generated-article-short.json` | Complete pipeline output for an 800-word article: SERP research, competitive analysis, outline, article, 13-dimension quality scores, review |
+| `articles/best-productivity-tools-for-remote-teams.md` | The generated article in markdown |
+| `pipeline/generated-article-short.log` | Pipeline trace with timing |
+| `pipeline/generated-article-medium.json` | Same for a 1500-word article on RAG implementation |
+| `articles/how-to-implement-retrieval-augmented-generation.md` | The generated article |
+| `pipeline/quality-dimensions.json` | All 13 scoring dimensions (7 algorithmic + 6 LLM) with scores and feedback |
+| `pipeline/planning-output.json` | Competitive analysis + article outline from the planning step |
+| `articles/*.md` | Gallery of final exported articles from CLI runs |
 
-`examples/articles/` contains the final exported markdown for the latest rerun set:
+See `article-workflows/` for full CLI workflow traces (generate, watch, status, result, export) per article.
 
-- `articles/customer-onboarding-checklist-for-b2b-saas.md`
-- `articles/best-note-taking-apps-for-founders.md`
-- `articles/gemini-cli-fallback-verification.md`
-- `articles/remote-teamwork-tools.md`
-- `articles/best-productivity-tools-for-remote-teams-2026.md`
+## AEO Content Scoring (`aeo/`)
 
-## Article workflows
+Score content for Answer Engine Optimization readiness (0-100) across direct answer quality, heading hierarchy, and readability.
 
-Each topic folder under `examples/article-workflows/` contains the same artifact set:
+| File | What it shows |
+|------|--------------|
+| `score-good-article.json` | Well-structured RAG article: scores, band label, per-check breakdown |
+| `score-bad-article.json` | Poorly structured article for comparison |
+| `score-medium-article.json` | Middle-ground article |
+| `score-well-structured-markdown.json` | Markdown with proper H1/H2/H3 hierarchy |
+| `score-poorly-structured-markdown.json` | Hedge-filled opener, no headings |
+| `url-score-wikipedia-rag.json` | Real URL scored: Wikipedia RAG article via Firecrawl |
+| `url-score-anthropic-agents.json` | Real URL scored: Anthropic's "Building Effective Agents" blog |
+| `score-generated-articles.json` | AEO scores for all articles in `articles/` |
 
-- `generate.output.txt`
-- `generate.log`
-- `status.running.txt`
-- `status.running.log`
-- `watch.output.txt`
-- `watch.log`
-- `status.completed.txt`
-- `status.completed.log`
-- `result.summary.txt`
-- `result.summary.log`
-- `result.article.md`
-- `result.article.log`
-- `result.json`
-- `result.json.log`
-- `export.article.md`
-- `export.log`
+## Fan-out Analysis (`fanout/`)
 
-Latest workflow set:
+Decompose a query into 10-15 sub-queries and measure content coverage gaps via Voyage embeddings.
 
-- `customer-onboarding-checklist-for-b2b-saas` → job `ab5f8d40-f707-4d34-aa73-f8f04b830b0c`
-- `best-note-taking-apps-for-founders` → job `34f1a3f9-a8e2-411a-96e3-a7b378679ee3`
-- `gemini-cli-fallback-verification` → job `b3b30ae0-fb6a-4d40-ba5a-f01ab77c9a83`
-- `remote-teamwork-tools` → job `348cf194-059b-4265-8157-8a946c4671d9`
-- `best-productivity-tools-for-remote-teams-2026` → job `15708637-1219-4e56-8d19-a462f85f3d4e`
+| File | What it shows |
+|------|--------------|
+| `full-pipeline-crm.json` | End-to-end: LLM generates sub-queries for "best CRM for startups" + Voyage gap analysis against CRM content |
+| `full-pipeline-crm.log` | Step trace: generation timing, type counts, coverage %, per-query similarity scores |
+| `url-analysis-wikipedia-rag.json` | URL-backed gap analysis: fetch Wikipedia RAG article, generate sub-queries, measure coverage |
+| `subqueries-crm.json` | Just the LLM-generated sub-queries (12 queries across 6 types) |
+| `crm-url-gap.json` | CLI-generated fan-out with URL content |
+| `onboarding-file-gap.json` | CLI-generated fan-out against a local article file |
 
-Command shape used for each topic:
+## CLI Workflows (`article-workflows/` + `jobs/`)
 
-```bash
-uv run autoseo --api-url http://127.0.0.1:8015 \
-  --output examples/article-workflows/<slug>/generate.output.txt \
-  --log-file examples/article-workflows/<slug>/generate.log \
-  generate "<topic>" --no-poll
+Each topic folder under `article-workflows/` contains the full CLI artifact set: `generate`, `status`, `watch`, `result --summary`, `result --json`, `result` (markdown), and `export`.
 
-uv run autoseo --api-url http://127.0.0.1:8015 \
-  --output examples/article-workflows/<slug>/status.running.txt \
-  --log-file examples/article-workflows/<slug>/status.running.log \
-  status <job_id>
+See `article-workflows/manifest.tsv` for the slug/job-id/topic mapping.
 
-uv run autoseo --api-url http://127.0.0.1:8015 \
-  --output examples/article-workflows/<slug>/watch.output.txt \
-  --log-file examples/article-workflows/<slug>/watch.log \
-  watch <job_id>
+`jobs/` contains job lifecycle examples: list, status on failed jobs, and resume output.
 
-uv run autoseo --api-url http://127.0.0.1:8015 \
-  --output examples/article-workflows/<slug>/result.summary.txt \
-  --log-file examples/article-workflows/<slug>/result.summary.log \
-  result <job_id> --summary
+## Test Artifacts (`_internals/`)
 
-uv run autoseo --api-url http://127.0.0.1:8015 \
-  --output examples/article-workflows/<slug>/result.article.md \
-  --log-file examples/article-workflows/<slug>/result.article.log \
-  result <job_id>
-
-uv run autoseo --api-url http://127.0.0.1:8015 \
-  --output examples/article-workflows/<slug>/result.json \
-  --log-file examples/article-workflows/<slug>/result.json.log \
-  result <job_id> --json
-
-uv run autoseo --api-url http://127.0.0.1:8015 \
-  --log-file examples/article-workflows/<slug>/export.log \
-  export <job_id> examples/article-workflows/<slug>/export.article.md
-```
-
-## Job-state examples
-
-- `jobs/list.completed.txt`: `list --status completed --limit 5`
-- `jobs/list.failed.txt`: `list --status failed --limit 5`
-- `jobs/status.failed.txt`: `status` on a failed job before resume
-- `jobs/resume.output.txt`: final completion artifact from a resumed failed job
-- `jobs/resume.log`: full progress log from `resume`
-
-Resume target:
-
-- Job ID: `2a1e5aea-bbbe-4b49-83fd-cca33476542d`
-- Topic: `best productivity tools for remote teams 2026`
-
-## AEO examples
-
-- `aeo/onboarding-article.json`: AEO analysis of the latest exported onboarding article
-- `aeo/onboarding-article.log`: companion log file
-
-Command used:
-
-```bash
-uv run autoseo --api-url http://127.0.0.1:8015 \
-  --output examples/aeo/onboarding-article.json \
-  --log-file examples/aeo/onboarding-article.log \
-  aeo examples/article-workflows/customer-onboarding-checklist-for-b2b-saas/export.article.md --json
-```
-
-## Fan-out examples
-
-- `fanout/crm-url-gap.json`: URL-backed fan-out gap analysis for `best CRM for startups`
-- `fanout/crm-url-gap.log`: fetch log for the URL-backed example
-- `fanout/onboarding-file-gap.json`: file-backed fan-out gap analysis against the exported onboarding article
-- `fanout/onboarding-file-gap.log`: companion log file
-
-Commands used:
-
-```bash
-uv run autoseo --api-url http://127.0.0.1:8015 \
-  --output examples/fanout/crm-url-gap.json \
-  --log-file examples/fanout/crm-url-gap.log \
-  fanout "best CRM for startups" --content https://example.com --json
-
-uv run autoseo --api-url http://127.0.0.1:8015 \
-  --output examples/fanout/onboarding-file-gap.json \
-  --log-file examples/fanout/onboarding-file-gap.log \
-  fanout "customer onboarding checklist for B2B SaaS" \
-  --content examples/article-workflows/customer-onboarding-checklist-for-b2b-saas/export.article.md --json
-```
-
-## Brand example
-
-- `brand/notion-api.json`: API-mode brand analysis for Notion on the query `best note-taking app`
-- `brand/notion-api.log`: companion log file
-
-## Legacy sample
-
-- `sample_output.json`: older sample artifact kept as-is from the original repo state
+Each module's `_internals/` subdirectory contains granular outputs from E2E tests — individual check scores, parser detection, fetch responses, regex matches, SERP mocks, etc. These are written by `tests/test_*_e2e.py` and are useful for debugging but not for understanding what autoseo produces.

@@ -23,11 +23,14 @@ from app.serp.client import MockSerpProvider, get_serp_provider
 from tests.conftest import skip_no_llm, write_example, write_log
 
 EXAMPLES_DIR = Path(__file__).resolve().parent.parent / "examples" / "pipeline"
+INTERNALS_DIR = EXAMPLES_DIR / "_internals"
+ARTICLES_DIR = Path(__file__).resolve().parent.parent / "examples" / "articles"
 
 
-def _write_article(name: str, markdown: str) -> Path:
-    EXAMPLES_DIR.mkdir(parents=True, exist_ok=True)
-    path = EXAMPLES_DIR / f"{name}.md"
+def _write_article(slug: str, markdown: str) -> Path:
+    """Write generated article to the articles gallery."""
+    ARTICLES_DIR.mkdir(parents=True, exist_ok=True)
+    path = ARTICLES_DIR / f"{slug}.md"
     path.write_text(markdown)
     return path
 
@@ -173,16 +176,16 @@ class TestFullPipeline:
         result = job.build_result()
         result_dict = result.model_dump(mode="json") if result else {}
 
-        write_example(EXAMPLES_DIR, "e2e-pipeline-short-article", {
+        write_example(EXAMPLES_DIR, "generated-article-short", {
             "summary": summary,
             "result": result_dict,
         }, elapsed)
-        write_log(EXAMPLES_DIR, "e2e-pipeline-short-article", log_lines)
+        write_log(EXAMPLES_DIR, "generated-article-short", log_lines)
 
         # Write the article markdown
         if result:
             md = _build_article_md(result_dict)
-            _write_article("e2e-pipeline-short-article", md)
+            _write_article("best-productivity-tools-for-remote-teams", md)
 
     async def test_medium_article(self, session: AsyncSession) -> None:
         """Generate a 1500-word article end-to-end."""
@@ -205,14 +208,14 @@ class TestFullPipeline:
         result = job.build_result()
         result_dict = result.model_dump(mode="json") if result else {}
 
-        write_example(EXAMPLES_DIR, "e2e-pipeline-medium-article", {
+        write_example(EXAMPLES_DIR, "generated-article-medium", {
             "summary": summary,
             "result": result_dict,
         }, elapsed)
 
         if result:
             md = _build_article_md(result_dict)
-            _write_article("e2e-pipeline-medium-article", md)
+            _write_article("how-to-implement-retrieval-augmented-generation", md)
 
 
 # ---------------------------------------------------------------------------
@@ -244,7 +247,7 @@ class TestPipelineSteps:
         assert serp_data is not None
         assert len(serp_data.results) >= 1
 
-        write_example(EXAMPLES_DIR, "e2e-step-research", {
+        write_example(INTERNALS_DIR, "step-research", {
             "topic": job.topic,
             "result_count": len(serp_data.results),
             "question_count": len(serp_data.questions),
@@ -280,7 +283,7 @@ class TestPipelineSteps:
         assert outline is not None, "Should produce article outline"
         assert len(outline.headings) >= 3, "Outline should have at least 3 headings"
 
-        write_example(EXAMPLES_DIR, "e2e-step-planning", {
+        write_example(EXAMPLES_DIR, "planning-output", {
             "topic": job.topic,
             "analysis": {
                 "primary_keyword": analysis.keywords.primary,
@@ -323,7 +326,7 @@ class TestLlmCouncil:
         backends = [c.backend for c in council]
         assert "gemini" in backends, "Gemini should be in the council"
 
-        write_example(EXAMPLES_DIR, "e2e-council-formation", {
+        write_example(INTERNALS_DIR, "council-formation", {
             "council_size": len(council),
             "members": [
                 {"backend": c.backend, "model": c.model_name}
@@ -351,7 +354,7 @@ class TestLlmCouncil:
                 "elapsed": round(elapsed, 2),
             })
 
-        write_example(EXAMPLES_DIR, "e2e-council-text-gen", {"results": results})
+        write_example(INTERNALS_DIR, "council-text-gen", {"results": results})
 
 
 # ---------------------------------------------------------------------------
@@ -385,7 +388,7 @@ class TestSerpProvider:
                 ],
             })
 
-        write_example(EXAMPLES_DIR, "e2e-serp-mock", {"results": results})
+        write_example(INTERNALS_DIR, "serp-mock", {"results": results})
 
     async def test_real_serp_if_configured(self) -> None:
         """If SERPAPI_KEY is set, verify real SERP works."""
@@ -399,7 +402,7 @@ class TestSerpProvider:
 
         assert len(data.results) >= 5
 
-        write_example(EXAMPLES_DIR, "e2e-serp-real", {
+        write_example(INTERNALS_DIR, "serp-real", {
             "query": data.query,
             "result_count": len(data.results),
             "question_count": len(data.questions),
@@ -442,7 +445,7 @@ class TestQualityScoringE2E:
         )
         assert 0.0 <= quality.overall <= 1.0
 
-        write_example(EXAMPLES_DIR, "e2e-quality-dimensions", {
+        write_example(EXAMPLES_DIR, "quality-dimensions", {
             "topic": job.topic,
             "status": str(job.status),
             "overall": quality.overall,

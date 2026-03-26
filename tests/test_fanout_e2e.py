@@ -23,6 +23,7 @@ from tests.conftest import (
 )
 
 EXAMPLES_DIR = Path(__file__).resolve().parent.parent / "examples" / "fanout"
+INTERNALS_DIR = EXAMPLES_DIR / "_internals"
 
 
 # ---------------------------------------------------------------------------
@@ -49,7 +50,7 @@ class TestSubQueryGeneration:
         types = {sq.type.value for sq in sub_queries}
         assert len(types) >= 4, f"Expected >=4 types, got {len(types)}: {types}"
 
-        write_example(EXAMPLES_DIR, "e2e-subqueries-crm", {
+        write_example(EXAMPLES_DIR, "subqueries-crm", {
             "query": query,
             "model": model,
             "count": len(sub_queries),
@@ -69,7 +70,7 @@ class TestSubQueryGeneration:
         types = {sq.type.value for sq in sub_queries}
         assert len(types) >= 4
 
-        write_example(EXAMPLES_DIR, "e2e-subqueries-notetaking", {
+        write_example(INTERNALS_DIR, "subqueries-notetaking", {
             "query": query,
             "model": model,
             "count": len(sub_queries),
@@ -91,7 +92,7 @@ class TestSubQueryGeneration:
         types = {sq.type.value for sq in sub_queries}
         assert "how_to" in types or "definitional" in types
 
-        write_example(EXAMPLES_DIR, "e2e-subqueries-technical", {
+        write_example(INTERNALS_DIR, "subqueries-technical", {
             "query": query,
             "model": model,
             "count": len(sub_queries),
@@ -197,7 +198,7 @@ and wire it to your preferred LLM.
             assert 0.0 <= sq.similarity_score <= 1.0
             assert sq.covered is not None
 
-        write_example(EXAMPLES_DIR, "e2e-gap-rag-article", {
+        write_example(INTERNALS_DIR, "gap-rag-article", {
             "content_words": len(self._RAG_ARTICLE.split()),
             "gap_summary": gap_summary.model_dump(),
             "sub_queries": [sq.model_dump() for sq in updated],
@@ -216,7 +217,7 @@ and wire it to your preferred LLM.
         assert gap_summary.covered == 0
         assert all(sq.covered is False for sq in updated)
 
-        write_example(EXAMPLES_DIR, "e2e-gap-empty-content", {
+        write_example(INTERNALS_DIR, "gap-empty-content", {
             "gap_summary": gap_summary.model_dump(),
         })
 
@@ -308,13 +309,13 @@ automation, reminders, and pipeline visualization.
             assert sq.similarity_score is not None
             assert 0.0 <= sq.similarity_score <= 1.0
 
-        write_example(EXAMPLES_DIR, "e2e-fanout-full-crm", {
+        write_example(EXAMPLES_DIR, "full-pipeline-crm", {
             "query": query,
             "model": model,
             "gap_summary": gap_summary.model_dump(),
             "sub_queries": [sq.model_dump() for sq in updated],
         }, total_elapsed)
-        write_log(EXAMPLES_DIR, "e2e-fanout-full-crm", log_lines)
+        write_log(EXAMPLES_DIR, "full-pipeline-crm", log_lines)
 
     async def test_notetaking_fanout_with_fixture(self) -> None:
         """Generate fanout for note-taking, analyze gaps against fixture HTML."""
@@ -333,7 +334,7 @@ automation, reminders, and pipeline visualization.
         # Verify pipeline produced valid similarity scores
         assert gap_summary.total == len(sub_queries)
 
-        write_example(EXAMPLES_DIR, "e2e-fanout-rag-fixture", {
+        write_example(INTERNALS_DIR, "fanout-rag-fixture", {
             "query": query,
             "model": model,
             "content_source": "tests/fixtures/article_good.html",
@@ -391,7 +392,7 @@ class TestFanoutWithUrlContent:
         # Verify pipeline ran — Wikipedia should have some content coverage
         assert gap_summary.total == len(sub_queries)
 
-        write_example(EXAMPLES_DIR, "e2e-fanout-url-wikipedia-rag", {
+        write_example(EXAMPLES_DIR, "url-analysis-wikipedia-rag", {
             "url": url,
             "query": query,
             "model": model,
@@ -399,4 +400,4 @@ class TestFanoutWithUrlContent:
             "gap_summary": gap_summary.model_dump(),
             "sub_queries": [sq.model_dump() for sq in updated],
         }, total_elapsed)
-        write_log(EXAMPLES_DIR, "e2e-fanout-url-wikipedia-rag", log_lines)
+        write_log(EXAMPLES_DIR, "url-analysis-wikipedia-rag", log_lines)

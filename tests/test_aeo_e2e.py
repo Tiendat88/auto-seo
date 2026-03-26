@@ -22,6 +22,7 @@ from app.aeo.parser import ParsedContent, fetch_url, parse_content
 from tests.conftest import FIXTURES_DIR, skip_no_firecrawl, write_example
 
 EXAMPLES_DIR = Path(__file__).resolve().parent.parent / "examples" / "aeo"
+INTERNALS_DIR = EXAMPLES_DIR / "_internals"
 
 
 # ---------------------------------------------------------------------------
@@ -64,16 +65,16 @@ class TestAeoFixtureScoring:
         result = self._score(good_html)
         msg = f"Good article should score >=65, got {result['aeo_score']}"
         assert result["aeo_score"] >= 65, msg
-        write_example(EXAMPLES_DIR, "e2e-score-good-article", result)
+        write_example(EXAMPLES_DIR, "score-good-article", result)
 
     def test_bad_article(self, bad_html: str) -> None:
         result = self._score(bad_html)
         assert result["aeo_score"] < 65, f"Bad article should score <65, got {result['aeo_score']}"
-        write_example(EXAMPLES_DIR, "e2e-score-bad-article", result)
+        write_example(EXAMPLES_DIR, "score-bad-article", result)
 
     def test_medium_article(self, medium_html: str) -> None:
         result = self._score(medium_html)
-        write_example(EXAMPLES_DIR, "e2e-score-medium-article", result)
+        write_example(EXAMPLES_DIR, "score-medium-article", result)
 
     def test_score_ordering(self, good_html: str, bad_html: str) -> None:
         """Good article should score higher than bad article."""
@@ -146,7 +147,7 @@ Some people use vector stores. Others use keyword search. There are many options
         assert score >= 65
         assert hh.passed, "Well-structured markdown should pass heading check"
 
-        write_example(EXAMPLES_DIR, "e2e-score-md-well-structured", {
+        write_example(EXAMPLES_DIR, "score-well-structured-markdown", {
             "aeo_score": score,
             "band": band,
             "checks": [c.model_dump() for c in checks],
@@ -163,7 +164,7 @@ Some people use vector stores. Others use keyword search. There are many options
         assert score < 65
         assert not da.passed, "Hedge-filled opener should fail direct answer check"
 
-        write_example(EXAMPLES_DIR, "e2e-score-md-poorly-structured", {
+        write_example(EXAMPLES_DIR, "score-poorly-structured-markdown", {
             "aeo_score": score,
             "band": band,
             "checks": [c.model_dump() for c in checks],
@@ -185,7 +186,7 @@ class TestParserDetection:
         assert len(parsed.headings) >= 1
         assert parsed.first_paragraph
 
-        write_example(EXAMPLES_DIR, "e2e-parser-html", {
+        write_example(INTERNALS_DIR, "parser-html", {
             "is_html": parsed.is_html,
             "heading_count": len(parsed.headings),
             "headings": parsed.headings,
@@ -200,7 +201,7 @@ class TestParserDetection:
         assert len(parsed.headings) == 2
         assert parsed.headings[0] == ("h1", "Title")
 
-        write_example(EXAMPLES_DIR, "e2e-parser-markdown", {
+        write_example(INTERNALS_DIR, "parser-markdown", {
             "is_html": parsed.is_html,
             "headings": parsed.headings,
             "first_paragraph": parsed.first_paragraph,
@@ -213,7 +214,7 @@ class TestParserDetection:
         assert len(parsed.headings) == 0
         assert parsed.first_paragraph == "This is plain text without any formatting."
 
-        write_example(EXAMPLES_DIR, "e2e-parser-plain-text", {
+        write_example(INTERNALS_DIR, "parser-plain-text", {
             "is_html": parsed.is_html,
             "headings": parsed.headings,
             "first_paragraph": parsed.first_paragraph,
@@ -239,7 +240,7 @@ class TestIndividualChecks:
         result = check_direct_answer(parsed)
         assert result.score == 20
         assert result.passed is True
-        write_example(EXAMPLES_DIR, "e2e-check-da-perfect", result.model_dump())
+        write_example(INTERNALS_DIR, "check-da-perfect", result.model_dump())
 
     def test_direct_answer_too_long(self) -> None:
         """100-word first paragraph should score 0/20."""
@@ -249,7 +250,7 @@ class TestIndividualChecks:
         )
         result = check_direct_answer(parsed)
         assert result.score == 0
-        write_example(EXAMPLES_DIR, "e2e-check-da-too-long", result.model_dump())
+        write_example(INTERNALS_DIR, "check-da-too-long", result.model_dump())
 
     def test_htag_perfect_hierarchy(self) -> None:
         """H1 > H2 > H3 should score 20/20."""
@@ -260,7 +261,7 @@ class TestIndividualChecks:
         result = check_htag_hierarchy(parsed)
         assert result.score == 20
         assert result.passed is True
-        write_example(EXAMPLES_DIR, "e2e-check-htag-perfect", result.model_dump())
+        write_example(INTERNALS_DIR, "check-htag-perfect", result.model_dump())
 
     def test_htag_skipped_levels(self) -> None:
         """H1 > H3 (skipping H2) should flag a violation."""
@@ -271,7 +272,7 @@ class TestIndividualChecks:
         result = check_htag_hierarchy(parsed)
         assert not result.passed
         assert "Skipped" in result.details["violations"][0]
-        write_example(EXAMPLES_DIR, "e2e-check-htag-skipped", result.model_dump())
+        write_example(INTERNALS_DIR, "check-htag-skipped", result.model_dump())
 
     def test_readability_target_range(self) -> None:
         """Content at grade 7-9 should score 20/20."""
@@ -287,7 +288,7 @@ class TestIndividualChecks:
         result = check_readability(parsed)
         grade = result.details["fk_grade_level"]
         write_example(
-            EXAMPLES_DIR, "e2e-check-readability",
+            INTERNALS_DIR, "check-readability",
             {**result.model_dump(), "actual_grade": grade},
         )
 
@@ -318,7 +319,7 @@ class TestAeoUrlAnalysis:
         score, band = compute_aeo_score(checks)
         total_elapsed = time.monotonic() - t0
 
-        write_example(EXAMPLES_DIR, "e2e-url-score-wikipedia-rag", {
+        write_example(EXAMPLES_DIR, "url-score-wikipedia-rag", {
             "url": url,
             "aeo_score": score,
             "band": band,
@@ -346,7 +347,7 @@ class TestAeoUrlAnalysis:
         score, band = compute_aeo_score(checks)
         total_elapsed = time.monotonic() - t0
 
-        write_example(EXAMPLES_DIR, "e2e-url-score-anthropic-agents", {
+        write_example(EXAMPLES_DIR, "url-score-anthropic-agents", {
             "url": url,
             "aeo_score": score,
             "band": band,
@@ -405,7 +406,7 @@ class TestAeoOnGeneratedArticles:
         good_enough = sum(1 for r in results if r["aeo_score"] >= 40)
         assert good_enough >= len(results) // 2, "Most generated articles should be AEO-passable"
 
-        write_example(EXAMPLES_DIR, "e2e-score-generated-articles", {
+        write_example(EXAMPLES_DIR, "score-generated-articles", {
             "article_count": len(results),
             "results": results,
         })
