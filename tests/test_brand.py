@@ -334,6 +334,51 @@ class TestAnalyzeBrand:
         assert pa.sentiment.overall == Sentiment.POSITIVE
         assert len(pa.sentiment.aspects) == 2
 
+    async def test_response_includes_scores(self):
+        request = BrandMonitorRequest(
+            brand_name="Notion",
+            query="best note-taking app",
+            platform_responses=[
+                PlatformResponse(platform="chatgpt", response_text="Notion is great."),
+            ],
+        )
+        llm = _mock_llm([MENTIONED_ANALYSIS])
+        result = await analyze_brand(request, llm=llm)
+
+        assert result.scores is not None
+        assert result.scores.visibility_score == 100.0
+        assert result.scores.overall_score > 0
+
+    async def test_response_includes_competitor_rankings(self):
+        request = BrandMonitorRequest(
+            brand_name="Notion",
+            query="best app",
+            platform_responses=[
+                PlatformResponse(platform="chatgpt", response_text="text"),
+            ],
+        )
+        llm = _mock_llm([MENTIONED_ANALYSIS])
+        result = await analyze_brand(request, llm=llm)
+
+        assert len(result.competitor_rankings) > 0
+        brand_entry = [r for r in result.competitor_rankings if r.is_own]
+        assert len(brand_entry) == 1
+        assert brand_entry[0].name == "Notion"
+
+    async def test_response_includes_provider_comparison(self):
+        request = BrandMonitorRequest(
+            brand_name="Notion",
+            query="best app",
+            platform_responses=[
+                PlatformResponse(platform="chatgpt", response_text="a"),
+                PlatformResponse(platform="perplexity", response_text="b"),
+            ],
+        )
+        llm = _mock_llm([MENTIONED_ANALYSIS, NOT_MENTIONED_ANALYSIS])
+        result = await analyze_brand(request, llm=llm)
+
+        assert len(result.provider_comparison) > 0
+
 
     async def test_multiple_platforms_isolated_calls(self):
         request = BrandMonitorRequest(
@@ -355,9 +400,8 @@ class TestAnalyzeBrand:
         assert result.aggregate.platforms_mentioning_brand == 1
         assert result.aggregate.total_platforms == 2
 
-    async def test_llm_failure_propagates(self):
-        from app.errors import LlmError
-
+    async def test_llm_failure_returns_empty_analyses(self):
+        """Individual platform failures are tolerated — return partial results."""
         request = BrandMonitorRequest(
             brand_name="Notion",
             query="best note-taking app",
@@ -372,8 +416,9 @@ class TestAnalyzeBrand:
         )
         llm.drain_usage = MagicMock(return_value=[])
 
-        with pytest.raises(LlmError):
-            await analyze_brand(request, llm=llm)
+        result = await analyze_brand(request, llm=llm)
+        assert len(result.platform_analyses) == 0
+        assert result.aggregate.total_platforms == 0
 
     async def test_user_keywords_in_prompt(self):
         request = BrandMonitorRequest(
@@ -467,7 +512,7 @@ class TestBrowserDependencyHandling:
 
 
 class TestBrandMonitorRoute:
-    """HTTP-level tests. Auto-fetch is always mocked."""
+    """HTTP-level tests. Auto-fetch and DB save are always mocked."""
 
     async def test_pasted_responses_analyzed(self):
         from app.main import app
@@ -478,6 +523,7 @@ class TestBrandMonitorRoute:
                 new_callable=AsyncMock, return_value=[],
             ),
             patch("app.brand.routes.LlmClient") as mock_cls,
+            patch("app.brand.routes.save_brand_analysis", new_callable=AsyncMock),
         ):
             instance = MagicMock()
             instance.model_name = "test-model"
@@ -523,6 +569,7 @@ class TestBrandMonitorRoute:
         with (
             patch("app.brand.routes.fetch_platform_responses", mock_fetch),
             patch("app.brand.routes.LlmClient") as mock_cls,
+            patch("app.brand.routes.save_brand_analysis", new_callable=AsyncMock),
         ):
             instance = MagicMock()
             instance.model_name = "test-model"
@@ -578,8 +625,8 @@ class TestBrandMonitorRoute:
 
         assert resp.status_code == 400
 
-    async def test_503_on_llm_error(self):
-        from app.errors import LlmError
+    async def test_llm_error_returns_empty_analyses(self):
+        """Individual LLM failures are tolerated — returns 200 with empty analyses."""
         from app.main import app
 
         with (
@@ -588,6 +635,7 @@ class TestBrandMonitorRoute:
                 new_callable=AsyncMock, return_value=[],
             ),
             patch("app.brand.routes.LlmClient") as mock_cls,
+            patch("app.brand.routes.save_brand_analysis", new_callable=AsyncMock),
         ):
             instance = MagicMock()
             instance.model_name = "test-model"
@@ -616,8 +664,10 @@ class TestBrandMonitorRoute:
                     },
                 )
 
-        assert resp.status_code == 503
-        assert resp.json()["detail"]["error"] == "llm_unavailable"
+        assert resp.status_code == 200
+        data = resp.json()
+        assert len(data["platform_analyses"]) == 0
+        assert data["aggregate"]["total_platforms"] == 0
 
     async def test_default_fetch_mode_uses_browser_fetch(self):
         from app.main import app
@@ -634,6 +684,7 @@ class TestBrandMonitorRoute:
                 return_value=browser_results,
             ) as mock_browser,
             patch("app.brand.routes.LlmClient") as mock_cls,
+            patch("app.brand.routes.save_brand_analysis", new_callable=AsyncMock),
         ):
             instance = MagicMock()
             instance.model_name = "test-model"

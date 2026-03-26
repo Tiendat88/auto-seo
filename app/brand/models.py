@@ -24,6 +24,10 @@ class Sentiment(StrEnum):
 class PlatformResponse(BaseModel):
     platform: str = Field(..., examples=["chatgpt", "perplexity", "gemini", "grok"])
     response_text: str = Field(..., min_length=1, max_length=50_000)
+    query: str | None = Field(
+        default=None,
+        description="The prompt that produced this response (set during multi-prompt fetch).",
+    )
 
 
 class FetchMode(StrEnum):
@@ -33,8 +37,24 @@ class FetchMode(StrEnum):
 
 class BrandMonitorRequest(BaseModel):
     brand_name: str = Field(..., min_length=1, examples=["Notion"])
-    query: str = Field(..., min_length=1, examples=["best note-taking app"])
+    query: str = Field(default="", examples=["best note-taking app"])
+    url: str | None = Field(
+        default=None,
+        description="Brand website URL for auto-discovery. If set, prompts are auto-generated.",
+    )
     keywords: list[str] = Field(default=[], examples=[["Obsidian", "Evernote"]])
+    competitors: list[str] = Field(
+        default=[],
+        description="Known competitors to track.",
+    )
+    custom_prompts: list[str] = Field(
+        default=[],
+        description="Additional custom prompts to include in analysis.",
+    )
+    web_search: bool = Field(
+        default=True,
+        description="Enable web search grounding for AI providers.",
+    )
     fetch_mode: FetchMode = Field(
         default=FetchMode.BROWSER,
         description=(
@@ -130,9 +150,57 @@ class AggregateSummary(BaseModel):
     )
 
 
+class BrandScores(BaseModel):
+    """Quantitative brand visibility scores."""
+
+    visibility_score: float = Field(..., ge=0, le=100)
+    share_of_voice: float = Field(..., ge=0, le=100)
+    sentiment_score: float = Field(..., ge=0, le=100)
+    position_score: float = Field(..., ge=0, le=100)
+    overall_score: float = Field(..., ge=0, le=100)
+
+
+class CompetitorRanking(BaseModel):
+    """Ranked competitor with visibility metrics."""
+
+    name: str
+    visibility_score: float
+    share_of_voice: float
+    sentiment_score: float
+    position_score: float
+    overall_score: float
+    mention_count: int
+    avg_position: float | None = None
+    is_own: bool = False
+
+
+class ProviderComparisonEntry(BaseModel):
+    """Single provider's data for one competitor."""
+
+    provider: str
+    brand_mentioned: bool
+    position: int | None = None
+    sentiment: Sentiment
+    visibility_score: float
+
+
+class ProviderComparisonData(BaseModel):
+    """One competitor's visibility across all providers."""
+
+    competitor_name: str
+    providers: list[ProviderComparisonEntry]
+
+
 class BrandMonitorResponse(BaseModel):
     brand_name: str
-    query: str
+    query: str = Field(default="", description="Primary query (legacy single-query mode).")
+    queries: list[str] = Field(
+        default=[],
+        description="All prompts used in the analysis (multi-prompt mode).",
+    )
     model_used: str
     platform_analyses: list[PlatformAnalysis]
     aggregate: AggregateSummary
+    scores: BrandScores | None = None
+    competitor_rankings: list[CompetitorRanking] = []
+    provider_comparison: list[ProviderComparisonData] = []

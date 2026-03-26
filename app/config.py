@@ -36,6 +36,10 @@ class Settings(BaseSettings):
     voyage_api_key: str = ""
     voyage_embedding_model: str = "voyage-4-large"
 
+    # Brand Monitor
+    brand_monitor_max_prompts: int = 14
+    brand_monitor_batch_size: int = 3
+
     # App
     debug: bool = False
     persist_events: bool = False

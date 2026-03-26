@@ -759,29 +759,48 @@ def _print_status(data: dict) -> None:
 def brand(
     ctx: typer.Context,
     brand_name: str = typer.Argument(..., help="Brand name to monitor"),
-    query: str = typer.Argument(..., help="Query to search across AI platforms"),
+    query: str = typer.Argument("", help="Query to search across AI platforms"),
     keywords: list[str] = typer.Option([], "--keyword", "-k", help="Seed keywords to look for"),
+    brand_url: str = typer.Option(
+        "", "--url", "-u", help="Brand website URL for auto-discovery",
+    ),
     fetch_mode: str = typer.Option(
         "browser", "--mode", "-m", help="Fetch mode: 'browser' or 'api'",
     ),
     json_out: bool = typer.Option(False, "--json", "-j", help="Output raw JSON"),
 ) -> None:
-    """Monitor brand mentions across AI platforms."""
+    """Monitor brand mentions across AI platforms.
+
+    Provide a query for single-query mode, or --url for auto-discovery mode
+    that scrapes the brand website and generates multiple targeted prompts.
+    """
+    if not query and not brand_url:
+        log_console.print("[red]Error:[/red] Either a query or --url must be provided.")
+        raise typer.Exit(code=1)
+
     url = _api_url(ctx)
     payload: dict[str, Any] = {
         "brand_name": brand_name,
-        "query": query,
         "fetch_mode": fetch_mode,
     }
+    if query:
+        payload["query"] = query
+    if brand_url:
+        payload["url"] = brand_url
     if keywords:
         payload["keywords"] = keywords
 
-    log_console.print(f"Analyzing [bold]{brand_name}[/bold] for: [italic]{query}[/italic]")
+    if brand_url:
+        log_console.print(
+            f"Analyzing [bold]{brand_name}[/bold] via URL: [italic]{brand_url}[/italic]"
+        )
+    else:
+        log_console.print(f"Analyzing [bold]{brand_name}[/bold] for: [italic]{query}[/italic]")
     log_console.print(f"Fetch mode: {fetch_mode}")
     log_console.print()
 
     with log_console.status("Fetching and analyzing platform responses..."):
-        with httpx.Client(timeout=180) as client:
+        with httpx.Client(timeout=300) as client:
             resp = client.post(f"{url}/api/brand-monitor/analyze", json=payload)
 
     data = _check_response(resp)
@@ -862,6 +881,50 @@ def _render_brand_report(data: dict) -> None:
 
         console.print()
 
+    # Visibility scores
+    scores = data.get("scores")
+    if scores:
+        score_line = (
+            f"  Visibility: [bold]{scores['overall_score']}%[/bold] overall"
+            f"  |  vis {scores['visibility_score']}%"
+            f"  |  SoV {scores['share_of_voice']}%"
+            f"  |  sentiment {scores['sentiment_score']}%"
+            f"  |  position {scores['position_score']}%"
+        )
+        console.print(Panel(score_line, title="Visibility Scores"))
+        console.print()
+
+    # Competitor rankings table
+    rankings = data.get("competitor_rankings", [])
+    if rankings:
+        rank_table = Table(title="Competitor Rankings", padding=(0, 1))
+        rank_table.add_column("#", style="dim", width=3)
+        rank_table.add_column("Name", min_width=15)
+        rank_table.add_column("Overall", justify="right")
+        rank_table.add_column("Visibility", justify="right")
+        rank_table.add_column("SoV", justify="right")
+        rank_table.add_column("Sentiment", justify="right")
+        rank_table.add_column("Position", justify="right")
+        rank_table.add_column("Mentions", justify="right")
+
+        for i, r in enumerate(rankings, 1):
+            name = r["name"]
+            if r.get("is_own"):
+                name = f"[bold]{name}[/bold] *"
+            rank_table.add_row(
+                str(i),
+                name,
+                f"{r['overall_score']}%",
+                f"{r['visibility_score']}%",
+                f"{r['share_of_voice']}%",
+                f"{r['sentiment_score']}%",
+                f"{r['position_score']}%",
+                str(r["mention_count"]),
+            )
+
+        console.print(rank_table)
+        console.print()
+
     # Aggregate summary
     summary_table = Table(show_header=False, padding=(0, 2), box=None)
     summary_table.add_column("Label", style="bold")
@@ -898,6 +961,66 @@ def _render_brand_report(data: dict) -> None:
     summary_table.add_row("Model", data["model_used"])
 
     console.print(summary_table)
+
+
+@app.command(name="brand-history")
+def brand_history(
+    ctx: typer.Context,
+    analysis_id: str = typer.Argument("", help="Analysis ID to view (or empty for list)"),
+    brand_name: str = typer.Option("", "--brand", "-b", help="Filter by brand name"),
+    json_out: bool = typer.Option(False, "--json", "-j", help="Output raw JSON"),
+) -> None:
+    """List or view saved brand analyses."""
+    url = _api_url(ctx)
+
+    if analysis_id:
+        with httpx.Client(timeout=_DEFAULT_TIMEOUT) as client:
+            resp = client.get(f"{url}/api/brand-monitor/analyses/{analysis_id}")
+        data = _check_response(resp)
+        if json_out:
+            console.print_json(json.dumps(data, indent=2))
+        else:
+            _render_brand_report(data)
+        return
+
+    params: dict[str, Any] = {}
+    if brand_name:
+        params["brand_name"] = brand_name
+
+    with httpx.Client(timeout=_DEFAULT_TIMEOUT) as client:
+        resp = client.get(f"{url}/api/brand-monitor/analyses", params=params)
+
+    data = _check_response(resp)
+
+    if json_out:
+        console.print_json(json.dumps(data, indent=2))
+        return
+
+    analyses = data.get("analyses", [])
+    if not analyses:
+        console.print("[dim]No saved analyses found.[/dim]")
+        return
+
+    table = Table(title=f"Brand Analyses ({data.get('total', 0)} total)")
+    table.add_column("ID", style="dim", width=10)
+    table.add_column("Brand", min_width=12)
+    table.add_column("Score", justify="right", width=7)
+    table.add_column("Prompts", justify="right", width=8)
+    table.add_column("Model", width=20)
+    table.add_column("Created", width=20)
+
+    for a in analyses:
+        score = f"{a['overall_score']}%" if a.get("overall_score") else "-"
+        table.add_row(
+            a["id"][:8] + "...",
+            a["brand_name"],
+            score,
+            str(a.get("prompt_count", 1)),
+            a.get("model_used", "-"),
+            (a.get("created_at") or "-")[:19],
+        )
+
+    console.print(table)
 
 
 @app.command(name="aeo")

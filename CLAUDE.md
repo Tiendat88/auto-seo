@@ -10,9 +10,9 @@ SEO article generator plus AEO and brand-monitor utilities. FastAPI backend + Ty
 - **LLM**: Quad backend via `app/llm.py` — Anthropic API (with tool use), Claude Agent SDK (`max_turns=50`), OpenAI Codex SDK, Google Gemini (with tool use)
 - **CLI**: Typer + Rich (`autoseo` project script; use `uv run autoseo ...` in a synced checkout)
 - **Cache**: Redis (`app/cache.py`)
-- **Deps**: `textstat`, `google-genai`, `openai`, `openai-codex-sdk`, `firecrawl-py`, `playwright`, `spacy`, `voyageai`, `beautifulsoup4`
+- **Deps**: `textstat`, `google-genai`, `openai`, `openai-codex-sdk`, `firecrawl-py`, `playwright`, `spacy`, `voyageai`, `beautifulsoup4`, `sse-starlette`
 - **Lint**: `ruff` (line-length=100, rules: E/F/I/N/W), `pyright` strict (`pyrightconfig.json`; third-party noise rules disabled — see config)
-- **Tests**: pytest + pytest-asyncio (`asyncio_mode="auto"`), **249 tests** across 15 files
+- **Tests**: pytest + pytest-asyncio (`asyncio_mode="auto"`), **346 tests** across 19 files
 
 ## Architecture
 
@@ -63,9 +63,14 @@ Post-processes articles after generation and editing. Returns `(ArticleContent, 
 
 ### Brand monitor (`app/brand/`)
 
-- **Brand analyze endpoint**: `POST /api/brand-monitor/analyze`
-- **Fetch layer**: API mode via `app/brand/fetcher.py`, browser mode via `app/brand/browser_fetcher.py` (default; ChatGPT, Perplexity, Gemini, Grok)
-- **Analysis layer**: `app/brand/analyzer.py` runs structured per-platform analysis and pure aggregation
+- **Endpoints**: `POST /api/brand-monitor/analyze` (blocking), `POST /api/brand-monitor/analyze/stream` (SSE), `GET /api/brand-monitor/analyses` (history), `GET /api/brand-monitor/analyses/{id}`
+- **Two modes**: Single-query (legacy: `query` param) or auto-discovery (new: `url` param → scrape → competitor ID → multi-prompt generation)
+- **Fetch layer**: API mode via `app/brand/fetcher.py` (OpenAI, Perplexity, Gemini, Anthropic with web search), browser mode via `app/brand/browser_fetcher.py` (ChatGPT, Perplexity, Gemini, Grok)
+- **Detection layer**: `detection.py` provides deterministic regex brand name matching (variations, negative context, confidence scoring) as fallback to LLM analysis
+- **Scoring layer**: `scoring.py` computes visibility score, share of voice, sentiment score, position score, weighted overall score; competitor rankings and provider comparison matrix
+- **Discovery layer**: `discovery.py` scrapes brand URL via Firecrawl, extracts `CompanyInfo` via LLM, identifies competitors, generates ~14 prompts across 4 categories (ranking, comparison, alternatives, recommendations)
+- **Persistence**: `store.py` — `BrandAnalysis` ORM model with JSONB payload, auto-saved after each analysis
+- **SSE streaming**: `stream.py` orchestrates the full pipeline with real-time events: scraping → identifying-competitors → generating-prompts → fetching-responses → analyzing → scoring → finalizing
 - **Operational split**: Fetch and analysis are separate; a successful fetch can still end in `503` if the analyzer LLM backend fails
 - **Playwright loading**: Browser mode is lazy-imported so app startup/test collection does not require Playwright unless that path is used
 
@@ -88,10 +93,15 @@ Post-processes articles after generation and editing. Returns `(ArticleContent, 
 | `app/article/tools.py` | Research tools for LLM tool-use in the planning step |
 | `app/serp/fetcher.py` | Firecrawl Python SDK integration; use snake_case SDK kwargs like `only_main_content`, not raw API camelCase |
 | `app/serp/client.py` | SERP provider abstraction |
-| `app/brand/routes.py` | Brand monitor endpoint and lazy browser fetch import |
-| `app/brand/fetcher.py` | API-mode platform fetches |
+| `app/brand/routes.py` | Brand monitor endpoints (analyze, stream, history) |
+| `app/brand/fetcher.py` | API-mode platform fetches (OpenAI, Perplexity, Gemini, Anthropic) |
 | `app/brand/browser_fetcher.py` | Browser-mode platform fetches; raises helpful `LlmError` if Playwright or Chromium is missing |
-| `app/brand/analyzer.py` | Structured brand analysis + aggregate summary |
+| `app/brand/analyzer.py` | Structured brand analysis + aggregate summary + detection fallback |
+| `app/brand/detection.py` | Deterministic regex brand name matching with variations and negative context |
+| `app/brand/scoring.py` | Visibility scoring: visibility, share of voice, sentiment, position, overall |
+| `app/brand/discovery.py` | URL scraping, competitor identification, multi-category prompt generation |
+| `app/brand/store.py` | Brand analysis persistence — `BrandAnalysis` ORM model + CRUD |
+| `app/brand/stream.py` | SSE streaming orchestrator for real-time brand analysis progress |
 | `app/brand/gather.py` | Partial-success gathering utility for parallel fetches |
 | `app/aeo/checks.py` | Direct answer, h-tag hierarchy, readability checks |
 | `app/aeo/fanout.py` | Fan-out prompt, sub-query generation, gap analysis |
@@ -102,7 +112,7 @@ Post-processes articles after generation and editing. Returns `(ArticleContent, 
 | `app/errors.py` | Error hierarchy (`SeoAgentError` → `JobNotFoundError`/`StepError`/`LlmError`/`SerpError`/`ContentFetchError`) + HTTP helpers |
 | `app/job/service.py` | Job CRUD, `claim_job_for_resume`, persisted resume behavior |
 | `app/job/routes.py` | Job API endpoints (CRUD + resume) |
-| `app/cli.py` | Typer CLI: generate, status, result, list, watch, resume, export, brand, aeo, fanout |
+| `app/cli.py` | Typer CLI: generate, status, result, list, watch, resume, export, brand, brand-history, aeo, fanout |
 | `app/main.py` | App lifespan, DB init, Redis connect, orphaned-job recovery |
 | `app/cache.py` | Redis cache client with graceful degradation |
 | `app/config.py` | Settings via pydantic-settings |
@@ -113,7 +123,7 @@ Post-processes articles after generation and editing. Returns `(ArticleContent, 
 uv sync --extra dev --python 3.12
 uv run ruff check app/ tests/
 uvx pyright
-uv run pytest tests/ -x -q                      # Full suite (249 tests; requires en_core_web_sm)
+uv run pytest tests/ -x -q                      # Full suite (346 tests; requires en_core_web_sm)
 uv run python -m spacy download en_core_web_sm  # Required for AEO checks/full suite
 uv run playwright install chromium              # Required for brand browser mode
 uv run uvicorn app.main:app --workers 2         # Agent SDK blocks the event loop
@@ -128,6 +138,9 @@ uv run autoseo export <id> article.md
 uv run autoseo aeo tests/fixtures/article_good.html --json
 uv run autoseo fanout "best CRM for startups" --content https://example.com --json
 uv run autoseo brand "Notion" "best note-taking app" --json
+uv run autoseo brand "Notion" --url https://notion.so --mode api --json
+uv run autoseo brand-history
+uv run autoseo brand-history --brand "Notion"
 ```
 
 ## Config (env vars / .env)
@@ -153,6 +166,8 @@ uv run autoseo brand "Notion" "best note-taking app" --json
 - `MAX_REVISIONS` — Edit-loop cap (default `10`)
 - `AEO_SIMILARITY_THRESHOLD` — Cosine similarity threshold for fan-out gap analysis (default `0.72`)
 - `DEBUG` — Enable SQLAlchemy debug logging
+- `BRAND_MONITOR_MAX_PROMPTS` — Max auto-generated brand prompts (default `14`)
+- `BRAND_MONITOR_BATCH_SIZE` — Concurrent prompt analysis batch size (default `3`)
 - `PERSIST_EVENTS` — Keep pipeline events after completion (default `false`)
 
 ## DB migration
@@ -168,7 +183,7 @@ ALTER TABLE jobs ADD COLUMN IF NOT EXISTS events_data JSON;
 UPDATE jobs SET status='planning' WHERE status IN ('analyzing', 'outlining');
 ```
 
-A second table `aeo_analyses` (ORM in `app/aeo/store.py`) auto-creates alongside `jobs` on fresh databases.
+Tables `aeo_analyses` (ORM in `app/aeo/store.py`) and `brand_analyses` (ORM in `app/brand/store.py`) auto-create alongside `jobs` on fresh databases.
 
 Fresh databases auto-create on startup, and Postgres startup is serialized with an advisory lock so multi-worker boot is safe.
 
@@ -197,7 +212,7 @@ Fresh databases auto-create on startup, and Postgres startup is serialized with 
 ## Testing patterns
 
 - In-memory SQLite via `create_async_engine("sqlite+aiosqlite:///:memory:")`
-- Full suite currently spans 15 files: pipeline, API, models, quality, schema, scrubber, SEO, LLM, AEO, fan-out, brand, DB, SERP fetcher, CLI, prompts
+- Full suite currently spans 19 files: pipeline, API, models, quality, schema, scrubber, SEO, LLM, AEO, fan-out, brand, brand-detection, brand-scoring, brand-discovery, brand-store, brand-stream, DB, SERP fetcher, CLI, prompts
 - Pipeline tests mock `generate_text`/`generate_structured` with `_smart_generate_structured`
 - Pipeline tests must include `SeoMetaOptions: _make_meta_options()` in model maps
 - Pipeline tests patch `get_llm_council` (return `[mock_llm]`) and `settings` (control threshold)

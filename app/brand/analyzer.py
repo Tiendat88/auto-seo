@@ -4,6 +4,7 @@ import asyncio
 import logging
 from collections import Counter
 
+from app.brand.detection import detect_brand_mentions
 from app.brand.models import (
     AggregateSummary,
     BrandMonitorRequest,
@@ -13,6 +14,12 @@ from app.brand.models import (
     PlatformAnalysis,
     PlatformResponse,
     Sentiment,
+    SentimentBreakdown,
+)
+from app.brand.scoring import (
+    compute_brand_scores,
+    compute_competitor_rankings,
+    compute_provider_comparison,
 )
 from app.llm import LlmClient
 
@@ -102,11 +109,29 @@ async def analyze_platform(
     response_text: str,
     keywords: list[str],
 ) -> PlatformAnalysis:
-    """Analyze a single platform response in isolation via generate_structured."""
+    """Analyze a single platform response via LLM + deterministic detection."""
     prompt = build_prompt(brand_name, query, response_text, keywords)
     result = await llm.generate_structured(
         prompt, LLMBrandAnalysis,
     )
+
+    # Detection fallback: if LLM missed a mention, patch the result
+    if not result.brand_mentioned:
+        matches = detect_brand_mentions(response_text, brand_name)
+        positive_matches = [m for m in matches if not m.negative_context]
+        if positive_matches:
+            log.info(
+                "Detection found %d mentions of '%s' on %s that LLM missed",
+                len(positive_matches), brand_name, platform,
+            )
+            result = result.model_copy(update={
+                "brand_mentioned": True,
+                "mention_context": MentionContext.REFERENCED,
+                "sentiment": SentimentBreakdown(
+                    overall=Sentiment.NEUTRAL,
+                    reasoning="Brand detected via text matching (LLM missed it).",
+                ),
+            })
 
     return PlatformAnalysis(platform=platform, **result.model_dump())
 
@@ -130,15 +155,19 @@ def compute_aggregate(analyses: list[PlatformAnalysis]) -> AggregateSummary:
 
     mentioning = [a for a in analyses if a.brand_mentioned]
 
-    # Majority-vote sentiment, positive wins ties
+    # Majority-vote sentiment — only from platforms that mention the brand (#24)
     sentiment_counts: dict[Sentiment, int] = {s: 0 for s in Sentiment}
-    for a in analyses:
+    for a in mentioning:
         sentiment_counts[a.sentiment.overall] += 1
-    priority = [Sentiment.POSITIVE, Sentiment.NEUTRAL, Sentiment.NEGATIVE]
-    overall_sentiment = max(
-        priority,
-        key=lambda s: (sentiment_counts[s], -priority.index(s)),
-    )
+
+    if mentioning:
+        priority = [Sentiment.POSITIVE, Sentiment.NEUTRAL, Sentiment.NEGATIVE]
+        overall_sentiment = max(
+            priority,
+            key=lambda s: (sentiment_counts[s], -priority.index(s)),
+        )
+    else:
+        overall_sentiment = Sentiment.NEUTRAL
 
     # Average brand position across platforms that listed it
     positions = [
@@ -215,24 +244,42 @@ async def analyze_brand(
     request: BrandMonitorRequest,
     llm: LlmClient | None = None,
     responses: list[PlatformResponse] | None = None,
+    queries: list[str] | None = None,
 ) -> BrandMonitorResponse:
-    """Analyze brand mentions across platforms. Each gets an isolated LLM call."""
+    """Analyze brand mentions across platforms. Each gets an isolated LLM call.
+
+    Uses return_exceptions to tolerate individual platform failures (#17).
+    Each response carries its originating query for correct analysis (#21).
+    """
     if llm is None:
         llm = LlmClient()
+
+    effective_queries = queries or ([request.query] if request.query else [])
 
     platform_responses = responses if responses is not None else list(request.platform_responses)
     tasks = [
         analyze_platform(
             llm=llm,
             brand_name=request.brand_name,
-            query=request.query,
+            query=pr.query or request.query or (queries[0] if queries else ""),
             platform=pr.platform,
             response_text=pr.response_text,
             keywords=request.keywords,
         )
         for pr in platform_responses
     ]
-    analyses = list(await asyncio.gather(*tasks))
+
+    # Tolerate individual failures — don't crash entire analysis (#17)
+    results = await asyncio.gather(*tasks, return_exceptions=True)
+    analyses: list[PlatformAnalysis] = []
+    for i, r in enumerate(results):
+        if isinstance(r, PlatformAnalysis):
+            analyses.append(r)
+        elif isinstance(r, Exception):
+            log.warning(
+                "Analysis of %s failed: %s",
+                platform_responses[i].platform, r,
+            )
 
     usage = llm.drain_usage()
     if usage:
@@ -244,11 +291,24 @@ async def analyze_brand(
         )
 
     aggregate = compute_aggregate(analyses)
+    scores = compute_brand_scores(analyses)
+    rankings = compute_competitor_rankings(analyses, request.brand_name)
+
+    competitor_names = sorted({
+        c.name for a in analyses for c in a.competitors
+    })
+    comparison = compute_provider_comparison(analyses, request.brand_name, competitor_names)
+
+    effective_query = request.query or (queries[0] if queries else "")
 
     return BrandMonitorResponse(
         brand_name=request.brand_name,
-        query=request.query,
+        query=effective_query,
+        queries=effective_queries,
         model_used=llm.model_name,
         platform_analyses=analyses,
         aggregate=aggregate,
+        scores=scores,
+        competitor_rankings=rankings,
+        provider_comparison=comparison,
     )
