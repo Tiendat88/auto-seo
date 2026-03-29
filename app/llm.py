@@ -479,7 +479,7 @@ class LlmClient:
             return result
 
         # Anthropic API: JSON-in-prompt with validation retry
-        schema_json = json.dumps(schema.model_json_schema(), indent=2)
+        schema_json = json.dumps(schema.model_json_schema(), separators=(",", ":"))
         full_prompt = (
             f"{prompt}\n\n"
             f"Respond ONLY with valid JSON matching this schema:\n{schema_json}"

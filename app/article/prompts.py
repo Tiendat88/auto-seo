@@ -174,6 +174,7 @@ def outline_prompt(
     analysis: CompetitiveAnalysis,
     brand_voice: BrandVoice | None = None,
     competitor_headings: list[list[str]] | None = None,
+    search_questions: list[str] | None = None,
 ) -> str:
     themes_block = "\n".join(
         f"- {t.theme} (covered by {t.frequency}/10 results): {', '.join(t.subtopics)}"
@@ -196,6 +197,14 @@ def outline_prompt(
             + "\n\nDifferentiate from these — do NOT copy headings verbatim.\n"
         )
 
+    questions_block = ""
+    if search_questions:
+        questions_block = (
+            "\nPeople Also Ask (real search questions):\n"
+            + "\n".join(f"- {q}" for q in search_questions[:10])
+            + "\n"
+        )
+
     return f"""You are an SEO content strategist. Create a detailed article outline for: "{topic}"
 
 {brand_block}
@@ -215,7 +224,7 @@ Content gaps to exploit:
 {gaps_block}
 
 Common heading patterns: {", ".join(analysis.common_heading_patterns)}
-{headings_block}
+{headings_block}{questions_block}
 Requirements for the OUTLINE:
 - One H1 that includes the primary keyword naturally
 - 5-8 H2 sections covering the major themes
@@ -223,7 +232,9 @@ Requirements for the OUTLINE:
 - Allocate target_word_count to each section (must sum to approximately {target_word_count})
 - Include key_points for each section (what must be covered)
 - Include keywords_to_include for each section
-- End with 4-6 FAQ questions drawn from search questions and content gaps
+- End with 4-6 FAQ questions derived from the People Also Ask questions above \
+and content gaps (if no search questions are available, derive from content gaps \
+and likely follow-up questions a reader would have)
 - The outline should be structured to satisfy the search intent: {analysis.search_intent}
 - Headings should sound like natural article sections a real editor would publish,
   not internal strategy-doc labels, hypey frameworks, or consultant slogans
@@ -286,6 +297,8 @@ def generate_article_prompt(
 
 {brief_block}
 {brand_block}
+H1 (use this exact title): {outline.h1}
+
 Article outline:
 {headings_block}
 {faq_block}
@@ -299,7 +312,7 @@ Output format:
 {gaps_block}Guidelines:
 - WORD COUNT: Target {target_word_count} words ({wc_lower}–{wc_upper} range). Be concise.
 - Write naturally and engagingly; avoid keyword stuffing
-- Use concrete examples, data points, and actionable advice
+- Use concrete examples, observable specifics, and actionable advice
 - Vary sentence length and structure for readability
 - Do NOT use filler phrases like "In today's world", "It's important to note", "In conclusion"
 - Do NOT use em-dashes or double-hyphens; use commas, semicolons, or separate sentences instead
@@ -405,11 +418,10 @@ in the article it fits).
 
 2. External references (2-4): Select authoritative sources that would add
 credibility (industry reports, established publications, academic research).
-For each, use ONLY URLs from the competitor domains listed above or other
-real, well-known authoritative domains. Do NOT invent or guess URLs.
-{competitor_block}Provide
-title, url, authority_reason, and which placement_section of the article it
-belongs in.
+{competitor_block}For each, provide title, url, authority_reason, and placement_section.
+URL rules: use ONLY exact URLs from the competitor pages listed above. If no
+competitor page fits, use the homepage of a well-known authoritative domain
+(e.g. "https://www.gartner.com"). Do NOT guess or invent deep-link paths.
 
 Make internal link suggestions diverse — cover different sections of the
 article. Make external references from well-known, authoritative domains."""
@@ -444,7 +456,7 @@ review of this article and identify issues across these categories:
 
 {brief_block}
 
-Article:
+Article (sections are delimited by === [level] Heading === markers):
 {article_text}
 
 Planned outline headings:
@@ -494,7 +506,7 @@ def _score_pair_prompt(
 
 {brief_text}
 
-Article:
+Article (sections are delimited by === [level] Heading === markers):
 {article_text}
 
 Score these two dimensions:

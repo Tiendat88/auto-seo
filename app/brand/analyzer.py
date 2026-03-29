@@ -93,6 +93,24 @@ Example for brand "Notion" with query "best note-taking app":
     "Notion is the ultimate all-in-one workspace for students.",
     "Free Plus plan with a .edu email."
   ]
+}}
+
+Example when the brand is NOT mentioned:
+{{
+  "brand_mentioned": false,
+  "mention_context": "not_mentioned",
+  "brand_position": null,
+  "sentiment": {{
+    "overall": "neutral",
+    "reasoning": "The brand does not appear anywhere in the response.",
+    "aspects": []
+  }},
+  "keywords_found": ["HubSpot", "Salesforce"],
+  "competitors": [
+    {{"name": "HubSpot", "recommended": true, "position": 1}},
+    {{"name": "Salesforce", "recommended": false, "position": 2}}
+  ],
+  "relevant_quotes": []
 }}"""
 
 

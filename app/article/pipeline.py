@@ -208,11 +208,13 @@ async def planning_step(
     await session.commit()
 
     competitor_headings = extract_competitor_headings(serp_data)
+    search_questions = [q.question for q in serp_data.questions] if serp_data.questions else None
     brand_voice = job.get_brand_voice()
     prompt = outline_prompt(
         job.topic, job.target_word_count, job.language, analysis,
         brand_voice=brand_voice,
         competitor_headings=competitor_headings,
+        search_questions=search_questions,
     )
     outline = await llm.generate_structured(prompt, ArticleOutline)
     job.set_outline(outline)

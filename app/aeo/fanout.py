@@ -99,6 +99,9 @@ Requirements:
 - Include at least 2 sub-queries for EACH of the 6 types
 - Sub-queries should be realistic search queries a user might type
 - Vary the specificity — mix broad and narrow queries
+- Carry forward qualifiers from the target query (brand, audience, geography, \
+budget, timeframe) unless a subtype clearly broadens the scope
+- No near-duplicate rephrasings — each sub-query must cover distinct ground
 
 Return ONLY a valid JSON object with this exact schema (no markdown, no explanation):
 
@@ -119,7 +122,7 @@ Example for the query "best CRM for startups":
     {{"type": "feature_specific", "query": "CRM with pipeline management and forecasting"}},
     {{"type": "use_case", "query": "CRM for SaaS startup sales team of 5"}},
     {{"type": "use_case", "query": "CRM for managing investor and partner relationships"}},
-    {{"type": "trust_signals", "query": "CRM reviews from Y Combinator startups 2025"}},
+    {{"type": "trust_signals", "query": "CRM reviews from Y Combinator startups"}},
     {{"type": "trust_signals", "query": "CRM customer retention case study small business"}},
     {{"type": "how_to", "query": "how to set up a CRM pipeline for B2B startup"}},
     {{"type": "how_to", "query": "how to migrate from spreadsheets to a CRM"}},
