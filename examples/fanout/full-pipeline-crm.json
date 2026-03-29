@@ -3,7 +3,7 @@
   "model": "gemini-3-flash-preview",
   "gap_summary": {
     "covered": 0,
-    "total": 12,
+    "total": 13,
     "coverage_percent": 0,
     "covered_types": [],
     "missing_types": [
@@ -18,78 +18,84 @@
   "sub_queries": [
     {
       "type": "comparative",
-      "query": "best CRM for startups Reddit threads 2024",
+      "query": "HubSpot vs Pipedrive vs Zoho CRM comparison for tech startups",
+      "covered": false,
+      "similarity_score": 0.54
+    },
+    {
+      "type": "comparative",
+      "query": "top 10 affordable CRM alternatives to Salesforce for small businesses",
+      "covered": false,
+      "similarity_score": 0.6
+    },
+    {
+      "type": "feature_specific",
+      "query": "CRM with native lead scoring and email automation for early-stage companies",
+      "covered": false,
+      "similarity_score": 0.46
+    },
+    {
+      "type": "feature_specific",
+      "query": "best CRM platforms with robust API and third-party app integrations",
+      "covered": false,
+      "similarity_score": 0.44
+    },
+    {
+      "type": "use_case",
+      "query": "how to use a CRM for tracking venture capital investor relationships",
+      "covered": false,
+      "similarity_score": 0.38
+    },
+    {
+      "type": "use_case",
+      "query": "best CRM for B2B SaaS startups with long enterprise sales cycles",
+      "covered": false,
+      "similarity_score": 0.51
+    },
+    {
+      "type": "trust_signals",
+      "query": "highest-rated CRM software for startups on G2 and Capterra in 2024",
       "covered": false,
       "similarity_score": 0.56
     },
     {
-      "type": "comparative",
-      "query": "HubSpot vs Freshsales vs Copper for tech startups",
-      "covered": false,
-      "similarity_score": 0.52
-    },
-    {
-      "type": "feature_specific",
-      "query": "CRMs with AI-powered sales forecasting for small teams",
+      "type": "trust_signals",
+      "query": "case studies of startups scaling from 10 to 100 employees using CRM",
       "covered": false,
       "similarity_score": 0.43
     },
     {
+      "type": "how_to",
+      "query": "how to implement a CRM system for a startup without a dedicated sales team",
+      "covered": false,
+      "similarity_score": 0.4
+    },
+    {
+      "type": "how_to",
+      "query": "steps to migrate startup customer data from Excel to a CRM platform",
+      "covered": false,
+      "similarity_score": 0.36
+    },
+    {
+      "type": "definitional",
+      "query": "what is a CRM and how does it drive growth for new businesses",
+      "covered": false,
+      "similarity_score": 0.52
+    },
+    {
+      "type": "definitional",
+      "query": "key differences between sales CRM and customer success software for startups",
+      "covered": false,
+      "similarity_score": 0.41
+    },
+    {
       "type": "feature_specific",
-      "query": "startup CRM with native LinkedIn integration",
+      "query": "CRM programs offering deep discounts or free tiers for qualified startups",
       "covered": false,
-      "similarity_score": 0.41
-    },
-    {
-      "type": "use_case",
-      "query": "CRM for outbound B2B sales automation in startups",
-      "covered": false,
-      "similarity_score": 0.48
-    },
-    {
-      "type": "use_case",
-      "query": "best CRM for tracking pre-seed investment rounds",
-      "covered": false,
-      "similarity_score": 0.41
-    },
-    {
-      "type": "trust_signals",
-      "query": "most recommended CRMs for startups on G2 Crowd",
-      "covered": false,
-      "similarity_score": 0.59
-    },
-    {
-      "type": "trust_signals",
-      "query": "CRM success stories for Y Combinator alumni",
-      "covered": false,
-      "similarity_score": 0.41
-    },
-    {
-      "type": "how_to",
-      "query": "how to automate lead scoring in a startup CRM",
-      "covered": false,
-      "similarity_score": 0.32
-    },
-    {
-      "type": "how_to",
-      "query": "how to implement a CRM without a dedicated sales ops team",
-      "covered": false,
-      "similarity_score": 0.37
-    },
-    {
-      "type": "definitional",
-      "query": "essential CRM terminology for first-time founders",
-      "covered": false,
-      "similarity_score": 0.48
-    },
-    {
-      "type": "definitional",
-      "query": "differences between operational and analytical CRMs for startups",
-      "covered": false,
-      "similarity_score": 0.32
+      "similarity_score": 0.54
     }
   ],
   "_meta": {
-    "elapsed_seconds": 11.24
+    "elapsed_seconds": 10.65
   }
 }

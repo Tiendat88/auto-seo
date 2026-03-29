@@ -1,88 +1,82 @@
 {
   "query": "how to implement RAG with LangChain",
   "model": "gemini-3-flash-preview",
-  "count": 13,
+  "count": 12,
   "sub_queries": [
     {
       "type": "comparative",
-      "query": "LangChain vs LlamaIndex for RAG implementation comparison",
+      "query": "LangChain vs LlamaIndex for RAG applications",
       "covered": null,
       "similarity_score": null
     },
     {
       "type": "comparative",
-      "query": "comparing Pinecone and FAISS for LangChain RAG vector storage",
+      "query": "ChromaDB vs Pinecone for LangChain vector storage",
       "covered": null,
       "similarity_score": null
     },
     {
       "type": "feature_specific",
-      "query": "LangChain document loaders for parsing complex PDF files",
+      "query": "using LangChain MultiQueryRetriever for query expansion",
       "covered": null,
       "similarity_score": null
     },
     {
       "type": "feature_specific",
-      "query": "using LangChain RecursiveCharacterTextSplitter for optimal RAG chunking",
+      "query": "optimizing chunking strategies in LangChain for RAG",
       "covered": null,
       "similarity_score": null
     },
     {
       "type": "use_case",
-      "query": "implementing LangChain RAG for a technical documentation chatbot",
+      "query": "building a customer support bot with LangChain RAG",
       "covered": null,
       "similarity_score": null
     },
     {
       "type": "use_case",
-      "query": "using LangChain RAG for automated medical record analysis",
+      "query": "implementing LangChain RAG for analyzing financial documents",
       "covered": null,
       "similarity_score": null
     },
     {
       "type": "trust_signals",
-      "query": "LangChain production RAG deployment case studies and best practices",
+      "query": "LangChain RAG production performance benchmarks",
       "covered": null,
       "similarity_score": null
     },
     {
       "type": "trust_signals",
-      "query": "evaluating LangChain RAG pipeline performance with LangSmith reviews",
+      "query": "case studies of companies using LangChain for RAG",
       "covered": null,
       "similarity_score": null
     },
     {
       "type": "how_to",
-      "query": "step-by-step tutorial for building a RAG application with LangChain",
+      "query": "how to build a basic RAG pipeline with LangChain and Python",
       "covered": null,
       "similarity_score": null
     },
     {
       "type": "how_to",
-      "query": "how to set up a multi-query retriever in a LangChain RAG workflow",
+      "query": "how to add conversational memory to LangChain RAG systems",
       "covered": null,
       "similarity_score": null
     },
     {
       "type": "definitional",
-      "query": "what is Retrieval-Augmented Generation RAG and how it works",
+      "query": "what is retrieval augmented generation RAG in LangChain",
       "covered": null,
       "similarity_score": null
     },
     {
       "type": "definitional",
-      "query": "understanding the LangChain architecture for LLM orchestration",
-      "covered": null,
-      "similarity_score": null
-    },
-    {
-      "type": "feature_specific",
-      "query": "LangChain RetrievalQA vs ConversationalRetrievalChain differences",
+      "query": "understanding the core components of LangChain RAG",
       "covered": null,
       "similarity_score": null
     }
   ],
   "_meta": {
-    "elapsed_seconds": 21.65
+    "elapsed_seconds": 15.92
   }
 }

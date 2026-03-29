@@ -13,78 +13,78 @@
   "sub_queries": [
     {
       "type": "comparative",
-      "query": "HubSpot vs Salesforce vs Pipedrive pricing for early-stage startups",
+      "query": "comparison of HubSpot vs Salesforce for pre-seed startups",
       "covered": null,
       "similarity_score": null
     },
     {
       "type": "comparative",
-      "query": "best free CRM vs affordable paid CRM for small businesses",
+      "query": "Pipedrive vs Zoho CRM price comparison for small teams",
       "covered": null,
       "similarity_score": null
     },
     {
       "type": "feature_specific",
-      "query": "CRM with native LinkedIn integration and lead scraping for founders",
+      "query": "startup CRM with automated email sequences and tracking",
       "covered": null,
       "similarity_score": null
     },
     {
       "type": "feature_specific",
-      "query": "best CRM for startups with built-in email automation and sequencing",
+      "query": "CRM software with built-in investor relationship management",
       "covered": null,
       "similarity_score": null
     },
     {
       "type": "use_case",
-      "query": "best CRM for managing venture capital investor relations and fundraising",
+      "query": "best CRM for B2B SaaS startups with long sales cycles",
       "covered": null,
       "similarity_score": null
     },
     {
       "type": "use_case",
-      "query": "CRM for B2B SaaS startups with complex account-based marketing",
+      "query": "using a CRM to manage early-stage startup partnership outreach",
       "covered": null,
       "similarity_score": null
     },
     {
       "type": "trust_signals",
-      "query": "top-rated CRMs for small teams on G2 and Capterra 2024",
+      "query": "best startup CRM according to Reddit and Y Combinator founders",
       "covered": null,
       "similarity_score": null
     },
     {
       "type": "trust_signals",
-      "query": "case studies of startups scaling from seed to Series A using HubSpot",
+      "query": "real-world CRM implementation case studies for tech startups",
       "covered": null,
       "similarity_score": null
     },
     {
       "type": "how_to",
-      "query": "how to set up a sales pipeline in a CRM for a new startup",
+      "query": "how to transition from Excel to a CRM for a startup",
       "covered": null,
       "similarity_score": null
     },
     {
       "type": "how_to",
-      "query": "how to migrate customer data from Google Sheets to a professional CRM",
+      "query": "how to choose a CRM that scales with a startup's growth",
       "covered": null,
       "similarity_score": null
     },
     {
       "type": "definitional",
-      "query": "what is a startup CRM and how does it differ from enterprise solutions",
+      "query": "what defines a startup-friendly CRM vs enterprise CRM",
       "covered": null,
       "similarity_score": null
     },
     {
       "type": "definitional",
-      "query": "understanding CRM core functions for early-stage business growth",
+      "query": "core CRM requirements for a company in the seed stage",
       "covered": null,
       "similarity_score": null
     }
   ],
   "_meta": {
-    "elapsed_seconds": 9.16
+    "elapsed_seconds": 10.52
   }
 }

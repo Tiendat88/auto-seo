@@ -20,78 +20,78 @@
   "sub_queries": [
     {
       "type": "definitional",
-      "query": "what is retrieval augmented generation RAG simplified explanation",
+      "query": "What is Retrieval-Augmented Generation (RAG) explained simply",
+      "covered": false,
+      "similarity_score": 0.69
+    },
+    {
+      "type": "definitional",
+      "query": "The difference between parametric and non-parametric memory in RAG",
+      "covered": false,
+      "similarity_score": 0.31
+    },
+    {
+      "type": "how_to",
+      "query": "Workflow of a RAG system: ingestion, retrieval, and augmentation steps",
+      "covered": false,
+      "similarity_score": 0.59
+    },
+    {
+      "type": "how_to",
+      "query": "How to build a basic RAG pipeline using Python and LangChain",
+      "covered": false,
+      "similarity_score": 0.46
+    },
+    {
+      "type": "comparative",
+      "query": "RAG vs fine-tuning: which is better for reducing hallucinations?",
+      "covered": false,
+      "similarity_score": 0.6
+    },
+    {
+      "type": "comparative",
+      "query": "RAG vs long context window models for large scale document retrieval",
+      "covered": false,
+      "similarity_score": 0.61
+    },
+    {
+      "type": "feature_specific",
+      "query": "Common document chunking strategies for effective RAG retrieval",
       "covered": false,
       "similarity_score": 0.68
     },
     {
-      "type": "definitional",
-      "query": "core components of a RAG system architecture",
-      "covered": false,
-      "similarity_score": 0.55
-    },
-    {
-      "type": "comparative",
-      "query": "retrieval augmented generation vs fine-tuning LLMs",
-      "covered": false,
-      "similarity_score": 0.67
-    },
-    {
-      "type": "comparative",
-      "query": "RAG vs long context window models comparison",
-      "covered": false,
-      "similarity_score": 0.53
-    },
-    {
       "type": "feature_specific",
-      "query": "how vector databases enable retrieval in RAG pipelines",
+      "query": "The role of vector databases and embeddings in the RAG process",
       "covered": false,
-      "similarity_score": 0.65
-    },
-    {
-      "type": "feature_specific",
-      "query": "role of embeddings and semantic search in retrieval augmented generation",
-      "covered": false,
-      "similarity_score": 0.57
+      "similarity_score": 0.61
     },
     {
       "type": "use_case",
-      "query": "implementing RAG for internal corporate knowledge base search",
-      "covered": false,
-      "similarity_score": 0.54
-    },
-    {
-      "type": "use_case",
-      "query": "how RAG is used to build real-time financial news chatbots",
+      "query": "Real-world examples of RAG in enterprise internal knowledge bases",
       "covered": false,
       "similarity_score": 0.49
     },
     {
-      "type": "trust_signals",
-      "query": "evaluating RAG accuracy and hallucination rates case studies",
+      "type": "use_case",
+      "query": "How RAG is used to provide up-to-date information in AI chatbots",
       "covered": false,
       "similarity_score": 0.61
     },
     {
       "type": "trust_signals",
-      "query": "industry benchmarks for RAG performance and retrieval precision",
+      "query": "Case studies on RAG implementation improving accuracy in regulated industries",
       "covered": false,
-      "similarity_score": 0.57
+      "similarity_score": 0.39
     },
     {
-      "type": "how_to",
-      "query": "how to build a RAG pipeline using LangChain and Python",
+      "type": "trust_signals",
+      "query": "Benchmarks and evaluation frameworks for measuring RAG performance",
       "covered": false,
-      "similarity_score": 0.47
-    },
-    {
-      "type": "how_to",
-      "query": "step by step guide to data chunking for RAG systems",
-      "covered": false,
-      "similarity_score": 0.58
+      "similarity_score": 0.66
     }
   ],
   "_meta": {
-    "elapsed_seconds": 10.51
+    "elapsed_seconds": 13.76
   }
 }

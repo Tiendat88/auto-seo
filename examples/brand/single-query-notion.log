@@ -1,8 +1,8 @@
 [fetch] Starting fetch for: What are the best note-taking apps?
-[fetch] Got 2 responses in 21.0s: ['perplexity', 'gemini']
-[analyze] Completed in 14.6s
+[fetch] Got 2 responses in 14.8s: ['perplexity', 'gemini']
+[analyze] Completed in 13.4s
 [analyze] Mentioned on 2/2 platforms
-[scores] Overall: 69.0
+[scores] Overall: 68.4
 [scores] Visibility: 100.0
 [scores] Sentiment: 100.0
-[total] 35.5s
+[total] 28.1s

@@ -1,24 +1,25 @@
-[generate] 12 sub-queries in 10.2s (model=gemini-3-flash-preview)
+[generate] 13 sub-queries in 9.5s (model=gemini-3-flash-preview)
   comparative: 2
   definitional: 2
-  feature_specific: 2
+  feature_specific: 3
   how_to: 2
   trust_signals: 2
   use_case: 2
-[gap] Coverage: 0% in 1.1s
-[gap] Covered: 0/12
+[gap] Coverage: 0% in 1.2s
+[gap] Covered: 0/13
 [gap] Covered types: []
 [gap] Missing types: ['comparative', 'definitional', 'feature_specific', 'how_to', 'trust_signals', 'use_case']
-  [GAP] (0.56) [comparative] best CRM for startups Reddit threads 2024
-  [GAP] (0.52) [comparative] HubSpot vs Freshsales vs Copper for tech startups
-  [GAP] (0.43) [feature_specific] CRMs with AI-powered sales forecasting for small teams
-  [GAP] (0.41) [feature_specific] startup CRM with native LinkedIn integration
-  [GAP] (0.48) [use_case] CRM for outbound B2B sales automation in startups
-  [GAP] (0.41) [use_case] best CRM for tracking pre-seed investment rounds
-  [GAP] (0.59) [trust_signals] most recommended CRMs for startups on G2 Crowd
-  [GAP] (0.41) [trust_signals] CRM success stories for Y Combinator alumni
-  [GAP] (0.32) [how_to] how to automate lead scoring in a startup CRM
-  [GAP] (0.37) [how_to] how to implement a CRM without a dedicated sales ops team
-  [GAP] (0.48) [definitional] essential CRM terminology for first-time founders
-  [GAP] (0.32) [definitional] differences between operational and analytical CRMs for startups
-[total] 11.2s
+  [GAP] (0.54) [comparative] HubSpot vs Pipedrive vs Zoho CRM comparison for tech startups
+  [GAP] (0.60) [comparative] top 10 affordable CRM alternatives to Salesforce for small businesses
+  [GAP] (0.46) [feature_specific] CRM with native lead scoring and email automation for early-stage companies
+  [GAP] (0.44) [feature_specific] best CRM platforms with robust API and third-party app integrations
+  [GAP] (0.38) [use_case] how to use a CRM for tracking venture capital investor relationships
+  [GAP] (0.51) [use_case] best CRM for B2B SaaS startups with long enterprise sales cycles
+  [GAP] (0.56) [trust_signals] highest-rated CRM software for startups on G2 and Capterra in 2024
+  [GAP] (0.43) [trust_signals] case studies of startups scaling from 10 to 100 employees using CRM
+  [GAP] (0.40) [how_to] how to implement a CRM system for a startup without a dedicated sales team
+  [GAP] (0.36) [how_to] steps to migrate startup customer data from Excel to a CRM platform
+  [GAP] (0.52) [definitional] what is a CRM and how does it drive growth for new businesses
+  [GAP] (0.41) [definitional] key differences between sales CRM and customer success software for startups
+  [GAP] (0.54) [feature_specific] CRM programs offering deep discounts or free tiers for qualified startups
+[total] 10.7s

@@ -5,17 +5,17 @@
     "brand_position": 1,
     "sentiment": {
       "overall": "positive",
-      "reasoning": "Notion is ranked as the top recommendation and described as the best all-in-one workspace, highlighting its versatility and suitability for teams.",
+      "reasoning": "Notion is listed as the first recommendation and described as the best 'all-in-one workspace' with praise for its versatility and team utility.",
       "aspects": [
         {
-          "feature": "functionality",
+          "feature": "all-in-one workspace",
           "sentiment": "positive",
-          "detail": "Combines notes, databases, wikis, and project management into an all-in-one workspace."
+          "detail": "Combines notes, databases, wikis, and project management."
         },
         {
-          "feature": "collaboration",
+          "feature": "team usage",
           "sentiment": "positive",
-          "detail": "Explicitly noted as being great for teams."
+          "detail": "Explicitly stated as 'Great for teams'."
         }
       ]
     },
@@ -50,11 +50,12 @@
       }
     ],
     "relevant_quotes": [
-      "Notion \u2014 Best all-in-one workspace. Combines notes, databases, wikis, and project management. Great for teams."
+      "Notion \u2014 Best all-in-one workspace.",
+      "Combines notes, databases, wikis, and project management. Great for teams."
     ],
     "platform": "synthetic-positive"
   },
   "_meta": {
-    "elapsed_seconds": 6.75
+    "elapsed_seconds": 10.0
   }
 }

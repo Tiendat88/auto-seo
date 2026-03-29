@@ -18,79 +18,79 @@
   },
   "sub_queries": [
     {
-      "type": "definitional",
-      "query": "what is retrieval augmented generation in simple terms",
+      "type": "comparative",
+      "query": "RAG vs fine-tuning for large language models: pros and cons",
       "covered": false,
-      "similarity_score": 0.68
-    },
-    {
-      "type": "definitional",
-      "query": "core components and architecture of a RAG system",
-      "covered": false,
-      "similarity_score": 0.6
+      "similarity_score": 0.58
     },
     {
       "type": "comparative",
-      "query": "RAG vs fine-tuning for large language models",
+      "query": "Retrieval augmented generation vs long context window models like Gemini 1.5",
       "covered": false,
-      "similarity_score": 0.61
-    },
-    {
-      "type": "comparative",
-      "query": "vector databases vs relational databases for RAG",
-      "covered": false,
-      "similarity_score": 0.51
+      "similarity_score": 0.54
     },
     {
       "type": "feature_specific",
-      "query": "role of semantic search and embeddings in retrieval augmented generation",
+      "query": "The role of vector databases in retrieval augmented generation",
+      "covered": false,
+      "similarity_score": 0.54
+    },
+    {
+      "type": "feature_specific",
+      "query": "Hybrid search techniques in RAG: combining semantic and keyword search",
+      "covered": false,
+      "similarity_score": 0.55
+    },
+    {
+      "type": "use_case",
+      "query": "Using RAG for enterprise internal knowledge base search",
+      "covered": false,
+      "similarity_score": 0.56
+    },
+    {
+      "type": "use_case",
+      "query": "RAG implementation for automated customer support in fintech",
       "covered": false,
       "similarity_score": 0.48
     },
     {
-      "type": "feature_specific",
-      "query": "context window limitations and retrieval mechanisms in RAG",
+      "type": "trust_signals",
+      "query": "Case studies on RAG reducing hallucination rates in AI",
       "covered": false,
-      "similarity_score": 0.4
-    },
-    {
-      "type": "use_case",
-      "query": "how enterprises use RAG for private document search",
-      "covered": false,
-      "similarity_score": 0.51
-    },
-    {
-      "type": "use_case",
-      "query": "retrieval augmented generation examples in customer support chatbots",
-      "covered": false,
-      "similarity_score": 0.44
+      "similarity_score": 0.49
     },
     {
       "type": "trust_signals",
-      "query": "research papers proving RAG reduces hallucinations in LLMs",
+      "query": "Research benchmarks comparing RAG-based LLMs to vanilla LLMs",
       "covered": false,
-      "similarity_score": 0.64
-    },
-    {
-      "type": "trust_signals",
-      "query": "case studies on RAG implementation ROI for tech companies",
-      "covered": false,
-      "similarity_score": 0.4
+      "similarity_score": 0.55
     },
     {
       "type": "how_to",
-      "query": "how to build a basic RAG pipeline using LangChain and Python",
+      "query": "How to build a RAG pipeline using LangChain and Python",
       "covered": false,
-      "similarity_score": 0.68
+      "similarity_score": 0.65
     },
     {
       "type": "how_to",
-      "query": "step by step guide to evaluating RAG retrieval accuracy",
+      "query": "Step-by-step guide to document chunking and embedding for RAG",
       "covered": false,
-      "similarity_score": 0.47
+      "similarity_score": 0.52
+    },
+    {
+      "type": "definitional",
+      "query": "Foundational concepts of Retrieval-Augmented Generation (RAG)",
+      "covered": false,
+      "similarity_score": 0.66
+    },
+    {
+      "type": "definitional",
+      "query": "What is the difference between the retriever and the generator in RAG",
+      "covered": false,
+      "similarity_score": 0.56
     }
   ],
   "_meta": {
-    "elapsed_seconds": 7.59
+    "elapsed_seconds": 9.55
   }
 }

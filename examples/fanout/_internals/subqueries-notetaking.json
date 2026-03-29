@@ -1,11 +1,11 @@
 {
   "query": "best note-taking app for students",
   "model": "gemini-3-flash-preview",
-  "count": 12,
+  "count": 13,
   "types": {
     "comparative": 2,
     "definitional": 2,
-    "feature_specific": 2,
+    "feature_specific": 3,
     "how_to": 2,
     "trust_signals": 2,
     "use_case": 2
@@ -13,78 +13,84 @@
   "sub_queries": [
     {
       "type": "comparative",
-      "query": "Notion vs Obsidian vs Evernote for university students",
+      "query": "Notion vs Obsidian vs Evernote for college students",
       "covered": null,
       "similarity_score": null
     },
     {
       "type": "comparative",
-      "query": "best free note-taking apps vs paid subscription apps for students",
+      "query": "best free vs paid note-taking apps for students 2024",
       "covered": null,
       "similarity_score": null
     },
     {
       "type": "feature_specific",
-      "query": "note-taking apps with OCR and handwriting search for Apple Pencil",
+      "query": "note-taking apps with handwriting support for iPad and Apple Pencil",
       "covered": null,
       "similarity_score": null
     },
     {
       "type": "feature_specific",
-      "query": "apps that support LaTeX and mathematical equations for STEM students",
+      "query": "note-taking software with LaTeX and markdown support for STEM students",
+      "covered": null,
+      "similarity_score": null
+    },
+    {
+      "type": "feature_specific",
+      "query": "apps that offer audio recording synchronized with typed notes",
       "covered": null,
       "similarity_score": null
     },
     {
       "type": "use_case",
-      "query": "best apps for recording lectures and syncing audio to text notes",
+      "query": "best note-taking app for medical students with complex diagrams",
       "covered": null,
       "similarity_score": null
     },
     {
       "type": "use_case",
-      "query": "collaborative note-taking tools for medical school study groups",
+      "query": "collaborative note-taking apps for group projects and study sessions",
       "covered": null,
       "similarity_score": null
     },
     {
       "type": "trust_signals",
-      "query": "top-rated student note-taking apps according to Reddit r/students 2024",
+      "query": "Reddit reviews of best note-taking apps for university students",
       "covered": null,
       "similarity_score": null
     },
     {
       "type": "trust_signals",
-      "query": "case studies on student productivity using the Zettelkasten method in Obsidian",
+      "query": "top-rated note-taking apps on App Store and Play Store for education",
       "covered": null,
       "similarity_score": null
     },
     {
       "type": "how_to",
-      "query": "how to set up the Cornell note-taking system in Notion",
+      "query": "how to organize college lecture notes using the Zettelkasten method",
       "covered": null,
       "similarity_score": null
     },
     {
       "type": "how_to",
-      "query": "how to organize lecture notes and PDFs for easy retrieval",
+      "query": "how to sync notes across laptop tablet and phone for school",
       "covered": null,
       "similarity_score": null
     },
     {
       "type": "definitional",
-      "query": "what is a personal knowledge management system for students",
+      "query": "what features define a good note-taking app for students",
       "covered": null,
       "similarity_score": null
     },
     {
       "type": "definitional",
-      "query": "difference between hierarchical and networked note-taking apps",
+      "query": "digital note-taking vs paper notes for academic success",
       "covered": null,
       "similarity_score": null
     }
   ],
   "_meta": {
-    "elapsed_seconds": 6.39
+    "elapsed_seconds": 29.61
   }
 }

@@ -4,45 +4,52 @@
     "platforms_mentioning_brand": 1,
     "total_platforms": 2,
     "overall_sentiment": "positive",
-    "avg_brand_position": 7.0,
+    "avg_brand_position": 9.0,
     "top_competitors": [
+      "Jira",
       "Asana",
       "Wrike",
-      "Smartsheet",
       "ClickUp",
-      "Jira",
+      "Smartsheet",
+      "Trello",
+      "Airtable",
       "Monday.com",
-      "Celoxis",
       "Microsoft Project",
       "Miro",
+      "ProjectManager",
       "Paymo",
+      "Resource Guru",
+      "Celoxis",
       "monday.com",
-      "Airtable",
-      "Trello",
-      "Teamwork.com"
+      "Zoho Projects"
     ],
-    "brand_recommended_on": [],
+    "brand_recommended_on": [
+      "gemini"
+    ],
     "all_keywords_found": [
       "project management",
+      "Jira",
       "Asana",
-      "Monday.com",
       "Wrike",
-      "Celoxis",
-      "Smartsheet",
       "ClickUp",
+      "Monday.com",
       "Microsoft Project",
       "Miro",
-      "Jira",
-      "Paymo",
-      "Notion",
-      "Airtable",
+      "Smartsheet",
       "Trello",
-      "Teamwork.com"
+      "ProjectManager",
+      "Paymo",
+      "Resource Guru",
+      "Celoxis",
+      "Airtable",
+      "Notion",
+      "Atlassian",
+      "Zoho Projects"
     ],
     "common_strengths": [
-      "knowledge management",
-      "ai capability",
-      "pricing"
+      "knowledge & project integration",
+      "notion ai",
+      "databases & formatting"
     ],
     "common_weaknesses": []
   },
@@ -53,37 +60,41 @@
       "position": null,
       "sentiment": "neutral",
       "competitors": [
+        "Jira",
         "Asana",
-        "Monday.com",
         "Wrike",
-        "Celoxis",
-        "Smartsheet",
         "ClickUp",
+        "Monday.com",
         "Microsoft Project",
         "Miro",
-        "Jira",
-        "Paymo"
+        "Smartsheet",
+        "Trello",
+        "ProjectManager",
+        "Paymo",
+        "Resource Guru",
+        "Celoxis",
+        "Airtable"
       ]
     },
     {
       "platform": "gemini",
       "brand_mentioned": true,
-      "position": 7,
+      "position": 9,
       "sentiment": "positive",
       "competitors": [
         "monday.com",
-        "ClickUp",
         "Asana",
+        "ClickUp",
         "Jira",
         "Smartsheet",
         "Wrike",
         "Airtable",
         "Trello",
-        "Teamwork.com"
+        "Zoho Projects"
       ]
     }
   ],
   "_meta": {
-    "elapsed_seconds": 37.19
+    "elapsed_seconds": 34.24
   }
 }

@@ -1,129 +1,173 @@
 {
   "scores": {
     "visibility_score": 100.0,
-    "share_of_voice": 8.3,
+    "share_of_voice": 6.9,
     "sentiment_score": 100.0,
-    "position_score": 70.0,
-    "overall_score": 66.5
+    "position_score": 85.0,
+    "overall_score": 69.1
   },
   "rankings": [
     {
-      "name": "Perplexity",
-      "visibility_score": 100.0,
-      "share_of_voice": 8.3,
-      "sentiment_score": 100.0,
-      "position_score": 80.0,
-      "overall_score": 68.5,
-      "mention_count": 2,
-      "avg_position": 3.0,
-      "is_own": false
-    },
-    {
       "name": "Notion",
       "visibility_score": 100.0,
-      "share_of_voice": 8.3,
+      "share_of_voice": 6.9,
       "sentiment_score": 100.0,
-      "position_score": 70.0,
-      "overall_score": 66.5,
+      "position_score": 85.0,
+      "overall_score": 69.1,
       "mention_count": 2,
-      "avg_position": 4.0,
+      "avg_position": 2.5,
       "is_own": true
     },
     {
-      "name": "Motion",
+      "name": "Todoist",
       "visibility_score": 100.0,
-      "share_of_voice": 8.3,
+      "share_of_voice": 6.9,
       "sentiment_score": 100.0,
       "position_score": 60.0,
-      "overall_score": 64.5,
+      "overall_score": 64.1,
       "mention_count": 2,
       "avg_position": 5.0,
       "is_own": false
     },
     {
-      "name": "Todoist",
+      "name": "ChatGPT",
       "visibility_score": 100.0,
-      "share_of_voice": 8.3,
+      "share_of_voice": 6.9,
       "sentiment_score": 100.0,
-      "position_score": 25.0,
-      "overall_score": 57.5,
+      "position_score": 45.0,
+      "overall_score": 61.1,
       "mention_count": 2,
-      "avg_position": 11.5,
+      "avg_position": 6.5,
       "is_own": false
     },
     {
       "name": "Wisprflow",
       "visibility_score": 50.0,
-      "share_of_voice": 4.2,
+      "share_of_voice": 3.4,
       "sentiment_score": 100.0,
       "position_score": 100.0,
-      "overall_score": 56.3,
+      "overall_score": 56.0,
       "mention_count": 1,
       "avg_position": 1.0,
       "is_own": false
     },
     {
+      "name": "TickTick",
+      "visibility_score": 100.0,
+      "share_of_voice": 6.9,
+      "sentiment_score": 100.0,
+      "position_score": 10.0,
+      "overall_score": 54.1,
+      "mention_count": 2,
+      "avg_position": 10.5,
+      "is_own": false
+    },
+    {
       "name": "Comet",
       "visibility_score": 50.0,
-      "share_of_voice": 4.2,
+      "share_of_voice": 3.4,
       "sentiment_score": 100.0,
       "position_score": 90.0,
-      "overall_score": 54.3,
+      "overall_score": 54.0,
       "mention_count": 1,
       "avg_position": 2.0,
       "is_own": false
     },
     {
-      "name": "Claude",
+      "name": "ClickUp",
       "visibility_score": 50.0,
-      "share_of_voice": 4.2,
+      "share_of_voice": 3.4,
       "sentiment_score": 100.0,
       "position_score": 90.0,
-      "overall_score": 54.3,
+      "overall_score": 54.0,
       "mention_count": 1,
       "avg_position": 2.0,
       "is_own": false
     },
     {
-      "name": "ChatGPT",
-      "visibility_score": 50.0,
-      "share_of_voice": 4.2,
+      "name": "n8n",
+      "visibility_score": 100.0,
+      "share_of_voice": 6.9,
       "sentiment_score": 100.0,
-      "position_score": 80.0,
-      "overall_score": 52.3,
-      "mention_count": 1,
-      "avg_position": 3.0,
+      "position_score": 0.0,
+      "overall_score": 52.1,
+      "mention_count": 2,
+      "avg_position": 13.0,
+      "is_own": false
+    },
+    {
+      "name": "Zapier",
+      "visibility_score": 100.0,
+      "share_of_voice": 6.9,
+      "sentiment_score": 100.0,
+      "position_score": 0.0,
+      "overall_score": 52.1,
+      "mention_count": 2,
+      "avg_position": 14.0,
       "is_own": false
     },
     {
       "name": "Monday.com",
       "visibility_score": 50.0,
-      "share_of_voice": 4.2,
+      "share_of_voice": 3.4,
       "sentiment_score": 100.0,
-      "position_score": 60.0,
-      "overall_score": 48.3,
+      "position_score": 80.0,
+      "overall_score": 52.0,
       "mention_count": 1,
-      "avg_position": 5.0,
+      "avg_position": 3.0,
       "is_own": false
     },
     {
-      "name": "Akiflow",
+      "name": "Claude",
       "visibility_score": 50.0,
-      "share_of_voice": 4.2,
+      "share_of_voice": 3.4,
       "sentiment_score": 100.0,
-      "position_score": 50.0,
-      "overall_score": 46.3,
+      "position_score": 70.0,
+      "overall_score": 50.0,
       "mention_count": 1,
-      "avg_position": 6.0,
+      "avg_position": 4.0,
       "is_own": false
     },
     {
       "name": "Reclaim.ai",
       "visibility_score": 50.0,
-      "share_of_voice": 4.2,
+      "share_of_voice": 3.4,
+      "sentiment_score": 100.0,
+      "position_score": 60.0,
+      "overall_score": 48.0,
+      "mention_count": 1,
+      "avg_position": 5.0,
+      "is_own": false
+    },
+    {
+      "name": "Perplexity AI",
+      "visibility_score": 50.0,
+      "share_of_voice": 3.4,
+      "sentiment_score": 100.0,
+      "position_score": 60.0,
+      "overall_score": 48.0,
+      "mention_count": 1,
+      "avg_position": 5.0,
+      "is_own": false
+    },
+    {
+      "name": "Scouts",
+      "visibility_score": 50.0,
+      "share_of_voice": 3.4,
+      "sentiment_score": 100.0,
+      "position_score": 50.0,
+      "overall_score": 46.0,
+      "mention_count": 1,
+      "avg_position": 6.0,
+      "is_own": false
+    },
+    {
+      "name": "Reclaim.ai / Motion",
+      "visibility_score": 50.0,
+      "share_of_voice": 3.4,
       "sentiment_score": 100.0,
       "position_score": 30.0,
-      "overall_score": 42.3,
+      "overall_score": 42.0,
       "mention_count": 1,
       "avg_position": 8.0,
       "is_own": false
@@ -131,100 +175,89 @@
     {
       "name": "Sunsama",
       "visibility_score": 50.0,
-      "share_of_voice": 4.2,
-      "sentiment_score": 100.0,
-      "position_score": 20.0,
-      "overall_score": 40.3,
-      "mention_count": 1,
-      "avg_position": 9.0,
-      "is_own": false
-    },
-    {
-      "name": "Obsidian",
-      "visibility_score": 50.0,
-      "share_of_voice": 4.2,
+      "share_of_voice": 3.4,
       "sentiment_score": 100.0,
       "position_score": 10.0,
-      "overall_score": 38.3,
+      "overall_score": 38.0,
       "mention_count": 1,
       "avg_position": 10.0,
       "is_own": false
     },
     {
-      "name": "Microsoft OneNote",
+      "name": "Pocket Informant",
       "visibility_score": 50.0,
-      "share_of_voice": 4.2,
+      "share_of_voice": 3.4,
       "sentiment_score": 100.0,
       "position_score": 0.0,
-      "overall_score": 36.3,
+      "overall_score": 36.0,
       "mention_count": 1,
       "avg_position": 11.0,
       "is_own": false
     },
     {
-      "name": "NoteNest",
+      "name": "Forest",
       "visibility_score": 50.0,
-      "share_of_voice": 4.2,
+      "share_of_voice": 3.4,
       "sentiment_score": 100.0,
       "position_score": 0.0,
-      "overall_score": 36.3,
+      "overall_score": 36.0,
+      "mention_count": 1,
+      "avg_position": 11.0,
+      "is_own": false
+    },
+    {
+      "name": "Freedom",
+      "visibility_score": 50.0,
+      "share_of_voice": 3.4,
+      "sentiment_score": 100.0,
+      "position_score": 0.0,
+      "overall_score": 36.0,
       "mention_count": 1,
       "avg_position": 12.0,
       "is_own": false
     },
     {
-      "name": "Zapier",
+      "name": "Raycast",
       "visibility_score": 50.0,
-      "share_of_voice": 4.2,
+      "share_of_voice": 3.4,
       "sentiment_score": 100.0,
       "position_score": 0.0,
-      "overall_score": 36.3,
-      "mention_count": 1,
-      "avg_position": 13.0,
-      "is_own": false
-    },
-    {
-      "name": "n8n",
-      "visibility_score": 50.0,
-      "share_of_voice": 4.2,
-      "sentiment_score": 100.0,
-      "position_score": 0.0,
-      "overall_score": 36.3,
-      "mention_count": 1,
-      "avg_position": 14.0,
-      "is_own": false
-    },
-    {
-      "name": "Superhuman",
-      "visibility_score": 50.0,
-      "share_of_voice": 4.2,
-      "sentiment_score": 100.0,
-      "position_score": 0.0,
-      "overall_score": 36.3,
+      "overall_score": 36.0,
       "mention_count": 1,
       "avg_position": 15.0,
       "is_own": false
     },
     {
-      "name": "Slack",
+      "name": "Obsidian",
       "visibility_score": 50.0,
-      "share_of_voice": 4.2,
+      "share_of_voice": 3.4,
       "sentiment_score": 100.0,
       "position_score": 0.0,
-      "overall_score": 36.3,
+      "overall_score": 36.0,
       "mention_count": 1,
       "avg_position": 16.0,
       "is_own": false
     },
     {
-      "name": "Fireflies.ai",
+      "name": "Otter.ai / Fireflies.ai",
       "visibility_score": 50.0,
-      "share_of_voice": 4.2,
+      "share_of_voice": 3.4,
       "sentiment_score": 100.0,
       "position_score": 0.0,
-      "overall_score": 36.3,
+      "overall_score": 36.0,
       "mention_count": 1,
       "avg_position": 17.0,
+      "is_own": false
+    },
+    {
+      "name": "Slack",
+      "visibility_score": 50.0,
+      "share_of_voice": 3.4,
+      "sentiment_score": 100.0,
+      "position_score": 0.0,
+      "overall_score": 36.0,
+      "mention_count": 1,
+      "avg_position": 18.0,
       "is_own": false
     }
   ],
@@ -235,7 +268,7 @@
         {
           "provider": "gemini",
           "brand_mentioned": true,
-          "position": 4,
+          "position": 1,
           "sentiment": "positive",
           "visibility_score": 100.0
         },
@@ -243,25 +276,6 @@
           "provider": "perplexity",
           "brand_mentioned": true,
           "position": 4,
-          "sentiment": "positive",
-          "visibility_score": 100.0
-        }
-      ]
-    },
-    {
-      "competitor_name": "Akiflow",
-      "providers": [
-        {
-          "provider": "gemini",
-          "brand_mentioned": false,
-          "position": null,
-          "sentiment": "neutral",
-          "visibility_score": 0.0
-        },
-        {
-          "provider": "perplexity",
-          "brand_mentioned": true,
-          "position": 6,
           "sentiment": "positive",
           "visibility_score": 100.0
         }
@@ -273,7 +287,26 @@
         {
           "provider": "gemini",
           "brand_mentioned": true,
-          "position": 3,
+          "position": 6,
+          "sentiment": "positive",
+          "visibility_score": 100.0
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": true,
+          "position": 7,
+          "sentiment": "positive",
+          "visibility_score": 100.0
+        }
+      ]
+    },
+    {
+      "competitor_name": "Claude",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": true,
+          "position": 4,
           "sentiment": "positive",
           "visibility_score": 100.0
         },
@@ -287,7 +320,7 @@
       ]
     },
     {
-      "competitor_name": "Claude",
+      "competitor_name": "ClickUp",
       "providers": [
         {
           "provider": "gemini",
@@ -325,26 +358,7 @@
       ]
     },
     {
-      "competitor_name": "Fireflies.ai",
-      "providers": [
-        {
-          "provider": "gemini",
-          "brand_mentioned": true,
-          "position": 17,
-          "sentiment": "positive",
-          "visibility_score": 100.0
-        },
-        {
-          "provider": "perplexity",
-          "brand_mentioned": false,
-          "position": null,
-          "sentiment": "neutral",
-          "visibility_score": 0.0
-        }
-      ]
-    },
-    {
-      "competitor_name": "Microsoft OneNote",
+      "competitor_name": "Forest",
       "providers": [
         {
           "provider": "gemini",
@@ -363,45 +377,7 @@
       ]
     },
     {
-      "competitor_name": "Monday.com",
-      "providers": [
-        {
-          "provider": "gemini",
-          "brand_mentioned": true,
-          "position": 5,
-          "sentiment": "positive",
-          "visibility_score": 100.0
-        },
-        {
-          "provider": "perplexity",
-          "brand_mentioned": false,
-          "position": null,
-          "sentiment": "neutral",
-          "visibility_score": 0.0
-        }
-      ]
-    },
-    {
-      "competitor_name": "Motion",
-      "providers": [
-        {
-          "provider": "gemini",
-          "brand_mentioned": true,
-          "position": 7,
-          "sentiment": "positive",
-          "visibility_score": 100.0
-        },
-        {
-          "provider": "perplexity",
-          "brand_mentioned": true,
-          "position": 3,
-          "sentiment": "positive",
-          "visibility_score": 100.0
-        }
-      ]
-    },
-    {
-      "competitor_name": "NoteNest",
+      "competitor_name": "Freedom",
       "providers": [
         {
           "provider": "gemini",
@@ -420,64 +396,26 @@
       ]
     },
     {
+      "competitor_name": "Monday.com",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": true,
+          "position": 3,
+          "sentiment": "positive",
+          "visibility_score": 100.0
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": false,
+          "position": null,
+          "sentiment": "neutral",
+          "visibility_score": 0.0
+        }
+      ]
+    },
+    {
       "competitor_name": "Obsidian",
-      "providers": [
-        {
-          "provider": "gemini",
-          "brand_mentioned": true,
-          "position": 10,
-          "sentiment": "positive",
-          "visibility_score": 100.0
-        },
-        {
-          "provider": "perplexity",
-          "brand_mentioned": false,
-          "position": null,
-          "sentiment": "neutral",
-          "visibility_score": 0.0
-        }
-      ]
-    },
-    {
-      "competitor_name": "Perplexity",
-      "providers": [
-        {
-          "provider": "gemini",
-          "brand_mentioned": true,
-          "position": 1,
-          "sentiment": "positive",
-          "visibility_score": 100.0
-        },
-        {
-          "provider": "perplexity",
-          "brand_mentioned": true,
-          "position": 5,
-          "sentiment": "positive",
-          "visibility_score": 100.0
-        }
-      ]
-    },
-    {
-      "competitor_name": "Reclaim.ai",
-      "providers": [
-        {
-          "provider": "gemini",
-          "brand_mentioned": true,
-          "position": 8,
-          "sentiment": "positive",
-          "visibility_score": 100.0
-        },
-        {
-          "provider": "perplexity",
-          "brand_mentioned": false,
-          "position": null,
-          "sentiment": "neutral",
-          "visibility_score": 0.0
-        }
-      ]
-    },
-    {
-      "competitor_name": "Slack",
       "providers": [
         {
           "provider": "gemini",
@@ -496,12 +434,12 @@
       ]
     },
     {
-      "competitor_name": "Sunsama",
+      "competitor_name": "Otter.ai / Fireflies.ai",
       "providers": [
         {
           "provider": "gemini",
           "brand_mentioned": true,
-          "position": 9,
+          "position": 17,
           "sentiment": "positive",
           "visibility_score": 100.0
         },
@@ -515,7 +453,45 @@
       ]
     },
     {
-      "competitor_name": "Superhuman",
+      "competitor_name": "Perplexity AI",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": true,
+          "position": 5,
+          "sentiment": "positive",
+          "visibility_score": 100.0
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": false,
+          "position": null,
+          "sentiment": "neutral",
+          "visibility_score": 0.0
+        }
+      ]
+    },
+    {
+      "competitor_name": "Pocket Informant",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": false,
+          "position": null,
+          "sentiment": "neutral",
+          "visibility_score": 0.0
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": true,
+          "position": 11,
+          "sentiment": "positive",
+          "visibility_score": 100.0
+        }
+      ]
+    },
+    {
+      "competitor_name": "Raycast",
       "providers": [
         {
           "provider": "gemini",
@@ -534,19 +510,133 @@
       ]
     },
     {
-      "competitor_name": "Todoist",
+      "competitor_name": "Reclaim.ai",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": false,
+          "position": null,
+          "sentiment": "neutral",
+          "visibility_score": 0.0
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": true,
+          "position": 5,
+          "sentiment": "positive",
+          "visibility_score": 100.0
+        }
+      ]
+    },
+    {
+      "competitor_name": "Reclaim.ai / Motion",
       "providers": [
         {
           "provider": "gemini",
           "brand_mentioned": true,
+          "position": 8,
+          "sentiment": "positive",
+          "visibility_score": 100.0
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": false,
+          "position": null,
+          "sentiment": "neutral",
+          "visibility_score": 0.0
+        }
+      ]
+    },
+    {
+      "competitor_name": "Scouts",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": false,
+          "position": null,
+          "sentiment": "neutral",
+          "visibility_score": 0.0
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": true,
           "position": 6,
+          "sentiment": "positive",
+          "visibility_score": 100.0
+        }
+      ]
+    },
+    {
+      "competitor_name": "Slack",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": true,
+          "position": 18,
+          "sentiment": "positive",
+          "visibility_score": 100.0
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": false,
+          "position": null,
+          "sentiment": "neutral",
+          "visibility_score": 0.0
+        }
+      ]
+    },
+    {
+      "competitor_name": "Sunsama",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": true,
+          "position": 10,
+          "sentiment": "positive",
+          "visibility_score": 100.0
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": false,
+          "position": null,
+          "sentiment": "neutral",
+          "visibility_score": 0.0
+        }
+      ]
+    },
+    {
+      "competitor_name": "TickTick",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": true,
+          "position": 9,
           "sentiment": "positive",
           "visibility_score": 100.0
         },
         {
           "provider": "perplexity",
           "brand_mentioned": true,
-          "position": 17,
+          "position": 12,
+          "sentiment": "positive",
+          "visibility_score": 100.0
+        }
+      ]
+    },
+    {
+      "competitor_name": "Todoist",
+      "providers": [
+        {
+          "provider": "gemini",
+          "brand_mentioned": true,
+          "position": 7,
+          "sentiment": "positive",
+          "visibility_score": 100.0
+        },
+        {
+          "provider": "perplexity",
+          "brand_mentioned": true,
+          "position": 3,
           "sentiment": "positive",
           "visibility_score": 100.0
         }
@@ -577,16 +667,16 @@
         {
           "provider": "gemini",
           "brand_mentioned": true,
-          "position": 13,
+          "position": 14,
           "sentiment": "positive",
           "visibility_score": 100.0
         },
         {
           "provider": "perplexity",
-          "brand_mentioned": false,
-          "position": null,
-          "sentiment": "neutral",
-          "visibility_score": 0.0
+          "brand_mentioned": true,
+          "position": 14,
+          "sentiment": "positive",
+          "visibility_score": 100.0
         }
       ]
     },
@@ -596,16 +686,16 @@
         {
           "provider": "gemini",
           "brand_mentioned": true,
-          "position": 14,
+          "position": 13,
           "sentiment": "positive",
           "visibility_score": 100.0
         },
         {
           "provider": "perplexity",
-          "brand_mentioned": false,
-          "position": null,
-          "sentiment": "neutral",
-          "visibility_score": 0.0
+          "brand_mentioned": true,
+          "position": 13,
+          "sentiment": "positive",
+          "visibility_score": 100.0
         }
       ]
     }

@@ -1,7 +1,7 @@
 {
   "topic": "email marketing automation tips",
   "status": "completed",
-  "overall": 0.66,
+  "overall": 0.433,
   "passes_threshold": false,
   "dimension_count": 13,
   "dimensions": [
@@ -12,23 +12,23 @@
     },
     {
       "name": "heading_structure",
-      "score": 0.7,
-      "feedback": "No H1 heading found"
+      "score": 0.49999999999999994,
+      "feedback": "No H1 heading found; Only 1 H2 sections, aim for 3+"
     },
     {
       "name": "word_count_target",
-      "score": 0.15,
-      "feedback": "1079 words (target: 800, ratio: 135%)"
+      "score": 0.0,
+      "feedback": "106 words (target: 800, ratio: 13%)"
     },
     {
       "name": "differentiation_delivery",
-      "score": 0.833,
-      "feedback": "1/3 differentiators missing"
+      "score": 0.667,
+      "feedback": "2/3 differentiators missing"
     },
     {
       "name": "readability_metrics",
-      "score": 0.4,
-      "feedback": "Flesch RE: 37.9; Grade level: 11.9"
+      "score": 0.2,
+      "feedback": "Flesch RE: 14.9; Grade level: 15.6"
     },
     {
       "name": "humanity",
@@ -38,40 +38,40 @@
     {
       "name": "keyword_distribution",
       "score": 0.0,
-      "feedback": "Distribution score: 0.00; Uneven keyword placement: Essential Criteria for Selecting Your Automation"
+      "feedback": "Distribution score: 0.00; Uneven keyword placement: The Commercial Case for Email Marketing Automati"
     },
     {
       "name": "content_depth",
-      "score": 0.95,
-      "feedback": "The article provides exceptional tactical depth, particularly regarding technical deliverability (SP"
+      "score": 0.25,
+      "feedback": "The article is currently a fragment that ends mid-sentence, failing to address the core requirements"
     },
     {
       "name": "differentiation",
-      "score": 0.9,
-      "feedback": "This piece effectively distinguishes itself by bridging the gap between technical setup and creative"
+      "score": 0.2,
+      "feedback": "The content provided so far uses the most common example in the industry (abandoned cart emails), wh"
     },
     {
       "name": "accuracy",
-      "score": 1.0,
-      "feedback": "The technical implementation details for SPF, DKIM, and DMARC are factually correct and include spec"
+      "score": 0.95,
+      "feedback": "The claims made regarding Customer Lifetime Value (CLV) and the tactical advantage of trigger-based "
     },
     {
       "name": "consistency",
-      "score": 1.0,
-      "feedback": "The article maintains a professional, authoritative tone throughout, successfully balancing technica"
+      "score": 0.85,
+      "feedback": "The professional and strategic tone is maintained throughout the text, adhering well to the editoria"
     },
     {
       "name": "readability",
-      "score": 0.9,
-      "feedback": "The article maintains a professional and authoritative tone that is easy to follow. It avoids common"
+      "score": 0.75,
+      "feedback": "The article maintains a professional and strategic tone that aligns with the target audience of mark"
     },
     {
       "name": "actionability",
-      "score": 0.95,
-      "feedback": "The content is highly practical, providing specific technical strings for DNS setup, a detailed logi"
+      "score": 0.4,
+      "feedback": "The text provides one concrete example of a trigger sequence\u2014a 45-minute delay for an abandoned cart"
     }
   ],
   "_meta": {
-    "elapsed_seconds": 234.55
+    "elapsed_seconds": 267.91
   }
 }

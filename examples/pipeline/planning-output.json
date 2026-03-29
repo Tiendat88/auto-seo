@@ -3,78 +3,78 @@
   "analysis": {
     "primary_keyword": "customer onboarding best practices for SaaS",
     "secondary_keywords": [
-      "customer onboarding software",
-      "SaaS onboarding tools",
-      "user onboarding strategies",
-      "onboarding automation",
-      "SaaS retention tactics"
+      "SaaS onboarding software reviews",
+      "customer onboarding tools comparison",
+      "onboarding pricing models",
+      "onboarding features for teams",
+      "onboarding implementation guide"
     ],
     "theme_count": 3,
     "themes": [
       {
-        "theme": "Software Comparison and Selection",
-        "frequency": 9
+        "theme": "Software Selection and Comparison",
+        "frequency": 10
       },
       {
-        "theme": "Expert Recommendations and Authority",
+        "theme": "Implementation and Use Case Suitability",
         "frequency": 6
       },
       {
-        "theme": "Operational Efficiency and Team Productivity",
-        "frequency": 5
+        "theme": "Workflow and Productivity Features",
+        "frequency": 4
       }
     ],
     "search_intent": "commercial",
-    "avg_word_count": 1950
+    "avg_word_count": 240
   },
   "outline": {
-    "h1": "Customer Onboarding Best Practices for SaaS: A Comprehensive Guide to User Success",
+    "h1": "Customer Onboarding Best Practices for SaaS: A Guide to Increasing Activation and Retention",
     "heading_count": 7,
     "estimated_words": 1200,
     "faq_questions": [
-      "What is the most important KPI for SaaS onboarding?",
-      "How do I determine the 'Aha!' moment for my SaaS product?",
-      "Should I build my own onboarding flow or use third-party software?"
+      "What are the best customer onboarding best practices for SaaS?",
+      "How do I choose customer onboarding best practices for SaaS?",
+      "Are premium onboarding tools worth the investment for startups?"
     ],
     "headings": [
       {
         "level": "h2",
-        "text": "The Impact of Onboarding on SaaS Retention Tactics",
+        "text": "Why Your SaaS Onboarding Process Is the Engine of Growth",
         "target_words": 150
       },
       {
         "level": "h2",
-        "text": "Behavioral Design: Reaching the 'Aha!' Moment Faster",
+        "text": "User Psychology: Mapping the Journey from Sign-up to Success",
         "target_words": 200
       },
       {
         "level": "h2",
-        "text": "Core Customer Onboarding Best Practices for SaaS",
-        "target_words": 250
+        "text": "Tactical Best Practices for Modern SaaS Onboarding",
+        "target_words": 300
       },
       {
         "level": "h3",
-        "text": "Using In-App Checklists to Guide Progress",
-        "target_words": 50
+        "text": "Designing for Progressive Disclosure",
+        "target_words": 100
       },
       {
         "level": "h2",
-        "text": "The Hybrid Approach: Combining Onboarding Automation with Human Touch",
-        "target_words": 200
-      },
-      {
-        "level": "h2",
-        "text": "Evaluating Customer Onboarding Software and Selection Criteria",
-        "target_words": 200
-      },
-      {
-        "level": "h2",
-        "text": "Measuring Success: Onboarding KPIs and Benchmarking",
+        "text": "Measuring What Matters: KPIs for SaaS Onboarding",
         "target_words": 150
+      },
+      {
+        "level": "h2",
+        "text": "Choosing the Right Customer Onboarding Software",
+        "target_words": 200
+      },
+      {
+        "level": "h2",
+        "text": "Common Failure Modes and Implementation Challenges",
+        "target_words": 100
       }
     ]
   },
   "_meta": {
-    "elapsed_seconds": 34.3
+    "elapsed_seconds": 28.72
   }
 }

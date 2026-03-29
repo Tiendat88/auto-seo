@@ -1,5 +1,5 @@
 {
-  "article_count": 5,
+  "article_count": 7,
   "results": [
     {
       "file": "best-note-taking-apps-for-founders.md",
@@ -22,6 +22,16 @@
       "word_count": 1569
     },
     {
+      "file": "best-productivity-tools-for-remote-teams.md",
+      "aeo_score": 67,
+      "band": "Needs Improvement",
+      "direct_answer": 12,
+      "htag_hierarchy": 20,
+      "readability": 8,
+      "grade_level": 11.2,
+      "word_count": 45
+    },
+    {
       "file": "customer-onboarding-checklist-for-b2b-saas.md",
       "aeo_score": 67,
       "band": "Needs Improvement",
@@ -40,6 +50,16 @@
       "readability": 0,
       "grade_level": 14.6,
       "word_count": 854
+    },
+    {
+      "file": "how-to-implement-retrieval-augmented-generation.md",
+      "aeo_score": 67,
+      "band": "Needs Improvement",
+      "direct_answer": 20,
+      "htag_hierarchy": 20,
+      "readability": 0,
+      "grade_level": 15.3,
+      "word_count": 1449
     },
     {
       "file": "remote-teamwork-tools.md",

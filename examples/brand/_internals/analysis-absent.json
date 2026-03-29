@@ -5,7 +5,7 @@
     "brand_position": null,
     "sentiment": {
       "overall": "neutral",
-      "reasoning": "The brand 'Notion' is not mentioned in the text, so no sentiment can be determined.",
+      "reasoning": "The brand Notion was not mentioned in the provided text, which lists dedicated CRM platforms.",
       "aspects": []
     },
     "keywords_found": [
@@ -47,6 +47,6 @@
     "platform": "synthetic-absent"
   },
   "_meta": {
-    "elapsed_seconds": 6.18
+    "elapsed_seconds": 6.71
   }
 }
