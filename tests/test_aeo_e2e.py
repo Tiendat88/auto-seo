@@ -19,6 +19,7 @@ from app.aeo.checks import (
     compute_aeo_score,
 )
 from app.aeo.parser import ParsedContent, fetch_url, parse_content
+from app.llm import LlmClient
 from tests.conftest import FIXTURES_DIR, skip_no_firecrawl, write_example
 
 EXAMPLES_DIR = Path(__file__).resolve().parent.parent / "examples" / "aeo"
@@ -45,9 +46,9 @@ class TestAeoFixtureScoring:
     def medium_html(self) -> str:
         return (FIXTURES_DIR / "article_medium.html").read_text()
 
-    def _score(self, raw: str) -> dict:
+    async def _score(self, raw: str) -> dict:
         parsed = parse_content(raw)
-        da = check_direct_answer(parsed)
+        da = await check_direct_answer(parsed, LlmClient())
         hh = check_htag_hierarchy(parsed)
         rd = check_readability(parsed)
         checks = [da, hh, rd]
@@ -61,25 +62,25 @@ class TestAeoFixtureScoring:
             "text_length": len(parsed.text),
         }
 
-    def test_good_article(self, good_html: str) -> None:
-        result = self._score(good_html)
+    async def test_good_article(self, good_html: str) -> None:
+        result = await self._score(good_html)
         msg = f"Good article should score >=65, got {result['aeo_score']}"
         assert result["aeo_score"] >= 65, msg
         write_example(EXAMPLES_DIR, "score-good-article", result)
 
-    def test_bad_article(self, bad_html: str) -> None:
-        result = self._score(bad_html)
+    async def test_bad_article(self, bad_html: str) -> None:
+        result = await self._score(bad_html)
         assert result["aeo_score"] < 65, f"Bad article should score <65, got {result['aeo_score']}"
         write_example(EXAMPLES_DIR, "score-bad-article", result)
 
-    def test_medium_article(self, medium_html: str) -> None:
-        result = self._score(medium_html)
+    async def test_medium_article(self, medium_html: str) -> None:
+        result = await self._score(medium_html)
         write_example(EXAMPLES_DIR, "score-medium-article", result)
 
-    def test_score_ordering(self, good_html: str, bad_html: str) -> None:
+    async def test_score_ordering(self, good_html: str, bad_html: str) -> None:
         """Good article should score higher than bad article."""
-        good = self._score(good_html)
-        bad = self._score(bad_html)
+        good = await self._score(good_html)
+        bad = await self._score(bad_html)
         assert good["aeo_score"] > bad["aeo_score"], (
             f"Good ({good['aeo_score']}) should beat bad ({bad['aeo_score']})"
         )
@@ -136,9 +137,9 @@ is quite complex and multifaceted really.
 Some people use vector stores. Others use keyword search. There are many options.
 """
 
-    def test_well_structured(self) -> None:
+    async def test_well_structured(self) -> None:
         parsed = parse_content(self._WELL_STRUCTURED_MD)
-        da = check_direct_answer(parsed)
+        da = await check_direct_answer(parsed, LlmClient())
         hh = check_htag_hierarchy(parsed)
         rd = check_readability(parsed)
         checks = [da, hh, rd]
@@ -153,9 +154,9 @@ Some people use vector stores. Others use keyword search. There are many options
             "checks": [c.model_dump() for c in checks],
         })
 
-    def test_poorly_structured(self) -> None:
+    async def test_poorly_structured(self) -> None:
         parsed = parse_content(self._POORLY_STRUCTURED_MD)
-        da = check_direct_answer(parsed)
+        da = await check_direct_answer(parsed, LlmClient())
         hh = check_htag_hierarchy(parsed)
         rd = check_readability(parsed)
         checks = [da, hh, rd]
@@ -229,7 +230,7 @@ class TestParserDetection:
 class TestIndividualChecks:
     """Test each AEO check in isolation with crafted inputs."""
 
-    def test_direct_answer_perfect(self) -> None:
+    async def test_direct_answer_perfect(self) -> None:
         """Short declarative first paragraph should score 20/20."""
         parsed = ParsedContent(
             raw="",
@@ -237,18 +238,18 @@ class TestIndividualChecks:
             first_paragraph="RAG combines LLMs with external knowledge bases for factual answers.",
             headings=[],
         )
-        result = check_direct_answer(parsed)
+        result = await check_direct_answer(parsed, LlmClient())
         assert result.score == 20
         assert result.passed is True
         write_example(INTERNALS_DIR, "check-da-perfect", result.model_dump())
 
-    def test_direct_answer_too_long(self) -> None:
+    async def test_direct_answer_too_long(self) -> None:
         """100-word first paragraph should score 0/20."""
         long_para = " ".join(["word"] * 100)
         parsed = ParsedContent(
             raw="", text=long_para, first_paragraph=long_para, headings=[],
         )
-        result = check_direct_answer(parsed)
+        result = await check_direct_answer(parsed, LlmClient())
         assert result.score == 0
         write_example(INTERNALS_DIR, "check-da-too-long", result.model_dump())
 
@@ -312,7 +313,7 @@ class TestAeoUrlAnalysis:
         assert len(parsed.text) > 100, "Should fetch substantial content"
         assert len(parsed.headings) >= 1, "Should extract headings"
 
-        da = check_direct_answer(parsed)
+        da = await check_direct_answer(parsed, LlmClient())
         hh = check_htag_hierarchy(parsed)
         rd = check_readability(parsed)
         checks = [da, hh, rd]
@@ -340,7 +341,7 @@ class TestAeoUrlAnalysis:
         parsed = await fetch_url(url)
         fetch_elapsed = time.monotonic() - t0
 
-        da = check_direct_answer(parsed)
+        da = await check_direct_answer(parsed, LlmClient())
         hh = check_htag_hierarchy(parsed)
         rd = check_readability(parsed)
         checks = [da, hh, rd]
@@ -376,17 +377,18 @@ class TestAeoOnGeneratedArticles:
             return []
         return sorted(self._ARTICLES_DIR.glob("*.md"))
 
-    def test_score_generated_articles(self) -> None:
+    async def test_score_generated_articles(self) -> None:
         """Score all markdown articles in examples/articles/."""
         paths = self._article_paths()
         if not paths:
             pytest.skip("No generated articles in examples/articles/")
 
         results: list[dict] = []
+        llm = LlmClient()
         for path in paths:
             md = path.read_text()
             parsed = parse_content(md)
-            da = check_direct_answer(parsed)
+            da = await check_direct_answer(parsed, llm)
             hh = check_htag_hierarchy(parsed)
             rd = check_readability(parsed)
             checks = [da, hh, rd]

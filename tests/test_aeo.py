@@ -1,8 +1,10 @@
 """Tests for AEO content scoring: parser, checks, aggregation."""
 
 from pathlib import Path
+from unittest.mock import AsyncMock, MagicMock
 
 from app.aeo.checks import (
+    DirectAnswerAnalysis,
     check_direct_answer,
     check_htag_hierarchy,
     check_readability,
@@ -62,8 +64,17 @@ class TestContentParser:
 # --- Check A: Direct Answer ---
 
 
+def _mock_llm(is_declarative: bool) -> MagicMock:
+    """Return a mock LlmClient whose generate_structured returns DirectAnswerAnalysis."""
+    llm = MagicMock()
+    llm.generate_structured = AsyncMock(
+        return_value=DirectAnswerAnalysis(is_declarative=is_declarative, reasoning="test"),
+    )
+    return llm
+
+
 class TestDirectAnswer:
-    def test_short_declarative_no_hedge(self):
+    async def test_short_declarative_no_hedge(self):
         content = ParsedContent(
             raw="", text="",
             first_paragraph=(
@@ -71,61 +82,61 @@ class TestDirectAnswer:
             ),
             is_html=False,
         )
-        result = check_direct_answer(content)
+        result = await check_direct_answer(content, _mock_llm(True))
         assert result.score == 20
         assert result.details["is_declarative"]
         assert not result.details["has_hedge_phrase"]
 
-    def test_hedge_phrase_penalized(self):
+    async def test_hedge_phrase_penalized(self):
         content = ParsedContent(
             raw="", text="",
             first_paragraph="It depends on the use case whether Python is the right choice.",
             is_html=False,
         )
-        result = check_direct_answer(content)
+        result = await check_direct_answer(content, _mock_llm(True))
         assert result.score == 12
         assert result.details["has_hedge_phrase"]
 
-    def test_long_paragraph_61_to_90_words(self):
+    async def test_long_paragraph_61_to_90_words(self):
         # Build a 75-word paragraph
         words = "The quick brown fox jumps over the lazy dog. " * 9  # ~81 words
         content = ParsedContent(raw="", text="", first_paragraph=words.strip(), is_html=False)
         wc = len(content.first_paragraph.split())
         assert 61 <= wc <= 90
-        result = check_direct_answer(content)
+        result = await check_direct_answer(content, _mock_llm(True))
         assert result.score == 8
 
-    def test_very_long_paragraph_over_90(self):
+    async def test_very_long_paragraph_over_90(self):
         words = "This is a word. " * 25  # 100 words
         content = ParsedContent(raw="", text="", first_paragraph=words.strip(), is_html=False)
         assert len(content.first_paragraph.split()) > 90
-        result = check_direct_answer(content)
+        result = await check_direct_answer(content, _mock_llm(True))
         assert result.score == 0
 
-    def test_fragment_no_verb(self):
+    async def test_fragment_no_verb(self):
         content = ParsedContent(
             raw="", text="",
             first_paragraph="A comprehensive overview of modern systems.",
             is_html=False,
         )
-        result = check_direct_answer(content)
+        result = await check_direct_answer(content, _mock_llm(False))
         # No root verb → not declarative → 12
         assert result.score == 12
         assert not result.details["is_declarative"]
 
-    def test_empty_paragraph(self):
+    async def test_empty_paragraph(self):
         content = ParsedContent(raw="", text="", first_paragraph="", is_html=False)
-        result = check_direct_answer(content)
+        result = await check_direct_answer(content, _mock_llm(False))
         assert result.score == 12  # ≤60 words but not declarative
 
-    def test_article_good_scores_high(self):
+    async def test_article_good_scores_high(self):
         parsed = parse_content(_load_html("article_good.html"))
-        result = check_direct_answer(parsed)
+        result = await check_direct_answer(parsed, _mock_llm(True))
         assert result.score == 20
 
-    def test_article_bad_scores_low(self):
+    async def test_article_bad_scores_low(self):
         parsed = parse_content(_load_html("article_bad.html"))
-        result = check_direct_answer(parsed)
+        result = await check_direct_answer(parsed, _mock_llm(True))
         assert result.score <= 8  # long paragraph with hedging
 
 

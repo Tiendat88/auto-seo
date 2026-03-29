@@ -1,16 +1,16 @@
 """AEO content scoring checks: direct answer, heading hierarchy, readability."""
 
+from typing import TYPE_CHECKING
 
-import spacy
 import textstat
+from pydantic import BaseModel, Field
 
 from app.aeo.models import CheckResult
 from app.aeo.parser import ParsedContent
 from app.article.constants import SENTENCE_END_RE
 
-# --- spaCy lazy singleton ---
-
-_nlp: spacy.Language | None = None
+if TYPE_CHECKING:
+    from app.llm import LlmClient
 
 HEDGE_PHRASES = [
     "it depends", "may vary", "in some cases",
@@ -18,32 +18,61 @@ HEDGE_PHRASES = [
 ]
 
 
-def _get_nlp() -> spacy.Language:
-    global _nlp
-    if _nlp is None:
-        _nlp = spacy.load("en_core_web_sm")
-    return _nlp
+# --- LLM schema for direct answer analysis ---
+
+
+class DirectAnswerAnalysis(BaseModel):
+    """LLM assessment of whether a paragraph provides a direct answer."""
+
+    is_declarative: bool = Field(
+        ...,
+        description=(
+            "True if the paragraph contains at least one clear declarative statement "
+            "with a subject and verb that directly answers an implied question."
+        ),
+    )
+    reasoning: str = Field(
+        ...,
+        description="One-sentence explanation of the assessment.",
+    )
+
+
+_DIRECT_ANSWER_PROMPT = """\
+Analyze this opening paragraph and determine if it provides a direct, \
+declarative answer. A declarative statement has a clear subject and verb \
+and states a fact or answer (not a question, not vague hedging).
+
+Paragraph:
+---
+{paragraph}
+---
+
+Respond with JSON matching the schema. Be strict: generic introductions \
+like "In today's world..." or "Many people wonder..." are NOT declarative answers."""
 
 
 # --- Check A: Direct Answer Detection ---
 
 
-def check_direct_answer(content: ParsedContent) -> CheckResult:
+async def check_direct_answer(content: ParsedContent, llm: "LlmClient") -> CheckResult:
     """Score first paragraph for directness, brevity, and confidence."""
     para = content.first_paragraph
     word_count = len(para.split()) if para else 0
 
-    # Declarative: at least one sentence with subject + root verb
+    # LLM-based declarative detection
     is_declarative = False
-    if para:
-        nlp = _get_nlp()
-        doc = nlp(para)
-        for sent in doc.sents:
-            has_subj = any(t.dep_ in ("nsubj", "nsubjpass") for t in sent)
-            has_root_verb = any(t.dep_ == "ROOT" and t.pos_ in ("VERB", "AUX") for t in sent)
-            if has_subj and has_root_verb:
-                is_declarative = True
-                break
+    if para and word_count >= 3:
+        try:
+            result = await llm.generate_structured(
+                _DIRECT_ANSWER_PROMPT.format(paragraph=para),
+                DirectAnswerAnalysis,
+                max_tokens=256,
+                use_cache=True,
+            )
+            is_declarative = result.is_declarative
+        except Exception:
+            # Fallback: assume declarative if paragraph is short and doesn't start with a question
+            is_declarative = not para.strip().endswith("?")
 
     # Hedge detection
     para_lower = para.lower()

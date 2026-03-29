@@ -98,8 +98,13 @@ class LlmClient:
         elif provider == "openai-codex":
             self.backend = "openai-codex"
             self._model = model or settings.openai_model
-            from openai_codex_sdk import Codex
-
+            try:
+                from openai_codex_sdk import Codex
+            except ModuleNotFoundError:
+                raise ModuleNotFoundError(
+                    "Codex backend requires `openai-codex-sdk`: "
+                    "install with `uv sync --extra agents`"
+                )
             self._codex_client = Codex()
         elif api_key or settings.anthropic_api_key:
             self.backend = "anthropic"

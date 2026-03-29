@@ -1,9 +1,18 @@
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import pytest
 from pydantic import BaseModel
 
 from app.config import settings
 from app.llm import LlmClient, get_llm_council
+
+_has_codex_sdk = True
+try:
+    import openai_codex_sdk  # noqa: F401  # pyright: ignore[reportUnusedImport]
+except ModuleNotFoundError:
+    _has_codex_sdk = False
+
+skip_no_codex = pytest.mark.skipif(not _has_codex_sdk, reason="openai-codex-sdk not installed")
 
 
 class _FakeSchema(BaseModel):
@@ -45,10 +54,12 @@ class TestProviderSelection:
         assert client._model == "gemini-3-flash-preview"
         mock_genai_client_cls.assert_called_once_with(api_key="gk-test")
 
+    @skip_no_codex
     def test_codex_provider(self):
         client = LlmClient(provider="openai-codex")
         assert client.backend == "openai-codex"
 
+    @skip_no_codex
     @patch("app.llm.settings", MagicMock(openai_model="o3-mini"))
     def test_codex_with_model(self):
         client = LlmClient(provider="openai-codex")
@@ -57,6 +68,7 @@ class TestProviderSelection:
 
 
 class TestGetLlmCouncil:
+    @skip_no_codex
     @patch.object(settings, "anthropic_api_key", "sk-test")
     @patch.object(settings, "google_api_key", "gk-test")
     @patch.object(settings, "openai_codex", True)

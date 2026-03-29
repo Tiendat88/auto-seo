@@ -40,8 +40,9 @@ async def analyze(
     except ContentFetchError as exc:
         raise_fetch_failed(exc)
 
+    llm = LlmClient()
     checks = [
-        check_direct_answer(content),
+        await check_direct_answer(content, llm),
         check_htag_hierarchy(content),
         check_readability(content),
     ]
