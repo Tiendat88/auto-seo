@@ -43,6 +43,7 @@ class Settings(BaseSettings):
     # App
     debug: bool = False
     persist_events: bool = False
+    cors_origins: str = "http://localhost:3000"
 
 
 settings = Settings()

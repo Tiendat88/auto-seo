@@ -8,3 +8,7 @@ dist/
 *.egg-info/
 .venv/
 CLAUDE.md
+node_modules/
+frontend/.next/
+frontend/out/
+frontend/.env.local

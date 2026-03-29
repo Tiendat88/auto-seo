@@ -4,11 +4,13 @@ import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import update
 
 from app.aeo.routes import router as aeo_router
 from app.brand.routes import router as brand_router
 from app.cache import cache
+from app.config import settings
 from app.db import async_session, init_db
 from app.job.models import Job, JobStatus
 from app.job.routes import router as jobs_router
@@ -55,6 +57,14 @@ app = FastAPI(
     description="Backend service for generating SEO-optimized articles",
     version="0.1.0",
     lifespan=lifespan,
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[o.strip() for o in settings.cors_origins.split(",")],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 app.include_router(jobs_router, prefix="/api")
