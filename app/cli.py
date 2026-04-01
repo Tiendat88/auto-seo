@@ -122,11 +122,22 @@ def _check_response(resp: httpx.Response) -> dict:
     return resp.json()
 
 
+def _handle_http_error(resp: httpx.Response) -> None:
+    """Print a friendly error message for HTTP errors and exit."""
+    try:
+        detail = resp.json().get("detail", resp.text)
+    except Exception:
+        detail = resp.text or resp.reason_phrase
+    log_console.print(f"[red]Error ({resp.status_code}): {detail}[/red]")
+    raise typer.Exit(1)
+
+
 def _get_job(url: str, job_id: str) -> dict:
     """GET a job by ID and return its JSON data."""
     with httpx.Client(timeout=_DEFAULT_TIMEOUT) as client:
         resp = client.get(f"{url}/api/jobs/{job_id}")
-        resp.raise_for_status()
+        if not resp.is_success:
+            _handle_http_error(resp)
         return resp.json()
 
 
@@ -167,7 +178,8 @@ def generate(
         payload["brand_voice"] = bv_data
     with httpx.Client(timeout=_DEFAULT_TIMEOUT) as client:
         resp = client.post(f"{url}/api/jobs/", json=payload)
-        resp.raise_for_status()
+        if not resp.is_success:
+            _handle_http_error(resp)
         data = resp.json()
 
     job_id = data["job_id"]
@@ -233,7 +245,8 @@ def list_jobs(
 
     with httpx.Client(timeout=_DEFAULT_TIMEOUT) as client:
         resp = client.get(f"{url}/api/jobs/", params=params)
-        resp.raise_for_status()
+        if not resp.is_success:
+            _handle_http_error(resp)
         data = resp.json()
 
     table = Table(title=f"Jobs ({data['total']} total)")
@@ -299,7 +312,8 @@ def resume(
         if resp.status_code == 400:
             log_console.print(f"[red]{resp.json().get('detail', 'Bad request')}[/red]")
             return
-        resp.raise_for_status()
+        if not resp.is_success:
+            _handle_http_error(resp)
 
     log_console.print(f"Resumed job: [bold]{job_id}[/bold]")
     _poll_job(url, job_id, verbose=verbose)
@@ -528,7 +542,8 @@ def _poll_job(api_url: str, job_id: str, verbose: bool = False) -> None:
             while True:
                 try:
                     resp = client.get(f"{api_url}/api/jobs/{job_id}")
-                    resp.raise_for_status()
+                    if not resp.is_success:
+                        _handle_http_error(resp)
                 except httpx.ReadTimeout:
                     time.sleep(5)
                     continue
