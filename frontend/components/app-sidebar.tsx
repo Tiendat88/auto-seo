@@ -9,7 +9,7 @@ import {
   History,
   BarChart3,
   GitFork,
-  LayoutDashboard,
+  Rocket,
   Megaphone,
   Server,
   Send,
@@ -72,7 +72,7 @@ export function AppSidebar() {
     <Sidebar className="border-r border-blue-500/10">
       <SidebarHeader className="border-b border-blue-500/10 px-4 py-4">
         <Link href="/pipeline" className="flex items-center gap-2 font-bold text-blue-600 dark:text-blue-400">
-          <LayoutDashboard className="h-6 w-6" />
+          <Rocket className="h-6 w-6 text-blue-600 dark:text-blue-400" />
           <span className="text-xl tracking-tight">AutoSEO</span>
         </Link>
       </SidebarHeader>

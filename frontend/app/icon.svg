@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2563eb" />
+      <stop offset="100%" stop-color="#7c3aed" />
+    </linearGradient>
+    <linearGradient id="rocketGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="100%" stop-color="#dbeafe" />
+    </linearGradient>
+  </defs>
+  <!-- Main Rounded Container -->
+  <rect width="32" height="32" rx="8" fill="url(#grad)" />
+  
+  <!-- Left wing -->
+  <path d="M10 20 C10 16.5 12.5 14.5 14 13.5 L12.5 19.5 Z" fill="#93c5fd" opacity="0.8" />
+  <!-- Right wing -->
+  <path d="M22 20 C22 16.5 19.5 14.5 18 13.5 L19.5 19.5 Z" fill="#93c5fd" opacity="0.8" />
+  
+  <!-- Main Rocket Body -->
+  <path d="M16 6 C16 6 19.5 11 19.5 18.5 C19.5 21 18.5 22 16 22 C13.5 22 12.5 21 12.5 18.5 C12.5 11 16 6 16 6 Z" fill="url(#rocketGrad)" />
+  
+  <!-- Rocket Window -->
+  <circle cx="16" cy="13" r="2.2" fill="#2563eb" />
+  <circle cx="16.5" cy="12.5" r="0.7" fill="#ffffff" opacity="0.6" />
+  
+  <!-- Flame/Exhaust -->
+  <path d="M16 21.5 C17.5 21.5 18 23 16 26.5 C14 23 14.5 21.5 16 21.5 Z" fill="#f59e0b" />
+  <path d="M16 21.5 C17 21.5 17.2 22.5 16 24.5 C14.8 22.5 15 21.5 16 21.5 Z" fill="#ef4444" />
+</svg>
