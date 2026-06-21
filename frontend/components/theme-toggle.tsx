@@ -2,7 +2,8 @@
 
 import * as React from "react";
 import { Sun, Moon, Monitor } from "lucide-react";
-import { useTheme } from "next-themes";
+import { useTheme } from "@wrksz/themes/client";
+
 import {
   SidebarGroup,
   SidebarGroupContent,
