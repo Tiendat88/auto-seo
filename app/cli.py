@@ -169,24 +169,53 @@ def generate(
     brand_voice: Path | None = typer.Option(
         None, "--brand-voice", "-b", help="JSON file with brand voice config"
     ),
+    cadence_days: int = typer.Option(
+        0, "--cadence-days", "-c",
+        help="0 = single cycle (one-shot); > 0 = continuous re-measure cadence in days",
+    ),
+    measure_query: str | None = typer.Option(
+        None, "--measure-query", help="SERP query to track ranking for (defaults to topic)"
+    ),
+    brand_name: str | None = typer.Option(
+        None, "--brand-name", help="Brand to track visibility for in the measure phase"
+    ),
 ) -> None:
-    """Create a new article generation job."""
+    """Create an SEO lifecycle and run its first generation cycle.
+
+    By default this is a single cycle (one-shot). Pass --cadence-days N to make it a
+    continuous lifecycle that re-measures and refreshes every N days.
+    """
     url = _api_url(ctx)
-    payload: dict = {"topic": topic, "target_word_count": words, "language": lang}
+    payload: dict = {
+        "topic": topic,
+        "target_word_count": words,
+        "language": lang,
+        "cadence_days": cadence_days,
+        "generate_now": True,
+    }
+    if measure_query:
+        payload["measure_query"] = measure_query
+    if brand_name:
+        payload["brand_name"] = brand_name
     if brand_voice:
-        bv_data = json.loads(brand_voice.read_text(encoding="utf-8"))
-        payload["brand_voice"] = bv_data
+        payload["brand_voice"] = json.loads(brand_voice.read_text(encoding="utf-8"))
+
     with httpx.Client(timeout=_DEFAULT_TIMEOUT) as client:
-        resp = client.post(f"{url}/api/jobs/", json=payload)
+        resp = client.post(f"{url}/api/lifecycles", json=payload)
         if not resp.is_success:
             _handle_http_error(resp)
         data = resp.json()
 
-    job_id = data["job_id"]
-    console.print(f"Job created: [bold]{job_id}[/bold]")
+    lc_id = data["id"]
+    job_id = data.get("current_job_id")
+    console.print(f"Lifecycle created: [bold]{lc_id}[/bold]")
     console.print(f"Topic: {data['topic']}")
+    if cadence_days > 0:
+        console.print(f"Mode: continuous (re-measure every {cadence_days} days)")
+    else:
+        console.print("Mode: single cycle (one-shot)")
 
-    if not poll:
+    if not poll or not job_id:
         return
 
     _poll_job(url, job_id, verbose=_is_verbose(ctx))
@@ -1203,6 +1232,174 @@ def _render_fanout_report(data: dict) -> None:
             console.print(f"  [green]Covered:[/green] {', '.join(gap['covered_types'])}")
         if gap["missing_types"]:
             console.print(f"  [red]Missing:[/red] {', '.join(gap['missing_types'])}")
+
+
+# ---------------------------------------------------------------------------
+# SEO Lifecycle commands
+# ---------------------------------------------------------------------------
+
+
+def _lc_base(url: str) -> str:
+    return f"{url}/api/lifecycles"
+
+
+@app.command(name="lifecycle-list")
+def lifecycle_list(
+    ctx: typer.Context,
+    phase: str = typer.Option("", "--phase", help="Filter by phase"),
+    json_out: bool = typer.Option(False, "--json", "-j", help="Output raw JSON"),
+) -> None:
+    """List SEO lifecycles."""
+    url = _api_url(ctx)
+    params: dict[str, Any] = {}
+    if phase:
+        params["phase"] = phase
+    with httpx.Client(timeout=_DEFAULT_TIMEOUT) as client:
+        resp = client.get(_lc_base(url), params=params)
+    data = _check_response(resp)
+    if json_out:
+        console.print_json(json.dumps(data, indent=2))
+        return
+    rows = data.get("lifecycles", [])
+    if not rows:
+        console.print("[dim]No lifecycles found.[/dim]")
+        return
+    table = Table(title=f"SEO Lifecycles ({data.get('total', 0)} total)")
+    table.add_column("ID", style="dim", width=10)
+    table.add_column("Topic", min_width=20)
+    table.add_column("Phase", width=14)
+    table.add_column("Cadence", justify="right", width=8)
+    table.add_column("Cycles", justify="right", width=7)
+    table.add_column("Next run", width=20)
+    for lc in rows:
+        cadence = f"{lc['cadence_days']}d" if lc["cadence_days"] else "once"
+        table.add_row(
+            lc["id"][:8] + "...",
+            lc["topic"],
+            lc["phase"],
+            cadence,
+            str(lc.get("cycle_count", 0)),
+            (lc.get("next_run_at") or "-")[:19],
+        )
+    console.print(table)
+
+
+@app.command(name="lifecycle-show")
+def lifecycle_show(
+    ctx: typer.Context,
+    lifecycle_id: str = typer.Argument(..., help="Lifecycle ID"),
+    json_out: bool = typer.Option(False, "--json", "-j", help="Output raw JSON"),
+) -> None:
+    """Show a lifecycle's current state and latest measurement snapshot."""
+    url = _api_url(ctx)
+    with httpx.Client(timeout=_DEFAULT_TIMEOUT) as client:
+        resp = client.get(f"{_lc_base(url)}/{lifecycle_id}")
+    data = _check_response(resp)
+    if json_out:
+        console.print_json(json.dumps(data, indent=2))
+        return
+    cadence = f"{data['cadence_days']}d" if data["cadence_days"] else "one-shot"
+    lines = [
+        f"[bold]Topic:[/bold] {data['topic']}",
+        f"[bold]Phase:[/bold] {data['phase']}",
+        f"[bold]Enabled:[/bold] {data['enabled']}",
+        f"[bold]Cadence:[/bold] {cadence}",
+        f"[bold]Cycles:[/bold] {data.get('cycle_count', 0)}",
+        f"[bold]Current job:[/bold] {data.get('current_job_id') or '-'}",
+        f"[bold]Published URL:[/bold] {data.get('published_url') or '-'}",
+        f"[bold]Next run:[/bold] {(data.get('next_run_at') or '-')[:19]}",
+        f"[bold]Latest AEO:[/bold] {data.get('last_aeo_score')}  "
+        f"[bold]Rank:[/bold] {data.get('last_rank_position')}  "
+        f"[bold]Brand:[/bold] {data.get('last_brand_visibility')}",
+    ]
+    if data.get("error"):
+        lines.append(f"[red]Error:[/red] {data['error']}")
+    console.print(Panel("\n".join(lines), title=f"Lifecycle {lifecycle_id[:8]}"))
+
+
+@app.command(name="lifecycle-trend")
+def lifecycle_trend(
+    ctx: typer.Context,
+    lifecycle_id: str = typer.Argument(..., help="Lifecycle ID"),
+    json_out: bool = typer.Option(False, "--json", "-j", help="Output raw JSON"),
+) -> None:
+    """Show the measurement history (AEO / rank / brand) over time."""
+    url = _api_url(ctx)
+    with httpx.Client(timeout=_DEFAULT_TIMEOUT) as client:
+        resp = client.get(f"{_lc_base(url)}/{lifecycle_id}/measurements")
+    data = _check_response(resp)
+    if json_out:
+        console.print_json(json.dumps(data, indent=2))
+        return
+    rows = data.get("measurements", [])
+    if not rows:
+        console.print("[dim]No measurements yet.[/dim]")
+        return
+    table = Table(title=f"Measurements ({data.get('total', 0)} total)")
+    table.add_column("When", width=20)
+    table.add_column("AEO", justify="right", width=6)
+    table.add_column("Rank", justify="right", width=6)
+    table.add_column("Brand", justify="right", width=7)
+    table.add_column("Age", justify="right", width=6)
+    table.add_column("Decayed", width=8)
+    table.add_column("Reasons")
+    for m in rows:
+        table.add_row(
+            (m.get("created_at") or "-")[:19],
+            str(m.get("aeo_score") if m.get("aeo_score") is not None else "-"),
+            str(m.get("rank_position") if m.get("rank_position") is not None else "-"),
+            str(m.get("brand_visibility") if m.get("brand_visibility") is not None else "-"),
+            str(m.get("content_age_days") if m.get("content_age_days") is not None else "-"),
+            "[red]yes[/red]" if m.get("decayed") else "[green]no[/green]",
+            ", ".join(m.get("decay_reasons", [])),
+        )
+    console.print(table)
+
+
+def _lc_action(ctx: typer.Context, lifecycle_id: str, action: str) -> None:
+    url = _api_url(ctx)
+    with httpx.Client(timeout=_DEFAULT_TIMEOUT) as client:
+        resp = client.post(f"{_lc_base(url)}/{lifecycle_id}/{action}")
+    data = _check_response(resp)
+    console.print(f"Lifecycle {lifecycle_id[:8]}: phase=[bold]{data['phase']}[/bold]")
+
+
+@app.command(name="lifecycle-pause")
+def lifecycle_pause(
+    ctx: typer.Context,
+    lifecycle_id: str = typer.Argument(..., help="Lifecycle ID"),
+) -> None:
+    """Pause a lifecycle (scheduler skips it)."""
+    _lc_action(ctx, lifecycle_id, "pause")
+
+
+@app.command(name="lifecycle-resume")
+def lifecycle_resume(
+    ctx: typer.Context,
+    lifecycle_id: str = typer.Argument(..., help="Lifecycle ID"),
+) -> None:
+    """Resume a paused lifecycle."""
+    _lc_action(ctx, lifecycle_id, "resume")
+
+
+@app.command(name="lifecycle-refresh")
+def lifecycle_refresh(
+    ctx: typer.Context,
+    lifecycle_id: str = typer.Argument(..., help="Lifecycle ID"),
+) -> None:
+    """Force a refresh cycle now (regenerate the article)."""
+    _lc_action(ctx, lifecycle_id, "refresh")
+
+
+@app.command(name="lifecycle-tick")
+def lifecycle_tick(ctx: typer.Context) -> None:
+    """Run one scheduler tick (requires DEBUG=true on the server)."""
+    url = _api_url(ctx)
+    with httpx.Client(timeout=_DEFAULT_TIMEOUT) as client:
+        resp = client.post(f"{_lc_base(url)}/tick")
+    data = _check_response(resp)
+    advanced = data.get("advanced", [])
+    console.print(f"Tick advanced {len(advanced)} lifecycle(s): {advanced}")
 
 
 if __name__ == "__main__":

@@ -1,5 +1,6 @@
 """FastAPI application entry point."""
 
+import asyncio
 import logging
 from contextlib import asynccontextmanager
 
@@ -14,6 +15,8 @@ from app.config import settings
 from app.db import async_session, init_db
 from app.job.models import Job, JobStatus
 from app.job.routes import router as jobs_router
+from app.lifecycle.routes import router as lifecycle_router
+from app.lifecycle.scheduler import recover_orphaned_lifecycles, run_scheduler_loop
 from app.publish.routes import router as publish_router
 
 log = logging.getLogger(__name__)
@@ -49,7 +52,21 @@ async def lifespan(app: FastAPI):
     await init_db()
     await cache.connect()
     await _recover_orphaned_jobs()
+    await recover_orphaned_lifecycles()
+
+    scheduler_task: asyncio.Task | None = None
+    if settings.lifecycle_enabled:
+        scheduler_task = asyncio.create_task(run_scheduler_loop())
+        log.info("Lifecycle scheduler started")
+
     yield
+
+    if scheduler_task is not None:
+        scheduler_task.cancel()
+        try:
+            await scheduler_task
+        except asyncio.CancelledError:
+            pass
     await cache.close()
 
 
@@ -72,6 +89,7 @@ app.include_router(jobs_router, prefix="/api")
 app.include_router(brand_router, prefix="/api")
 app.include_router(aeo_router, prefix="/api")
 app.include_router(publish_router, prefix="/api")
+app.include_router(lifecycle_router, prefix="/api")
 
 
 @app.get("/health")

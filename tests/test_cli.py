@@ -146,8 +146,10 @@ class TestCliOutputFiles:
         artifact = tmp_path / "generate.txt"
         log_file = tmp_path / "generate.log"
         response = MockResponse({
-            "job_id": "job-123",
+            "id": "lc-123",
             "topic": "best note-taking apps for founders",
+            "current_job_id": "job-123",
+            "cadence_days": 0,
         })
 
         def fake_poll(api_url: str, job_id: str, verbose: bool = False) -> None:
@@ -170,7 +172,7 @@ class TestCliOutputFiles:
 
         assert result.exit_code == 0
         artifact_text = artifact.read_text(encoding="utf-8")
-        assert "Job created: job-123" in artifact_text
+        assert "Lifecycle created: lc-123" in artifact_text
         assert "Topic: best note-taking apps for founders" in artifact_text
         assert "final summary line" in artifact_text
         assert "poll log line" not in artifact_text

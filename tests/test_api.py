@@ -36,7 +36,7 @@ async def client(test_session_factory):
     app.dependency_overrides[get_session] = override_session
 
     # Patch the pipeline to not actually run
-    with patch("app.job.routes._run_pipeline_background", new_callable=AsyncMock):
+    with patch("app.job.routes.run_job_background", new_callable=AsyncMock):
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as ac:
             yield ac

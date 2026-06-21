@@ -74,9 +74,27 @@ Post-processes articles after generation and editing. Returns `(ArticleContent, 
 - **Operational split**: Fetch and analysis are separate; a successful fetch can still end in `503` if the analyzer LLM backend fails
 - **Playwright loading**: Browser mode is lazy-imported so app startup/test collection does not require Playwright unless that path is used
 
+### SEO lifecycle (`app/lifecycle/`)
+
+Continuous, scheduled wrapper that turns the one-shot generator into an ongoing
+**Research → Optimize → Measure → Refresh** loop. The article pipeline is reused as a black-box
+"optimize" engine; AEO/brand/SERP are reused as the "measure" engine. Generation is the **default**
+user path: `autoseo generate` / `POST /api/lifecycles` create a `Lifecycle`. `cadence_days=0` →
+single cycle (one-shot equivalent); `cadence_days>0` → recurring. The legacy `POST /api/jobs` is
+retained as the low-level engine the lifecycle spawns jobs through.
+
+- **Phase state machine** (`service.py:advance_lifecycle`): `CREATED → GENERATING → (DONE | MONITORING) → MEASURING → (NEEDS_REFRESH → GENERATING | MONITORING) …`, plus `PAUSED`/`FAILED`. Each cycle spawns a **new `Job`** (reuses `create_job` + `run_pipeline` verbatim); the lifecycle holds `current_job_id` + a measurement time series.
+- **Reuse of job background runner**: `_run_pipeline_background` was extracted into `app/job/service.py:run_job_background(job_id, lifecycle_id=None)` (webhook + auto-publish moved with it). When `lifecycle_id` is set, it calls back `on_job_finished` so the lifecycle captures `PublishJob.published_url` and advances. This is the only behavioral change to existing job code.
+- **Measurement** (`measure.py`): 4 signals — AEO score (reuses `app/aeo/checks.py`), SERP rank (scans `serp.search()` results for `published_url`), brand visibility (best-effort via brand fetch+`compute_brand_scores`), content age. `decide_refresh()` is a pure threshold function.
+- **Scheduler** (`scheduler.py`): single-leader via a **session-scoped `pg_try_advisory_lock`** (`db.py:try_acquire_scheduler_lock`) so only one `uvicorn --workers 2` worker drives the loop. The leader loop does only fast DB work; all blocking work (pipeline, LLM measurement) is dispatched to tracked background tasks (`_track_task`). `tick(session, *, now, ...)` is the testable seam (no sleeping). Started in the lifespan only when `LIFECYCLE_ENABLED=true`.
+- **Recovery**: `recover_orphaned_lifecycles()` re-arms `GENERATING`/`MEASURING` lifecycles to `MONITORING` (due now) on restart, mirroring `_recover_orphaned_jobs`.
+- **Cross-DB datetime**: `ensure_aware()` normalizes naive SQLite datetimes to UTC-aware before comparing with `utcnow()` (Postgres returns aware).
+- **Tables**: `lifecycles` + `lifecycle_measurements` auto-create via `init_db()` (router import in `app/main.py` registers the models).
+
 ### Database bootstrap (`app/db.py`)
 
 - `init_db()` wraps `Base.metadata.create_all()` in a Postgres transaction-scoped advisory lock
+- `try_acquire_scheduler_lock()` is a session-scoped `pg_try_advisory_lock` for lifecycle scheduler leader election (returns `True` on non-Postgres / tests)
 - Fresh `uvicorn --workers 2` startup is safe against an empty Postgres database
 
 ## Key files
@@ -103,6 +121,12 @@ Post-processes articles after generation and editing. Returns `(ArticleContent, 
 | `app/brand/store.py` | Brand analysis persistence — `BrandAnalysis` ORM model + CRUD |
 | `app/brand/stream.py` | SSE streaming orchestrator for real-time brand analysis progress |
 | `app/brand/gather.py` | Partial-success gathering utility for parallel fetches |
+| `app/lifecycle/models.py` | `Lifecycle` + `LifecycleMeasurement` ORM, `LifecyclePhase`, `RefreshPolicy`, API schemas, `ensure_aware` |
+| `app/lifecycle/service.py` | `advance_lifecycle` state machine, `create_lifecycle`/CRUD, `complete_measurement`, `on_job_finished` callback |
+| `app/lifecycle/measure.py` | `measure_lifecycle` (AEO+SERP+brand+age), pure `decide_refresh` |
+| `app/lifecycle/scheduler.py` | `tick` (test seam), leader loop, `spawn_generation`/`dispatch_measurement`, `run_measurement_background`, `recover_orphaned_lifecycles` |
+| `app/lifecycle/routes.py` | Lifecycle endpoints (`/api/lifecycles` CRUD, pause/resume/refresh/measure, debug `/tick`) |
+| `app/job/service.py` | Job CRUD + `run_job_background(job_id, lifecycle_id=None)` (shared pipeline runner with webhook/auto-publish) |
 | `app/aeo/checks.py` | Direct answer, h-tag hierarchy, readability checks |
 | `app/aeo/fanout.py` | Fan-out prompt, sub-query generation, gap analysis |
 | `app/aeo/parser.py` | URL fetch + HTML parsing/boilerplate stripping (BeautifulSoup) |
@@ -132,7 +156,8 @@ uv run pytest tests/test_fanout_e2e.py -x -v    # E2E fanout (~1m, needs Google+
 uv run python -m spacy download en_core_web_sm  # Required for AEO checks/full suite
 uv run playwright install chromium              # Required for brand browser mode
 uv run uvicorn app.main:app --workers 2         # Agent SDK blocks the event loop
-uv run autoseo generate "topic" --brand-voice brand.json
+uv run autoseo generate "topic" --brand-voice brand.json   # creates a single-cycle lifecycle
+uv run autoseo generate "topic" --cadence-days 7            # continuous lifecycle (re-measure weekly)
 uv run autoseo -v generate "topic"
 uv run autoseo status <id>
 uv run autoseo result <id>
@@ -146,6 +171,11 @@ uv run autoseo brand "Notion" "best note-taking app" --json
 uv run autoseo brand "Notion" --url https://notion.so --mode api --json
 uv run autoseo brand-history
 uv run autoseo brand-history --brand "Notion"
+uv run autoseo lifecycle-list
+uv run autoseo lifecycle-show <id>
+uv run autoseo lifecycle-trend <id>
+uv run autoseo lifecycle-pause <id>    # also: lifecycle-resume, lifecycle-refresh
+uv run autoseo lifecycle-tick          # one scheduler tick (needs DEBUG=true on server)
 ```
 
 ## Config (env vars / .env)
@@ -174,6 +204,12 @@ uv run autoseo brand-history --brand "Notion"
 - `BRAND_MONITOR_MAX_PROMPTS` — Max auto-generated brand prompts (default `14`)
 - `BRAND_MONITOR_BATCH_SIZE` — Concurrent prompt analysis batch size (default `3`)
 - `PERSIST_EVENTS` — Keep pipeline events after completion (default `false`)
+- `LIFECYCLE_ENABLED` — Master switch for the SEO lifecycle scheduler loop (default `false`; nothing runs until set)
+- `LIFECYCLE_POLL_INTERVAL_SECONDS` — Leader-loop poll cadence (default `300`)
+- `LIFECYCLE_BATCH_SIZE` — Max lifecycles advanced per tick (default `20`)
+- `LIFECYCLE_MAX_CONCURRENT` — Cap on simultaneous generation spawns (default `2`)
+- `LIFECYCLE_DEFAULT_CADENCE_DAYS` — Default re-measure cadence (default `30`)
+- `LIFECYCLE_RANK_THRESHOLD` / `LIFECYCLE_AEO_THRESHOLD` / `LIFECYCLE_BRAND_THRESHOLD` / `LIFECYCLE_MAX_CONTENT_AGE_DAYS` — Refresh-decision thresholds (default `3` / `65` / `50.0` / `90`)
 
 ## DB migration
 
@@ -188,7 +224,7 @@ ALTER TABLE jobs ADD COLUMN IF NOT EXISTS events_data JSON;
 UPDATE jobs SET status='planning' WHERE status IN ('analyzing', 'outlining');
 ```
 
-Tables `aeo_analyses` (ORM in `app/aeo/store.py`) and `brand_analyses` (ORM in `app/brand/store.py`) auto-create alongside `jobs` on fresh databases.
+Tables `aeo_analyses` (ORM in `app/aeo/store.py`), `brand_analyses` (ORM in `app/brand/store.py`), and `lifecycles` + `lifecycle_measurements` (ORM in `app/lifecycle/models.py`) auto-create alongside `jobs` on fresh databases. The lifecycle tables reference `jobs`/`publish_jobs` by plain string id — no `ALTER` needed on existing tables.
 
 Fresh databases auto-create on startup, and Postgres startup is serialized with an advisory lock so multi-worker boot is safe.
 
@@ -225,6 +261,7 @@ Fresh databases auto-create on startup, and Postgres startup is serialized with 
 - Mock LLM requires `drain_usage = MagicMock(return_value=[])` and `drain_call_log = MagicMock(return_value=[])`
 - Threshold for edit-loop tests: use `0.6` because `word_count_target` is double-weighted
 - Single-provider council dimension count assertion: `9 = 7` algorithmic + `2` merged LLM
+- **Lifecycle tests** (`test_lifecycle.py`): drive `advance_lifecycle` with `MagicMock` `spawn`/`dispatch_measure` (no real pipeline); call `tick(session, now=fixed)` directly (no cron/sleep); `decide_refresh`/`_measure_rank` are pure-function tests; API smoke via `ASGITransport` patches `app.lifecycle.routes.spawn_generation`/`dispatch_measurement`. Endpoints that commit before serializing call `session.refresh()` to avoid `MissingGreenlet` on `updated_at`.
 
 ### E2E tests (52 tests, 4 files) — real API calls
 
