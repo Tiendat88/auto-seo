@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { ThemeProvider as NextThemesProvider } from "@wrksz/themes/next";
+import { ThemeProvider as NextThemesProvider } from "@wrksz/themes";
+
 
 export function ThemeProvider({
   children,
