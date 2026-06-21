@@ -11,7 +11,7 @@
       "details": {
         "word_count": 88,
         "threshold": 60,
-        "is_declarative": true,
+        "is_declarative": false,
         "has_hedge_phrase": true
       },
       "recommendation": "Opening paragraph is 88 words. Trim to under 60 words with a direct, declarative answer."

@@ -14,6 +14,7 @@ from app.config import settings
 from app.db import async_session, init_db
 from app.job.models import Job, JobStatus
 from app.job.routes import router as jobs_router
+from app.publish.routes import router as publish_router
 
 log = logging.getLogger(__name__)
 
@@ -70,6 +71,7 @@ app.add_middleware(
 app.include_router(jobs_router, prefix="/api")
 app.include_router(brand_router, prefix="/api")
 app.include_router(aeo_router, prefix="/api")
+app.include_router(publish_router, prefix="/api")
 
 
 @app.get("/health")

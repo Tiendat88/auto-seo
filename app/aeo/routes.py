@@ -67,11 +67,10 @@ async def analyze(
 async def fanout(
     request: FanOutRequest,
     session: AsyncSession = Depends(get_session),
-    provider: str | None = Query(default=None, description="LLM provider override"),
-    model: str | None = Query(default=None, description="Model name override"),
+    model: str | None = Query(default=None, description="LLM model override"),
 ) -> FanOutResponse:
-    """Generate sub-queries via LLM, optionally with gap analysis."""
-    llm = LlmClient(provider=provider or "", model=model or "")
+    """Decompose a query into sub-queries and optionally find content gaps."""
+    llm = LlmClient(model=model or "")
     try:
         sub_queries, model_used = await generate_sub_queries(request.target_query, llm)
     except LlmError as exc:

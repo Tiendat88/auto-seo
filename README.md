@@ -49,7 +49,7 @@ POST /jobs → Job(PENDING) → Background pipeline:
 
 ### Multi-Provider Council
 
-When multiple LLM backends are configured (Anthropic, Gemini, Codex), the pipeline forms a council via `get_llm_council()`. Note: standard `OPENAI_API_KEY` alone does **not** join the council — only `OPENAI_CODEX=true` adds the OpenAI backend:
+When multiple LLM backends are configured (Anthropic, Gemini, Codex), the pipeline forms a council via `get_llm_council()`. Note: `LITELLM_API_KEY` alone does **not** join the council — only `OPENAI_CODEX=true` adds the OpenAI backend:
 
 - **Analysis**: all providers analyze competitors in parallel; results are merged by consensus.
 - **Scoring**: LLM dimensions fan out to all providers and are averaged by dimension.
@@ -171,12 +171,13 @@ Environment variables (or `.env` file):
 |----------|---------|-------------|
 | `ANTHROPIC_API_KEY` | — | Anthropic API key (if set, uses API backend; otherwise falls back to Claude Agent SDK) |
 | `GOOGLE_API_KEY` | — | Enables Gemini in the provider council and brand API fetches |
-| `OPENAI_API_KEY` | — | Enables OpenAI API fetches for brand monitoring (`chatgpt`) |
+| `LITELLM_API_KEY` | — | API key for LiteLLM / OpenAI-compatible gateway |
 | `PERPLEXITY_API_KEY` | — | Enables Perplexity API fetches for brand monitoring |
 | `LLM_MODEL` | `claude-sonnet-4-6` | Anthropic model to use |
 | `GEMINI_MODEL` | `gemini-3-flash-preview` | Default Gemini model for non-writing tasks |
 | `GEMINI_WRITING_MODEL` | `gemini-3-pro-preview` | Gemini model used only for article draft + edit generation |
-| `OPENAI_MODEL` | `o3-mini` | OpenAI model to use |
+| `LITELLM_MODEL` | *(required)* | Model name passed through LiteLLM gateway |
+| `LITELLM_BASE_URL` | — | LiteLLM gateway base URL (e.g. `http://localhost:4000`) |
 | `OPENAI_CODEX` | `false` | Enable Codex SDK backend (ChatGPT subscription) |
 | `SERP_PROVIDER` | `mock` | `mock` or `serpapi` |
 | `SERPAPI_KEY` | — | Required if `SERP_PROVIDER=serpapi` |

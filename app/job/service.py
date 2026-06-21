@@ -11,6 +11,7 @@ async def create_job(session: AsyncSession, request: ArticleRequest) -> Job:
         topic=request.topic,
         target_word_count=request.target_word_count,
         language=request.language,
+        webhook_url=request.webhook_url,
     )
     if request.brand_voice:
         job.set_brand_voice(request.brand_voice)

@@ -23,13 +23,13 @@
     },
     {
       "file": "best-productivity-tools-for-remote-teams.md",
-      "aeo_score": 67,
-      "band": "Needs Improvement",
+      "aeo_score": 53,
+      "band": "Significant Gaps",
       "direct_answer": 12,
       "htag_hierarchy": 20,
-      "readability": 8,
-      "grade_level": 11.2,
-      "word_count": 45
+      "readability": 0,
+      "grade_level": 11.6,
+      "word_count": 835
     },
     {
       "file": "customer-onboarding-checklist-for-b2b-saas.md",
@@ -43,9 +43,9 @@
     },
     {
       "file": "gemini-cli-fallback-verification.md",
-      "aeo_score": 40,
+      "aeo_score": 53,
       "band": "Significant Gaps",
-      "direct_answer": 12,
+      "direct_answer": 20,
       "htag_hierarchy": 12,
       "readability": 0,
       "grade_level": 14.6,
@@ -53,13 +53,13 @@
     },
     {
       "file": "how-to-implement-retrieval-augmented-generation.md",
-      "aeo_score": 67,
-      "band": "Needs Improvement",
-      "direct_answer": 20,
+      "aeo_score": 53,
+      "band": "Significant Gaps",
+      "direct_answer": 12,
       "htag_hierarchy": 20,
       "readability": 0,
-      "grade_level": 15.3,
-      "word_count": 1449
+      "grade_level": 12.6,
+      "word_count": 1081
     },
     {
       "file": "remote-teamwork-tools.md",

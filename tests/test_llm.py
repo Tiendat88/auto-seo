@@ -26,7 +26,7 @@ class TestProviderSelection:
         assert client.backend == "gemini"
 
     @patch("app.llm.settings", MagicMock(
-        anthropic_api_key="sk-test", llm_model="claude-sonnet-4-6", openai_codex=False,
+        anthropic_api_key="sk-test", llm_model="claude-sonnet-4-6", openai_codex=False, litellm_base_url=None,
     ))
     @patch("app.llm.AsyncAnthropic", create=True)
     def test_anthropic_provider(self, _mock_anthropic):
@@ -34,7 +34,7 @@ class TestProviderSelection:
         assert client.backend == "anthropic"
 
     @patch("app.llm.settings", MagicMock(
-        anthropic_api_key="", llm_model="claude-sonnet-4-6", openai_codex=False, google_api_key="",
+        anthropic_api_key="", llm_model="claude-sonnet-4-6", openai_codex=False, google_api_key="", litellm_base_url=None,
     ))
     def test_sdk_fallback(self):
         client = LlmClient()
@@ -46,6 +46,7 @@ class TestProviderSelection:
         openai_codex=False,
         google_api_key="gk-test",
         gemini_model="gemini-3-flash-preview",
+        litellm_base_url=None,
     ))
     @patch("google.genai.Client")
     def test_default_prefers_gemini_when_google_key_available(self, mock_genai_client_cls):
@@ -60,7 +61,7 @@ class TestProviderSelection:
         assert client.backend == "openai-codex"
 
     @skip_no_codex
-    @patch("app.llm.settings", MagicMock(openai_model="o3-mini"))
+    @patch("app.llm.settings", MagicMock(litellm_model="o3-mini", litellm_base_url=None))
     def test_codex_with_model(self):
         client = LlmClient(provider="openai-codex")
         assert client.backend == "openai-codex"
@@ -72,7 +73,7 @@ class TestGetLlmCouncil:
     @patch.object(settings, "anthropic_api_key", "sk-test")
     @patch.object(settings, "google_api_key", "gk-test")
     @patch.object(settings, "openai_codex", True)
-    @patch.object(settings, "openai_model", "o3-mini")
+    @patch.object(settings, "litellm_model", "o3-mini")
     def test_returns_all_configured(self):
         council = get_llm_council()
         backends = [c.backend for c in council]

@@ -245,10 +245,7 @@ async def generate_step(
         brand_voice=brand_voice, target_word_count=job.target_word_count,
         content_gaps=analysis.content_gaps,
     )
-    writer_llm, dedicated_writer = _resolve_article_writer(job, llm, "generating")
-    article_md = await writer_llm.generate_text(prompt, max_tok)
-    if dedicated_writer:
-        _drain_telemetry(job, [writer_llm], "generating")
+    article_md = await llm.generate_text(prompt, max_tok)
 
     # 2. Parse markdown → sections + FAQ, then scrub
     sections, faq_items = _parse_article_markdown(article_md, outline)
@@ -515,10 +512,7 @@ async def edit_step(
     )
 
     max_tok = _max_tokens(job.target_word_count)
-    writer_llm, dedicated_writer = _resolve_article_writer(job, llm, "editing")
-    edited_md = await writer_llm.generate_text(prompt, max_tok)
-    if dedicated_writer:
-        _drain_telemetry(job, [writer_llm], "editing")
+    edited_md = await llm.generate_text(prompt, max_tok)
 
     sections, faq_items = _parse_article_markdown(edited_md, outline)
     # Prefer parsed FAQ, fall back to existing if edit didn't include FAQ, then scrub
@@ -694,30 +688,6 @@ def _section_summaries(sections: list[ArticleSection]) -> list[tuple[str, str]]:
             summary += "."
         result.append((s.heading, summary))
     return result
-
-
-def _resolve_article_writer(
-    job: Job,
-    llm: LlmClient,
-    step_name: str,
-) -> tuple[LlmClient, bool]:
-    """Use Gemini Pro only for article drafting and rewriting."""
-    if not settings.google_api_key:
-        job.append_event(
-            step_name,
-            "warning",
-            "GOOGLE_API_KEY unavailable; "
-            f"using {llm.backend} ({llm.model_name}) for article writing",
-        )
-        return llm, False
-
-    writer = LlmClient(provider="gemini", model=settings.gemini_writing_model)
-    job.append_event(
-        step_name,
-        "writer_model",
-        f"Using gemini writer model {writer.model_name}",
-    )
-    return writer, True
 
 
 def _format_scrub_stats(stats: ScrubStats) -> str:

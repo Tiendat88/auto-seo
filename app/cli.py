@@ -1077,12 +1077,6 @@ def fanout_generate(
     content: str | None = typer.Option(
         None, "--content", "-c", help="URL or file path with existing content for gap analysis"
     ),
-    provider: str | None = typer.Option(
-        None, "--provider", "-p", help="LLM provider: anthropic, gemini, openai-codex"
-    ),
-    model: str | None = typer.Option(
-        None, "--model", "-m", help="Model override (e.g. gemini-3-flash-preview)"
-    ),
     json_out: bool = typer.Option(False, "--json", "-j", help="Output raw JSON"),
 ) -> None:
     """Generate sub-queries via LLM and analyze content gaps."""
@@ -1096,10 +1090,6 @@ def fanout_generate(
             payload["existing_content"] = Path(content).read_text(encoding="utf-8")
 
     params: dict[str, str] = {}
-    if provider:
-        params["provider"] = provider
-    if model:
-        params["model"] = model
 
     with log_console.status("Generating sub-queries..."):
         with httpx.Client(timeout=120) as client:

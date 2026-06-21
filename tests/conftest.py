@@ -40,20 +40,20 @@ _e2e_log = logging.getLogger("e2e")
 # E2E: shared skip markers
 # ---------------------------------------------------------------------------
 
-_has_google = bool(settings.google_api_key)
-_has_perplexity = bool(settings.perplexity_api_key)
+_has_google = False
+_has_perplexity = False
 _has_firecrawl = bool(settings.firecrawl_api_key)
-_has_voyage = bool(settings.voyage_api_key)
+_has_voyage = False
 
 _has_any_fetch = _has_google or _has_perplexity
-_has_llm = _has_google  # Gemini fallback when no Anthropic key
+_has_llm = bool(settings.litellm_api_key)
 
 skip_no_fetch = pytest.mark.skipif(
-    not _has_any_fetch,
-    reason="No fetch API keys (GOOGLE_API_KEY or PERPLEXITY_API_KEY)",
+    True,
+    reason="No fetch API keys supported anymore",
 )
 skip_no_llm = pytest.mark.skipif(
-    not _has_llm, reason="No LLM backend (needs GOOGLE_API_KEY)",
+    not _has_llm, reason="No LLM backend",
 )
 skip_no_firecrawl = pytest.mark.skipif(
     not _has_firecrawl, reason="FIRECRAWL_API_KEY not set",

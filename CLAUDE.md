@@ -152,12 +152,12 @@ uv run autoseo brand-history --brand "Notion"
 
 - `ANTHROPIC_API_KEY` — Anthropic API key (if set, uses API backend)
 - `GOOGLE_API_KEY` — Enables Gemini in the provider council and brand API fetches
-- `OPENAI_API_KEY` — Enables OpenAI API fetches for brand monitoring
+- `LITELLM_API_KEY` — API key for LiteLLM / OpenAI-compatible gateway
 - `PERPLEXITY_API_KEY` — Enables Perplexity API fetches for brand monitoring
 - `LLM_MODEL` — Anthropic model (default `claude-sonnet-4-6`)
 - `GEMINI_MODEL` — Default Gemini model for non-writing tasks (default `gemini-3-flash-preview`)
 - `GEMINI_WRITING_MODEL` — Gemini model for article draft + edit generation (default `gemini-3-pro-preview`)
-- `OPENAI_MODEL` — OpenAI model (default `o3-mini`)
+- `LITELLM_MODEL` — Model name passed through LiteLLM gateway
 - `OPENAI_CODEX` — Set `true` to use Codex SDK backend (ChatGPT subscription)
 - `SERP_PROVIDER` — `mock` (default) or `serpapi`
 - `SERPAPI_KEY` — Required if `SERP_PROVIDER=serpapi`

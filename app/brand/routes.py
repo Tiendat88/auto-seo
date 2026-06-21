@@ -31,14 +31,9 @@ async def _auto_fetch(
     pasted = {pr.platform for pr in request.platform_responses}
 
     try:
-        if request.fetch_mode == FetchMode.BROWSER:
-            from app.brand.browser_fetcher import fetch_browser_responses
-
-            responses = await fetch_browser_responses(query, skip=pasted)
-        else:
-            responses = await fetch_platform_responses(
-                query, skip=pasted, web_search=request.web_search,
-            )
+        responses = await fetch_platform_responses(
+            query, skip=pasted, web_search=request.web_search,
+        )
     except ValueError:
         return []  # no providers configured — rely on pasted
     except LlmError as exc:
@@ -151,8 +146,7 @@ async def analyze(request: BrandMonitorRequest) -> BrandMonitorResponse:
             status_code=400,
             detail=(
                 "No platform responses available. Either paste responses in "
-                "platform_responses, configure API keys, or use "
-                "fetch_mode='browser'."
+                "platform_responses or configure the LiteLLM API key."
             ),
         )
 

@@ -153,14 +153,9 @@ async def run_brand_analysis_stream(
 
     for i, query in enumerate(queries):
         try:
-            if request.fetch_mode == FetchMode.BROWSER:
-                from app.brand.browser_fetcher import fetch_browser_responses
-
-                responses = await fetch_browser_responses(query)
-            else:
-                responses = await fetch_platform_responses(
-                    query, web_search=request.web_search,
-                )
+            responses = await fetch_platform_responses(
+                query, web_search=request.web_search,
+            )
 
             # Tag each response with its originating query (#21)
             for r in responses:

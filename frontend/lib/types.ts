@@ -275,6 +275,7 @@ export interface ArticleRequest {
   target_word_count?: number;
   language?: string;
   brand_voice?: BrandVoice;
+  webhook_url?: string;
 }
 
 export interface JobSummaryResponse {
@@ -286,6 +287,7 @@ export interface JobSummaryResponse {
   current_step: string | null;
   error: string | null;
   revision_count: number;
+  webhook_url: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -305,6 +307,21 @@ export interface JobResponse extends JobSummaryResponse {
 export interface JobListResponse {
   jobs: JobSummaryResponse[];
   total: number;
+}
+
+export interface CampaignRequest {
+  main_keyword: string;
+  target_word_count?: number;
+  language?: string;
+  brand_voice?: BrandVoice;
+  num_keywords?: number;
+  webhook_url?: string;
+}
+
+export interface CampaignResponse {
+  main_keyword: string;
+  generated_keywords: string[];
+  jobs: JobSummaryResponse[];
 }
 
 // --- Brand Monitor ---
@@ -481,3 +498,71 @@ export interface FanOutResponse {
   sub_queries: SubQuery[];
   gap_summary: GapSummary | null;
 }
+
+// --- Publish ---
+
+export type PublishMode = "draft" | "published";
+export type PublishJobStatus = "pending" | "sent" | "success" | "failed" | "cancelled";
+
+export interface PublishTarget {
+  id: string;
+  name: string;
+  endpoint_url: string;
+  secret_key: string;       // masked on server: sk_***xxxx
+  default_mode: PublishMode;
+  auto_publish: boolean;
+  created_at: string;
+}
+
+export interface PublishTargetListResponse {
+  targets: PublishTarget[];
+  total: number;
+}
+
+export interface PublishJob {
+  id: string;
+  job_id: string;
+  target_id: string | null;
+  target_name: string;
+  target_url: string;
+  mode: PublishMode;
+  status: PublishJobStatus;
+  article_title: string;
+  article_slug: string;
+  published_url: string | null;
+  error_message: string | null;
+  retry_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PublishJobListResponse {
+  jobs: PublishJob[];
+  total: number;
+}
+
+export interface CreateTargetRequest {
+  name: string;
+  endpoint_url: string;
+  secret_key: string;
+  default_mode?: PublishMode;
+  auto_publish?: boolean;
+}
+
+export interface CreatePublishJobRequest {
+  job_id: string;
+  target_id: string;
+  mode?: PublishMode;
+}
+
+export interface TestConnectionRequest {
+  endpoint_url: string;
+  secret_key: string;
+}
+
+export interface TestConnectionResponse {
+  success: boolean;
+  response?: Record<string, unknown>;
+  error?: string;
+}
+

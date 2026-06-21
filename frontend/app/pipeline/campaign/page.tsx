@@ -13,10 +13,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { createJob } from "@/lib/api";
+import { createCampaign } from "@/lib/api";
 import type { BrandVoice } from "@/lib/types";
 import { toast } from "sonner";
-import { Sparkles, FileText } from "lucide-react";
+import { Sparkles, Layers } from "lucide-react";
 
 const LANGUAGES = [
   { value: "en", label: "English" },
@@ -25,16 +25,15 @@ const LANGUAGES = [
   { value: "de", label: "German" },
   { value: "pt", label: "Portuguese" },
   { value: "vi", label: "Vietnamese" },
-  { value: "it", label: "Italian" },
-  { value: "nl", label: "Dutch" },
   { value: "ja", label: "Japanese" },
   { value: "ko", label: "Korean" },
   { value: "zh", label: "Chinese" },
 ];
 
-export default function NewJobPage() {
+export default function NewCampaignPage() {
   const router = useRouter();
-  const [topic, setTopic] = useState("");
+  const [mainKeyword, setMainKeyword] = useState("");
+  const [numKeywords, setNumKeywords] = useState(5);
   const [wordCount, setWordCount] = useState(1500);
   const [language, setLanguage] = useState("vi");
   const [webhookUrl, setWebhookUrl] = useState("");
@@ -49,24 +48,25 @@ export default function NewJobPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (topic.length < 3) {
-      toast.error("Topic must be at least 3 characters");
+    if (mainKeyword.length < 3) {
+      toast.error("Từ khóa phải có ít nhất 3 ký tự");
       return;
     }
     setSubmitting(true);
     try {
       const bv = showBrandVoice ? brandVoice : undefined;
-      const job = await createJob({
-        topic,
+      const campaign = await createCampaign({
+        main_keyword: mainKeyword,
+        num_keywords: numKeywords,
         target_word_count: wordCount,
         language,
         brand_voice: bv,
         webhook_url: webhookUrl.trim() || undefined,
       });
-      toast.success("Đã tạo bài viết thành công!");
-      router.push(`/pipeline/${job.job_id}`);
+      toast.success(`Đã tạo chiến dịch với ${campaign.jobs.length} bài viết!`);
+      router.push(`/pipeline`);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Tạo bài viết thất bại");
+      toast.error(err instanceof Error ? err.message : "Tạo chiến dịch thất bại");
     } finally {
       setSubmitting(false);
     }
@@ -76,11 +76,11 @@ export default function NewJobPage() {
     <div className="mx-auto max-w-3xl space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="flex items-center gap-3">
         <div className="p-3 bg-blue-500/10 rounded-xl">
-          <FileText className="w-6 h-6 text-blue-500" />
+          <Layers className="w-6 h-6 text-blue-500" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold">Tạo Bài Viết Mới (Job)</h1>
-          <p className="text-sm text-muted-foreground mt-1">AI sẽ tự động nghiên cứu, lên dàn ý và viết bài chuẩn SEO.</p>
+          <h1 className="text-2xl font-bold">Tạo Chiến Dịch SEO Mới</h1>
+          <p className="text-sm text-muted-foreground mt-1">AI sẽ tự động nghiên cứu từ khóa phụ và viết hàng loạt bài viết.</p>
         </div>
       </div>
 
@@ -89,28 +89,37 @@ export default function NewJobPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Sparkles className="w-5 h-5 text-blue-500" />
-              Thông tin Bài viết
+              Thông tin Chiến dịch
             </CardTitle>
-            <CardDescription>Nhập chủ đề bạn muốn viết, AI sẽ lo phần còn lại.</CardDescription>
+            <CardDescription>Nhập từ khóa chính, AI sẽ lo phần còn lại.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
             <div className="space-y-2">
-              <label className="text-sm font-medium">Chủ đề (Topic)</label>
+              <label className="text-sm font-medium">Từ khóa chính (Seed Keyword)</label>
               <Input
-                value={topic}
-                onChange={(e) => setTopic(e.target.value)}
-                placeholder="VD: Top 5 phần mềm quản lý bán hàng tốt nhất 2026..."
+                value={mainKeyword}
+                onChange={(e) => setMainKeyword(e.target.value)}
+                placeholder="VD: Máy lọc nước, Cách học tiếng Anh..."
                 minLength={3}
                 maxLength={200}
                 required
                 className="text-lg py-6"
               />
-              <p className="text-xs text-muted-foreground">{topic.length}/200</p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium">Độ dài mục tiêu (Từ)</label>
+                <label className="text-sm font-medium">Số lượng bài viết</label>
+                <Input
+                  type="number"
+                  value={numKeywords}
+                  onChange={(e) => setNumKeywords(Number(e.target.value))}
+                  min={1}
+                  max={20}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Độ dài mỗi bài (Từ)</label>
                 <Input
                   type="number"
                   value={wordCount}
@@ -128,7 +137,7 @@ export default function NewJobPage() {
                   <SelectContent>
                     {LANGUAGES.map((lang) => (
                       <SelectItem key={lang.value} value={lang.value}>
-                        {lang.label}
+                         {lang.label}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -142,10 +151,10 @@ export default function NewJobPage() {
                 type="url"
                 value={webhookUrl}
                 onChange={(e) => setWebhookUrl(e.target.value)}
-                placeholder="VD: https://your-website.com/api/webhooks/article"
+                placeholder="VD: https://your-website.com/api/webhooks/campaign"
               />
               <p className="text-xs text-muted-foreground">
-                Hệ thống sẽ tự động POST dữ liệu bài viết (JSON) tới URL này khi hoàn thành.
+                Hệ thống sẽ tự động POST dữ liệu các bài viết (JSON) tới URL này khi hoàn thành.
               </p>
             </div>
           </CardContent>
@@ -208,7 +217,7 @@ export default function NewJobPage() {
                     }}
                     disabled={brandVoice.writing_examples.length >= 3}
                   >
-                    Add Example
+                    Thêm mẫu
                   </Button>
                 </div>
                 {brandVoice.writing_examples.map((example, i) => (
@@ -255,14 +264,14 @@ export default function NewJobPage() {
         <Button 
           type="submit" 
           className="w-full h-12 text-lg bg-blue-600 hover:bg-blue-700 text-white"
-          disabled={submitting || topic.length < 3}
+          disabled={submitting || mainKeyword.length < 3}
         >
           {submitting ? (
             <span className="flex items-center gap-2">
-              <span className="animate-spin">⏳</span> Đang suy nghĩ \u0026 tạo bài viết...
+              <span className="animate-spin">⏳</span> Đang suy nghĩ từ khóa \u0026 tạo chiến dịch...
             </span>
           ) : (
-            "Khởi tạo Bài viết"
+            "Khởi chạy Chiến dịch Tự động"
           )}
         </Button>
       </form>

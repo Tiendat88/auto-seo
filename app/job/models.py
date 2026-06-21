@@ -51,6 +51,7 @@ class Job(Base):
     current_step: Mapped[str | None] = mapped_column(String(50), nullable=True)
     error: Mapped[str | None] = mapped_column(Text, nullable=True)
     revision_count: Mapped[int] = mapped_column(Integer, default=0)
+    webhook_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
 
     # Intermediate results (JSON, nullable)
     serp_data: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
@@ -188,6 +189,12 @@ class Job(Base):
         existing.append(entry)
         self.events_data = existing
 
+    @property
+    def result(self) -> dict[str, Any] | None:
+        """Serialized composite result (dict) — used by the publish payload builder."""
+        built = self.build_result()
+        return built.model_dump(mode="json") if built else None
+
     def build_result(self) -> ArticleResult | None:
         """Build composite result from all intermediate data. Returns None if incomplete."""
         seo = self.get_seo_metadata()
@@ -233,6 +240,7 @@ class ArticleRequest(BaseModel):
     target_word_count: int = Field(default=1500, ge=300, le=10000)
     language: str = Field(default="en", pattern=r"^[a-z]{2}$")
     brand_voice: BrandVoice | None = None
+    webhook_url: str | None = Field(default=None, max_length=500, description="Optional custom webhook to auto-post the result to")
 
 
 class JobSummaryResponse(BaseModel):
@@ -263,3 +271,23 @@ class JobResponse(JobSummaryResponse):
 class JobListResponse(BaseModel):
     jobs: list[JobSummaryResponse]
     total: int
+
+
+class CampaignRequest(BaseModel):
+    main_keyword: str = Field(..., min_length=3, max_length=200)
+    target_word_count: int = Field(default=1500, ge=300, le=10000)
+    language: str = Field(default="en", pattern=r"^[a-z]{2}$")
+    brand_voice: BrandVoice | None = None
+    num_keywords: int = Field(default=5, ge=1, le=20)
+    webhook_url: str | None = Field(default=None, max_length=500, description="Optional custom webhook to auto-post the results to")
+
+
+class KeywordCluster(BaseModel):
+    keywords: list[str] = Field(description="List of specific, actionable sub-keywords or article topics based on the main keyword")
+
+
+class CampaignResponse(BaseModel):
+    main_keyword: str
+    generated_keywords: list[str]
+    jobs: list[JobSummaryResponse]
+

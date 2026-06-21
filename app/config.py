@@ -5,20 +5,15 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     # LLM
-    anthropic_api_key: str = ""
-    llm_model: str = "claude-sonnet-4-6"
-    google_api_key: str = ""
-    gemini_model: str = "gemini-3-flash-preview"
-    gemini_writing_model: str = "gemini-3-pro-preview"
-    openai_api_key: str = ""
-    openai_model: str = "o3-mini"
-    openai_codex: bool = False
-    perplexity_api_key: str = ""
+    litellm_api_key: str = ""
+    litellm_model: str = "openrouter/deepseek/deepseek-chat"
+    litellm_base_url: str = ""
 
     # SERP
     serp_provider: str = "mock"
+    firecrawl_api_key: str | None = None
+    webhook_url: str | None = None
     serpapi_key: str = ""
-    firecrawl_api_key: str = ""
     content_fetch_top_n: int = 10
 
     # Database
@@ -33,8 +28,6 @@ class Settings(BaseSettings):
 
     # AEO
     aeo_similarity_threshold: float = 0.72
-    voyage_api_key: str = ""
-    voyage_embedding_model: str = "voyage-4-large"
 
     # Brand Monitor
     brand_monitor_max_prompts: int = 14

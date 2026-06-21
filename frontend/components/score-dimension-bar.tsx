@@ -1,5 +1,6 @@
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
+import { SCORE_DIMENSION_VI } from "@/lib/constants";
 
 function barColor(score: number): string {
   if (score < 0.5) return "[&>div]:bg-destructive";
@@ -16,10 +17,12 @@ export function ScoreDimensionBar({
   score: number;
   feedback?: string;
 }) {
+  const displayName = SCORE_DIMENSION_VI[name] ?? name.replace(/_/g, " ");
+
   return (
     <div className="space-y-1">
       <div className="flex items-center justify-between text-sm">
-        <span className="capitalize">{name.replace(/_/g, " ")}</span>
+        <span className="capitalize font-medium">{displayName}</span>
         <span className="font-mono text-xs text-muted-foreground">
           {(score * 100).toFixed(0)}%
         </span>
@@ -31,3 +34,4 @@ export function ScoreDimensionBar({
     </div>
   );
 }
+

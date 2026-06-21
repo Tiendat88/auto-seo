@@ -9,6 +9,16 @@ import type {
   FanOutResponse,
   JobListResponse,
   JobResponse,
+  CampaignRequest,
+  CampaignResponse,
+  PublishTarget,
+  PublishTargetListResponse,
+  PublishJob,
+  PublishJobListResponse,
+  CreateTargetRequest,
+  CreatePublishJobRequest,
+  TestConnectionRequest,
+  TestConnectionResponse,
 } from "./types";
 
 export class ApiError extends Error {
@@ -38,7 +48,14 @@ async function fetchApi<T>(path: string, options?: RequestInit): Promise<T> {
 // --- Jobs ---
 
 export function createJob(request: ArticleRequest): Promise<JobResponse> {
-  return fetchApi("/api/jobs/", {
+  return fetchApi("/api/jobs", {
+    method: "POST",
+    body: JSON.stringify(request),
+  });
+}
+
+export function createCampaign(request: CampaignRequest): Promise<CampaignResponse> {
+  return fetchApi("/api/jobs/campaign", {
     method: "POST",
     body: JSON.stringify(request),
   });
@@ -53,7 +70,7 @@ export function listJobs(params: {
   if (params.status) sp.set("status", params.status);
   if (params.limit) sp.set("limit", String(params.limit));
   if (params.offset) sp.set("offset", String(params.offset));
-  return fetchApi(`/api/jobs/?${sp.toString()}`);
+  return fetchApi(`/api/jobs?${sp.toString()}`);
 }
 
 export function getJob(
@@ -180,3 +197,57 @@ export function fanout(request: FanOutRequest): Promise<FanOutResponse> {
     body: JSON.stringify(request),
   });
 }
+
+// --- Publish Targets ---
+
+export function listPublishTargets(): Promise<PublishTargetListResponse> {
+  return fetchApi("/api/publish/targets");
+}
+
+export function createPublishTarget(request: CreateTargetRequest): Promise<PublishTarget> {
+  return fetchApi("/api/publish/targets", {
+    method: "POST",
+    body: JSON.stringify(request),
+  });
+}
+
+export function deletePublishTarget(targetId: string): Promise<void> {
+  return fetchApi(`/api/publish/targets/${targetId}`, { method: "DELETE" });
+}
+
+export function testPublishConnection(request: TestConnectionRequest): Promise<TestConnectionResponse> {
+  return fetchApi("/api/publish/targets/test", {
+    method: "POST",
+    body: JSON.stringify(request),
+  });
+}
+
+// --- Publish Jobs ---
+
+export function listPublishJobs(params: {
+  limit?: number;
+  offset?: number;
+  status?: string;
+}): Promise<PublishJobListResponse> {
+  const sp = new URLSearchParams();
+  if (params.limit) sp.set("limit", String(params.limit));
+  if (params.offset) sp.set("offset", String(params.offset));
+  if (params.status) sp.set("status", params.status);
+  return fetchApi(`/api/publish/jobs?${sp.toString()}`);
+}
+
+export function createPublishJob(request: CreatePublishJobRequest): Promise<PublishJob> {
+  return fetchApi("/api/publish/jobs", {
+    method: "POST",
+    body: JSON.stringify(request),
+  });
+}
+
+export function getPublishJob(publishJobId: string): Promise<PublishJob> {
+  return fetchApi(`/api/publish/jobs/${publishJobId}`);
+}
+
+export function cancelPublishJob(publishJobId: string): Promise<PublishJob> {
+  return fetchApi(`/api/publish/jobs/${publishJobId}/cancel`, { method: "POST" });
+}
+

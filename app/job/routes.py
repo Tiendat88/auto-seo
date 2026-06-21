@@ -10,11 +10,14 @@ from app.article.pipeline import run_pipeline
 from app.db import async_session, get_session
 from app.job.models import (
     ArticleRequest,
+    CampaignRequest,
+    CampaignResponse,
     Job,
     JobListResponse,
     JobResponse,
     JobStatus,
     JobSummaryResponse,
+    KeywordCluster,
 )
 from app.job.service import claim_job_for_resume, create_job, get_job, list_jobs
 from app.llm import LlmClient
@@ -42,6 +45,7 @@ def _job_to_summary(job: Job) -> JobSummaryResponse:
         current_step=job.current_step,
         error=job.error,
         revision_count=job.revision_count,
+        webhook_url=job.webhook_url,
         created_at=job.created_at,
         updated_at=job.updated_at,
     )
@@ -82,6 +86,76 @@ async def _run_pipeline_background(job_id: str) -> None:
         serp = get_serp_provider()
         async with async_session() as session:
             await run_pipeline(job_id, session, llm, serp)
+
+            # --- AUTO POST TO OPENCLAW WORKSPACE ---
+            job = await session.get(Job, job_id)
+            if job and job.status == JobStatus.COMPLETED:
+                log.info("Job %s completed successfully", job_id)
+                try:
+                    import httpx
+
+                    from app.config import settings
+
+                    # Post to Custom Webhook (if configured)
+                    if job.webhook_url:
+                        payload = {
+                            "topic": job.topic,
+                            "article_data": job.article_data,
+                            "seo_metadata": job.seo_metadata_data,
+                        }
+                        # Fire and forget POST request
+                        async with httpx.AsyncClient() as client:
+                            resp = await client.post(
+                                job.webhook_url, json=payload, timeout=10.0
+                            )
+                            if resp.status_code >= 400:
+                                log.warning(
+                                    "Webhook failed with status %s: %s",
+                                    resp.status_code, resp.text,
+                                )
+                            else:
+                                log.info("Auto-posted to custom webhook: %s", job.webhook_url)
+                except Exception as e:
+                    log.error("Failed to auto-post: %s", e)
+
+                # --- AUTO-PUBLISH to targets flagged auto_publish ---
+                try:
+                    from sqlalchemy import select as _select
+
+                    from app.publish.models import (
+                        PublishJob,
+                        PublishJobStatus,
+                        PublishMode,
+                        PublishTarget,
+                    )
+                    from app.publish.service import publish_article
+
+                    auto_targets = (
+                        await session.execute(
+                            _select(PublishTarget).where(PublishTarget.auto_publish.is_(True))
+                        )
+                    ).scalars().all()
+
+                    for target in auto_targets:
+                        publish_job = PublishJob(
+                            job_id=job.id,
+                            target_id=target.id,
+                            target_name=target.name,
+                            target_url=target.endpoint_url,
+                            mode=PublishMode(target.default_mode),
+                            status=PublishJobStatus.PENDING,
+                        )
+                        session.add(publish_job)
+                        await session.commit()
+                        await session.refresh(publish_job)
+                        await publish_article(session, publish_job, target, job)
+                        log.info(
+                            "Auto-published job %s to target '%s' (status=%s)",
+                            job.id, target.name, publish_job.status,
+                        )
+                except Exception as e:
+                    log.error("Auto-publish failed for job %s: %s", job_id, e)
+
     except Exception as e:
         log.exception("Pipeline background task failed for job=%s", job_id)
         try:
@@ -96,7 +170,7 @@ async def _run_pipeline_background(job_id: str) -> None:
             log.exception("Failed to mark job=%s as failed", job_id)
 
 
-@router.post("/", status_code=201, response_model=JobResponse)
+@router.post("", status_code=201, response_model=JobResponse)
 async def create_job_endpoint(
     request: ArticleRequest,
     session: AsyncSession = Depends(get_session),
@@ -107,7 +181,41 @@ async def create_job_endpoint(
     return _job_to_response(job)
 
 
-@router.get("/", response_model=JobListResponse)
+@router.post("/campaign", status_code=201, response_model=CampaignResponse)
+async def create_campaign_endpoint(
+    request: CampaignRequest,
+    session: AsyncSession = Depends(get_session),
+) -> CampaignResponse:
+    llm = LlmClient()
+    prompt = (
+        f"Generate {request.num_keywords} highly relevant, long-tail sub-keywords "
+        f"or article topics for the main keyword: '{request.main_keyword}'. "
+        f"Language: {request.language}. Ensure they have good search intent."
+    )
+    cluster = await llm.generate_structured(prompt, KeywordCluster)
+
+    created_jobs = []
+    for kw in cluster.keywords:
+        job_req = ArticleRequest(
+            topic=kw,
+            target_word_count=request.target_word_count,
+            language=request.language,
+            brand_voice=request.brand_voice,
+            webhook_url=request.webhook_url,
+        )
+        job = await create_job(session, job_req)
+        _track_task(asyncio.create_task(_run_pipeline_background(job.id)))
+        created_jobs.append(_job_to_summary(job))
+        log.info("Created campaign job=%s for topic=%s", job.id, job.topic)
+
+    return CampaignResponse(
+        main_keyword=request.main_keyword,
+        generated_keywords=cluster.keywords,
+        jobs=created_jobs
+    )
+
+
+@router.get("", response_model=JobListResponse)
 async def list_jobs_endpoint(
     status: JobStatus | None = None,
     limit: int = Query(default=20, ge=1, le=100),
